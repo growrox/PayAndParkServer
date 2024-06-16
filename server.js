@@ -1,6 +1,7 @@
-import dotenv from "dotenv"
+import dotenv from "dotenv";
 import express from 'express';
-import cors from "cors"
+import cors from "cors";
+import mongoose from "mongoose";
 dotenv.config();
 
 const app = express();
@@ -22,6 +23,8 @@ app.get('/api/v1/users', (req, res) => {
 });
 
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+     // Connect to MongoDB using Mongoose
+     await mongoose.connect('mongodb://localhost:27017/myapp');
      console.log(`Server is running on port ${PORT}`);
 });
