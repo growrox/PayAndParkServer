@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import express from 'express';
 import cors from "cors";
 import mongoose from "mongoose";
+import user from "./routes/user.js"
 dotenv.config();
 
 const app = express();
@@ -18,9 +19,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions))
 
-app.get('/api/v1/users', (req, res) => {
-     res.send('Hello, World!');
-});
+// All the routes middle ware
+app.use("/api/v1", user);
 
 
 app.listen(PORT, async () => {
