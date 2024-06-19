@@ -4,11 +4,12 @@ import User from "../models/user.model.js"; // Assuming your model file is in 'm
 import { generateCode, isEmpty } from "../utils/helperFunctions.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { admin } from "../services/firebase.config.js";
 
 // import admin from 'firebase-admin'
 // Create a new user
 export const createUser = async (req, res) => {
-  const { name, code, phone, role, password } = req.body; // Include password in the body for web clients
+  const { name, code, phone, role, password, uid } = req.body; // Include password in the body for web clients
   const source = req.headers["x-client-source"]; // Client specifies source via headers
 
   try {
@@ -23,17 +24,21 @@ export const createUser = async (req, res) => {
 
     // Verify Firebase token if source is 'app'
     // comment for now for firebase validation
-    // if (source === 'app') {
-    //   const idToken = req.headers.authorization?.split('Bearer ')[1];
-    //   if (!idToken) return res.status(401).json({ message: "No token provided." });
+    if (source === "app") {
+      const idToken = req.headers.authorization?.split("Bearer ")[1];
+      if (!idToken)
+        return res.status(403).json({ message: "Invalid Firebase token." });
 
-    //   try {
-    //     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    //     console.log("Firebase UID:", decodedToken.uid);  // Logging the UID for verification
-    //   } catch (error) {
-    //     return res.status(403).json({ message: "Invalid Firebase token." });
-    //   }
-    // }
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        if (decodedToken.uid !== uid) {
+          return res.status(403).json({ message: "Wrong Firebase token." });
+        }
+        console.log("Firebase UID:", decodedToken.uid); // Logging the UID for verification
+      } catch (error) {
+        return res.status(403).json({ message: "Invalid Firebase token." });
+      }
+    }
 
     let newUser;
     if (role === "assistant") {
@@ -114,26 +119,29 @@ export const createUser = async (req, res) => {
   }
 };
 export const loginUser = async (req, res) => {
-  const { phone, password } = req.body;
+  const { phone, password, uid } = req.body;
   const source = req.headers["x-client-source"]; // Expecting 'web' or 'app'
 
   try {
     if (source === "app") {
-      // const idToken = req.headers.authorization?.split("Bearer ")[1];
-      // if (!idToken) {
-      //   return res.status(401).json({ message: "No Firebase token provided." });
-      // }
+      const idToken = req.headers.authorization?.split("Bearer ")[1];
+      if (!idToken) {
+        return res.status(401).json({ message: "No Firebase token provided." });
+      }
 
       try {
-        // const decodedToken = await admin.auth().verifyIdToken(idToken);
-        // console.log("Firebase UID:", decodedToken.uid); // Optional: log or further validate user details
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        if (decodedToken.uid !== uid) {
+          return res.status(403).json({ message: "Wrong Firebase token." });
+        }
+        console.log("Firebase UID:", decodedToken.uid); // Optional: log or further validate user details
 
-        // const token = jwt.sign(
-        //   { uid: decodedToken.uid },
-        //   process.env.JWT_SECRET,
-        //   { expiresIn: "24h" }
-        // );
-        return res.json({ message: "Login successful.", token: "1basd" });
+        const token = jwt.sign(
+          { uid: decodedToken.uid },
+          process.env.JWT_SECRET,
+          { expiresIn: "24h" }
+        );
+        return res.json({ message: "Login successful.", token });
       } catch (error) {
         return res.status(403).json({ message: "Invalid Firebase token." });
       }
