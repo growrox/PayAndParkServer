@@ -1,32 +1,56 @@
 import dotenv from "dotenv";
-import express from 'express';
+import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import user from "./routes/user.js"
-import vehicleType from "./routes/vehicleType.js"
+import user from "./routes/user.js";
+import vehicleType from "./routes/vehicleType.js";
 dotenv.config();
 
 const app = express();
-app.use(express.json())
+app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
+// const corsOptions = {
+//   origin: process.env.PRODUCTION_URL,
+//   methods: ["GET", "POST", "PUT", "DELETE"],
+//   allowedHeaders: ["Content-Type"],
+//   optionsSuccessStatus: 200,
+// };
+// console.log({ corsOptions });
+// app.use(cors(corsOptions));
+
+const whitelist = [
+  process.env.DEVELOPMENT_URL,
+  process.env.STAGING_URL,
+  process.env.PRODUCTION_URL,
+];
+console.log({ whitelist });
+
 const corsOptions = {
-     origin: 'http://localhost:5173',
-     methods: ['GET', 'POST'],
-     allowedHeaders: ['Content-Type'],
-     optionsSuccessStatus: 200
+  origin: function (origin, callback) {
+    if (!origin) {
+      console.warn(
+        "Origin was undefined, handling as same-origin or non-browser client"
+      );
+      return callback(null, true); // Adjust based on your security needs
+    }
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"), false);
+    }
+  },
 };
 
-app.use(cors(corsOptions))
+app.use(cors(corsOptions));
 
 // All the routes middle ware
 app.use("/api/v1", user);
 app.use("/api/v1", vehicleType);
 
-
 app.listen(PORT, async () => {
-     // Connect to MongoDB using Mongoose
-     await mongoose.connect(process.env.DB_URL);
-     console.log(`Server is running on port ${PORT}`);
+  // Connect to MongoDB using Mongoose
+  await mongoose.connect(process.env.DB_URL);
+  console.log(`Server is running on port ${PORT}`);
 });

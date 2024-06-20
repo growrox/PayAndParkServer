@@ -167,8 +167,8 @@ export const loginUser = async (req, res) => {
         sameSite: "Strict",
         maxAge: 86400000, // 24 hours
       });
-
-      return res.json({ message: "Login successful." });
+      user.password = undefined;
+      return res.json({ result: user, message: "Login successful." });
     } else {
       return res.status(400).json({ message: "Invalid client source." });
     }
