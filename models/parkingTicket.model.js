@@ -12,11 +12,11 @@ const parkingTicketSchema = new Schema({
      amount: { type: Number, required: true },
      status: { type: String, enum: ['created', 'paid', 'settled'], default: 'created' },
      supervisor: { type: Schema.Types.ObjectId, ref: 'Supervisor' },
-     settlementId: { type: String, unique: true },
+     settlementId: { type: Schema.Types.ObjectId, ref: "SupervisorSettlementTicket" },
      isPass: { type: Boolean, default: false },
      passId: { type: Schema.Types.ObjectId, ref: 'Pass' }
-});
+}, { timestamps: true });
 
-const ParkingTicket = mongoose.model('ParkingTicket', parkingTicketSchema);
+const ParkingTicket = model('ParkingTickets', parkingTicketSchema);
 
 export default ParkingTicket

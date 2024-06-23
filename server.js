@@ -2,8 +2,13 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import user from "./routes/user.js";
+import user from "./routes/user.route.js";
 import vehicleType from "./routes/vehicleType.js";
+import ParkingTicket from "./routes/ticket.route.js";
+import ParkingAssistant from "./routes/assistant.route.js";
+import Supervisor from "./routes/supervisor.route.js";
+import Accountant from "./routes/accountant.route.js";
+
 dotenv.config();
 
 const app = express();
@@ -47,6 +52,11 @@ app.use(cors(corsOptions));
 
 // All the routes middle ware
 app.use("/api/v1", user);
+app.use("/api/v1", ParkingTicket);
+app.use("/api/v1", ParkingAssistant);
+app.use("/api/v1", Supervisor);
+app.use("/api/v1", Accountant);
+
 app.use("/api/v1", vehicleType);
 
 app.listen(PORT, async () => {

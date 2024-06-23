@@ -9,14 +9,16 @@ const supervisorSettlementSchema = new Schema({
      supervisor: { type: Schema.Types.ObjectId, ref: 'Supervisor', required: true },
      parkingAssistant: { type: Schema.Types.ObjectId, ref: 'ParkingAssistant', required: true },
      settlementDate: { type: Date, default: Date.now },
-     totalAmount: { type: Number, required: true },
+     totalCollection: { type: Number, required: true },
+     totalCollectedAmount: { type: Number, required: true },
      totalFine: { type: Number, required: true },
      totalReward: { type: Number, required: true },
      cashCollected: [denominationSchema], // Array of denomination objects
-     accountantId: { type: String, unique: true },
+     accountantId: { type: String },
+     settlementId: {},
      isSettled: { type: Boolean, default: false }
-});
+}, { timestamps: true });
 
-const SupervisorSettlementTicket = mongoose.model('SupervisorSettlementTicket', supervisorSettlementSchema);
+const SupervisorSettlementTicket = model('SupervisorSettlementTicket', supervisorSettlementSchema);
 
 export default SupervisorSettlementTicket

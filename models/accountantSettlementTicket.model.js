@@ -9,11 +9,10 @@ const accountantSettlementSchema = new Schema({
      supervisor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
      accountant: { type: Schema.Types.ObjectId, ref: 'User', required: true },
      settlementDate: { type: Date, default: Date.now },
-     totalSettledAmount: { type: Number, required: true },
-     totalExpenses: { type: Number, default: 0 },
-     remarks: { type: String },
-     expenses: expenseSchema
-});
+     totalCollectedAmount: { type: Number, required: true },
+     expenseDetail: expenseSchema,
+     isClosed: { type: Boolean, default: false }
+}, { timestamps: true });
 
 const AccountantSettlement = model('AccountantSettlement', accountantSettlementSchema);
 
