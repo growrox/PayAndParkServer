@@ -231,7 +231,7 @@ export const validateOTP = async (req, res) => {
                else {
                     await Otp.updateOne({ phoneNumber: phone }, { attempts: getOTPDetails?.attempts - 1 })
                }
-               return res.status(300).json({ message: `${getOTPDetails?.attempts ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts : "Maximum attempts reached generate new OTP."}` });
+               return res.status(300).json({ message: `${getOTPDetails?.attempts ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts : "Maximum attempts reached generate new OTP."}`, attempts: getOTPDetails?.attempts });
           }
      } catch (error) {
           console.error("Error validating the OTP", error);
