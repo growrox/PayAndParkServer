@@ -1,3 +1,5 @@
+import Otp from "../models/otp.model.js";
+
 export const isEmpty = (value) => {
   if (value === null || value === undefined) {
     return true;
@@ -22,3 +24,35 @@ export const generateCode = (length = 6) => {
   }
   return result;
 };
+
+export const generateOTP = async (userID, phoneNumber) => {
+  try {
+    // Generate a 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Save OTP to MongoDB
+    const otpRecord = await Otp.updateOne(
+      { userID, phoneNumber }, // Filter criteria to find the OTP record
+      {
+        $set: {
+          userID,
+          phoneNumber,
+          OTP: otp,
+          expires_on: new Date(Date.now() + (5 * 60000)) // Set expiry time in minutes
+        }
+      },
+      { upsert: true } // Options to upsert if record doesn't exist
+    );
+    
+    console.log(`Generated OTP ${otp} for userID ${userID} and phone number ${phoneNumber}`);
+    return { status: "success", OTP: otp };
+  } catch (error) {
+    console.error('Error generating OTP:', error);
+    // throw error; // Propagate the error back to the caller
+    return { status: "error", OTP: "" };
+
+  }
+};
+
+
+

@@ -2,6 +2,7 @@ export const ROUTES = {
   USER: {
     SIGN_UP: "/sign-up",
     LOGIN: "/login",
+    VERIFY_OTP: "/verify-otp"
   },
   VEHICLE_TYPE: {
     CREATE: "/create-vehicle-type",
