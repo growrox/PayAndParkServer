@@ -11,7 +11,8 @@ const userSchema = new Schema({
     enum: ["assistant", "accountant", "supervisor", "superadmin"],
   },
   password: { type: String },
-  isOnline: { type: Boolean, default: false }
+  isOnline: { type: Boolean, default: false },
+  isActivated: { type: Boolean, default: true }
 });
 
 const User = model("User", userSchema);

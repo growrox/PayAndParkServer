@@ -8,17 +8,18 @@ import Otp from "../models/otp.model.js";
 
 // Create a new user
 export const createUser = async (req, res) => {
-     const { name, code, phone, role, password, supervisorCode } = req.body; // Include password in the body for web clients
+     const { name, phone, role, password, supervisorCode } = req.body; // Include password in the body for web clients
      const source = req.headers["x-client-source"]; // Client specifies source via headers
 
      try {
           // Check if user with the same phone number already exists
-          if (isEmpty(name)) return res.status(403).json({ message: "Name is a required field." });
-          if (isEmpty(phone)) return res.status(403).json({ message: "Phone number is a required field." });
+          if (isEmpty(name)) return res.status(404).json({ message: "Name is a required field." });
+          if (isEmpty(phone)) return res.status(404).json({ message: "Phone number is a required field." });
 
+          let newUser;
           const existingUser = await User.findOne({ phone: phone });
           if (existingUser) {
-               console.log("User Already Present ");
+               console.log("User Already Present ", existingUser);
                return res
                     .status(400)
                     .json({ message: "User already available. Please Login." });
@@ -26,62 +27,75 @@ export const createUser = async (req, res) => {
 
           if (source === "app") {
                try {
-                    if (isEmpty(supervisorCode)) return res.status(403).json({ message: "supervisorCode is required field." });
+                    if (isEmpty(supervisorCode)) return res.status(404).json({ message: "supervisorCode is required field." });
 
-                    // Validate OTP for now.
-                    const newUser = new User({
+                    const FindSupervisor = await User.findOne({ code: supervisorCode });
+
+                    if (isEmpty(FindSupervisor)) return res.status(404).json({ message: "Please check supervisor code." });
+
+                    // Validate OTP for now
+                    newUser = new User({
                          name,
                          phone,
                          supervisorCode,
-                         role: "assistant"
+                         role: "assistant",
+                         isActivated: false
                     })
 
-                    // return res.status(403).json({ message: "Wrong Firebase token." });
+                    await newUser.save();
+                    console.log("newUser ---- ", newUser);
+
+                    // const token = jwt.sign(
+                    //      { userId: newUser._id, role: newUser.role, source: "app" },
+                    //      process.env.JWT_SECRET, // Your JWT secret key
+                    //      { expiresIn: '24h' } // Token expiration time
+                    // );
+                    const otpSent = await generateOTP(newUser._id, phone)
+                    console.log("otpSent ", otpSent);
+
+                    return res.status(200).json({ message: "Please verify otp to activate the account." });
 
                } catch (error) {
                     console.error("Error creating the user account.", error);
                     return res.status(403).json({ message: "Error creating the user account." });
                }
           }
-
-          let newUser;
-          if (role === "assistant") {
-               const supervisorDetails = await User.findOne({
-                    code: code,
-                    role: "supervisor",
-               });
-               if (!supervisorDetails) {
-                    return res.status(404).json({ message: "No supervisor found." });
-               }
-               newUser = new User({
-                    name,
-                    supervisorCode: code,
-                    phone,
-                    role: "assistant",
-               });
-          } else {
-               const newUserCode = generateCode(6); // Assume generateCode function exists
-               let hashedPassword = password;
-               if (password) {
-                    hashedPassword = await bcrypt.hash(password, 10); // Hash password for web clients
+          else if (source === "web") {
+               if (role === "accountant") {
                     newUser = new User({
                          name,
-                         code: newUserCode,
+                         phone,
+                         role
+                    })
+               }
+               else if (role === "supervisor") {
+                    const newUserCode = generateCode(6); // Assume generateCode function exists
+
+                    newUser = new User({
+                         name,
+                         phone,
+                         role,
+                         code: newUserCode
+                    })
+               }
+               else if (role === "superadmin") {
+                    const hashedPassword = await bcrypt.hash(password, 10); // Hash password for web clients
+                    newUser = new User({
+                         name,
                          phone,
                          role,
                          password: hashedPassword,
                     });
-               } else {
-                    newUser = new User({
-                         name,
-                         code: newUserCode,
-                         phone,
-                         role,
-                    });
+               }
+               else {
+                    return res.status(404).json({ message: "Invalid role type given." });
                }
           }
-          await newUser.save();
+          else {
+               return res.status(400).json({ message: "Invalid client source." });
+          }
 
+          await newUser.save();
           // Generate JWT token
           const token = jwt.sign(
                { userId: newUser._id, role: newUser.role },
@@ -203,7 +217,6 @@ export const validateOTP = async (req, res) => {
           const getOTPDetails = await Otp.findOne({ phoneNumber: phone })
           // console.log("getOTPDetails ", getOTPDetails);
 
-
           if (isEmpty(getOTPDetails)) {
                return res.status(404).json({ message: "No OTP found. Please generate new one." });
           }
@@ -216,13 +229,21 @@ export const validateOTP = async (req, res) => {
           console.log(OTP, getOTPDetails.OTP, OTP == getOTPDetails.OTP);
           if (OTP == getOTPDetails.OTP) {
                await Otp.deleteOne({ phoneNumber: phone })
+               await User.findByIdAndUpdate(newUser._id, { $set: { isActivated: true } })
                const token = jwt.sign(
                     { userId: newUser._id, role: newUser.role },
                     process.env.JWT_SECRET, // Your JWT secret key
-                    { expiresIn: '12h' } // Token expiration time
+                    { expiresIn: '24h' } // Token expiration time
                );
 
-               return res.status(200).json({ message: "OTP validated successfully.", token });
+               return res.status(200).json({
+                    message: "OTP validated successfully.",
+                    token,
+                    name: newUser.name,
+                    role: newUser.role,
+                    userId: newUser._id,
+                    isActivated: newUser.isActivated
+               });
           }
           else {
                if (!getOTPDetails?.attempts) {

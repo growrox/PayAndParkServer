@@ -11,4 +11,7 @@ export const ROUTES = {
     UPDATE: "/update-vehicle-type/:id",
     DELETE: "/delete-vehicle-type/:id",
   },
+  ASSISTANT: {
+    STATS:"/parking-assistant/stats"
+  }
 };

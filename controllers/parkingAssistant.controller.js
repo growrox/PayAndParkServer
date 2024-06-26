@@ -74,7 +74,12 @@ export const deleteParkingAssistant = async (req, res) => {
 
 // Get the stats of the tickets for the asistant
 export const getTicketsStatsByAssistantId = async (req, res) => {
-     const parkingAssistant = req.params.assistantId;
+
+     // if (isEmpty(req.user)) return res.status(404).json({ message: "Required headers are missing." });
+
+     // console.log(req.headers);
+     const parkingAssistant = req.headers.userid;
+     console.log("parkingAssistant ", parkingAssistant);
 
      try {
           const pipeline = [
