@@ -23,7 +23,7 @@ const authMiddleware = (req, res, next) => {
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
       console.error("JWT verification error:", err);
-      return res.status(403).json({ message: "Failed to authenticate token" });
+      return res.status(406).json({ message: "Failed to authenticate token" });
     }
     // Attach decoded payload to request object
     console.log("decoded ", decoded);
