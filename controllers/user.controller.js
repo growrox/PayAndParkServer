@@ -104,27 +104,17 @@ export const createUser = async (req, res) => {
           );
 
           // Conditionally handle the response based on the source
-          if (source === "web") {
-               res.cookie("token", token, {
-                    httpOnly: true,
-                    secure: true, // Use secure: true in production with HTTPS
-                    sameSite: "strict",
-                    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-               });
-               return res.status(201).json({
-                    message: "Account Created.",
-                    data: { name: newUser.name, phone: newUser.phone },
-               });
-          } else {
-               return res.status(201).json({
-                    message: "Account Created.",
-                    data: {
-                         name: newUser.name,
-                         phone: newUser.phone,
-                         token: token,
-                    },
-               });
-          }
+          res.cookie("token", token, {
+               httpOnly: true,
+               secure: true, // Use secure: true in production with HTTPS
+               sameSite: "strict",
+               maxAge: 24 * 60 * 60 * 1000, // 24 hours
+          });
+          return res.status(201).json({
+               message: "Account Created.",
+               data: { name: newUser.name, phone: newUser.phone },
+          });
+
      } catch (err) {
           console.error("Error creating user:", err);
           if (err.code === 11000) {
@@ -231,9 +221,9 @@ export const validateOTP = async (req, res) => {
                await Otp.deleteOne({ phoneNumber: phone })
                await User.findByIdAndUpdate(newUser._id, { $set: { isActivated: true } })
                const token = jwt.sign(
-                    { userId: newUser._id, role: newUser.role },
+                    { userId: newUser._id, role: newUser.role, source: "app" },
                     process.env.JWT_SECRET, // Your JWT secret key
-                    { expiresIn: '24h' } // Token expiration time
+                    { expiresIn: '12h' } // Token expiration time
                );
 
                return res.status(200).json({
@@ -241,8 +231,7 @@ export const validateOTP = async (req, res) => {
                     token,
                     name: newUser.name,
                     role: newUser.role,
-                    userId: newUser._id,
-                    isActivated: newUser.isActivated
+                    userId: newUser._id
                });
           }
           else {
@@ -261,28 +250,85 @@ export const validateOTP = async (req, res) => {
      }
 }
 
-// Get all users
+// Function to get all users with pagination and filtering
 export const getUsers = async (req, res) => {
+     const { page = 1, pageSize = 10, filter } = req.query;
+     const query = {};
+
+     // Apply filters based on query parameters if they exist
+     if (!isEmpty(filter)) {
+          // Create a $or condition to match name, phone, or role
+          query.$or = [
+               { name: { $regex: filter.trim(), $options: 'i' } },
+               { phone: { $regex: filter.trim(), $options: 'i' } },
+               { role: { $regex: filter.trim(), $options: 'i' } },
+               { code: { $regex: filter.trim(), $options: 'i' } },
+               { supervisorCode: { $regex: filter.trim(), $options: 'i' } }
+          ];
+     }
      try {
-          const users = await User.find(
-               {},
-               {
-                    _id: 0,
-                    name: 1,
-                    code: 1,
-                    phone: 1,
-                    role: 1,
-                    supervisorCode: 1,
-               }
-          );
-          if (isEmpty(users)) {
-               return res.status(404).json({ message: "No Accounts found." });
+          // Count total documents matching the query
+          const totalCount = await User.countDocuments(query);
+          const totalPages = Math.ceil(totalCount / pageSize);
+
+          // Return 404 if no users found
+          if (totalCount === 0) {
+               return res.status(404).json({ message: "No users found." });
           }
-          return res.status(200).json(users);
+
+          if (page > totalPages) {
+               return res.status(400).json({ message: "You have exceeded the available search results. Please check page." });
+          }
+
+
+          // Calculate total pages based on pageSize
+
+          // Find users based on the query, select specific fields, and apply pagination
+          const users = await User.find(query)
+               .select('name code phone role supervisorCode')
+               .skip((page - 1) * pageSize)
+               .limit(parseInt(pageSize))
+               .exec();
+
+
+
+          // Pagination logic to determine next and previous pages
+          let nextPage = null;
+          let prevPage = null;
+
+          if (page < totalPages) {
+               nextPage = {
+                    page: parseInt(page) + 1,
+                    pageSize: parseInt(pageSize)
+               };
+          }
+
+          if (page > 1) {
+               prevPage = {
+                    page: parseInt(page) - 1,
+                    pageSize: parseInt(pageSize)
+               };
+          }
+
+          // Prepare response object with users, pagination details, and totalCount
+          const response = {
+               users,
+               pagination: {
+                    totalCount,
+                    totalPages,
+                    nextPage,
+                    prevPage
+               }
+          };
+
+          // Return successful response with status 200
+          return res.status(200).json(response);
      } catch (err) {
+          // Handle errors and return status 500 with error message
           res.status(500).json({ message: err.message });
      }
 };
+
 
 // Get a single user by ID
 export const getUserById = async (req, res) => {

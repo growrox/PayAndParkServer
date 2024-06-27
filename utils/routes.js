@@ -2,7 +2,8 @@ export const ROUTES = {
   USER: {
     SIGN_UP: "/sign-up",
     LOGIN: "/login",
-    VERIFY_OTP: "/verify-otp"
+    VERIFY_OTP: "/verify-otp",
+    GET_USER: "/users"
   },
   VEHICLE_TYPE: {
     CREATE: "/create-vehicle-type",
@@ -12,6 +13,6 @@ export const ROUTES = {
     DELETE: "/delete-vehicle-type/:id",
   },
   ASSISTANT: {
-    STATS:"/parking-assistant/stats"
+    STATS: "/parking-assistant/stats"
   }
 };
