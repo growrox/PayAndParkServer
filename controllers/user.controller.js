@@ -98,7 +98,11 @@ export const createUser = async (req, res) => {
           await newUser.save();
           // Generate JWT token
           const token = jwt.sign(
-               { userId: newUser._id, role: newUser.role },
+               {
+                    userId: newUser._id,
+                    role: "superadmin",
+                    source: "web"
+               },
                process.env.JWT_SECRET, // Your JWT secret key
                { expiresIn: "24h" } // Token expiration time
           );
@@ -170,7 +174,11 @@ export const loginUser = async (req, res) => {
                     return res.status(401).json({ message: "Invalid credentials." });
                }
 
-               const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+               const token = jwt.sign({
+                    role: "superadmin",
+                    userId: user._id,
+                    source: "web",
+               }, process.env.JWT_SECRET, {
                     expiresIn: "24h",
                });
                res.cookie("token", token, {
