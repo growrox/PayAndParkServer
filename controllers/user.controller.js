@@ -116,7 +116,7 @@ export const createUser = async (req, res) => {
           });
           return res.status(201).json({
                message: "Account Created.",
-               data: { name: newUser.name, phone: newUser.phone },
+               result: { name: newUser.name, phone: newUser.phone },
           });
 
      } catch (err) {

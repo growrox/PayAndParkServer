@@ -45,7 +45,7 @@ export const updateParkingAssistant = async (req, res) => {
           const { name, supervisorCode, phone, email, address } = req.body;
           const updatedAssistant = await ParkingAssistant.findByIdAndUpdate(
                req.params.id,
-               { name, supervisorCode, phone, email, address },
+               { name, supervisorCode, phone },
                { new: true }
           );
           if (!updatedAssistant) {
@@ -133,7 +133,16 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
           console.log("results2 ", results2);
 
           // Return the results
-          res.json(results.length > 0 ? { message: "Here is the settlements.", data: [{ ...results[0], ...results2[0] }][0] } : { message: "This is a new account or there is no settlements pending.", data: { TotalAmount: 0, TotalCash: 0, TotalOnline: 0, LastSettledDate: null } });
+          res.json(results.length > 0 ?
+               {
+                    message: "Here is the settlements.",
+                    result: [{ ...results[0], ...results2[0] }][0]
+               }
+               :
+               {
+                    message: "This is a new account or there is no settlements pending.",
+                    result: { TotalAmount: 0, TotalCash: 0, TotalOnline: 0, LastSettledDate: null }
+               });
      } catch (error) {
           res.status(500).json({ message: error.message });
      }

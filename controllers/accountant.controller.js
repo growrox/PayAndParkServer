@@ -111,7 +111,7 @@ export const settleSupervisorTickets = async (req, res) => {
                     }
                });
 
-          res.json({ message: 'Supervisor tickets settled successfully.', settlementId: savedSettlement._id });
+          res.json({ message: 'Supervisor tickets settled successfully.', result: { settlementId: savedSettlement._id } });
      } catch (error) {
           console.error("Error settling the supervisor tickets.", error);
           res.status(500).json({ message: error.message });
@@ -127,15 +127,15 @@ export const getSupervisors = async (req, res) => {
           // }
           // else {
 
-               const supervisorsList = await User.find({ role: "supervisor" }, { name: 1, phone: 1 })
+          const supervisorsList = await User.find({ role: "supervisor" }, { name: 1, phone: 1 })
 
-               console.log("Result ", supervisorsList);
-               if (isEmpty(supervisorsList) ) {
-                    return res.status(404).json({ message: 'No Supervisor found.' });
-               }
-               else {
-                    return res.status(404).json({ message: 'Here is the supervisor list.', data: supervisorsList });
-               }
+          console.log("Result ", supervisorsList);
+          if (isEmpty(supervisorsList)) {
+               return res.status(404).json({ message: 'No Supervisor found.' });
+          }
+          else {
+               return res.status(404).json({ message: 'Here is the supervisor list.', result: supervisorsList });
+          }
 
           // }
 
@@ -170,8 +170,7 @@ export const getAllSettlementTickets = async (req, res) => {
                     return res.status(404).json({ message: 'No tickets found.' });
                }
                else {
-
-                    return res.status(200).json({ message: 'Here is the settlement ticket list.', data: result });
+                    return res.status(200).json({ message: 'Here is the settlement ticket list.', result: result });
                }
           }
 
@@ -225,7 +224,7 @@ export const getAccountantStats = async (req, res) => {
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
           };
 
-          res.status(200).json(supervisorStats);
+          res.status(200).json({ message: "Here is the supervisor stats.", result: supervisorStats });
      } catch (error) {
           console.error("Error getting the supervisor stats.", error);
           res.status(500).json({ error: error.message });

@@ -10,29 +10,31 @@ export const createVehicleType = async (req, res) => {
       hourlyPrices,
     });
     await newVehicleType.save();
-    return res.status(201).json(newVehicleType);
+    return res.status(201).json({ message: "New vehical type created.", result: newVehicleType });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
+
 export const getAllVehicleType = async (req, res) => {
   try {
     const vehicleTypes = await VehicleType.find({});
-    return res.json(vehicleTypes);
+    return res.json({ message: "All vehicals type list.", result: vehicleTypes });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 export const getVehicleTypeDetail = async (req, res) => {
   try {
     const vehicleType = await VehicleType.findById(req.params.id);
-    if (!vehicleType)
-      return res.status(404).json({ message: "Vehicle type not found" });
-    res.json(vehicleType);
+    if (!vehicleType) return res.status(404).json({ message: "Vehicle type not found" });
+    return res.json({ message: "All vehicals details list.", result: vehicleType });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 export const updateVehicleType = async (req, res) => {
   try {
     const { name, supervisorCode, phone, hourlyPrices, image } = req.body;
@@ -49,11 +51,12 @@ export const updateVehicleType = async (req, res) => {
     vehicleType.image = image;
 
     await vehicleType.save();
-    return res.json(vehicleType);
+    return res.json({ message: "Vehical type updated.", result: vehicleType });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
+
 export const deleteVehicleType = async (req, res) => {
   try {
     const vehicleType = await VehicleType.findByIdAndDelete(req.params.id);

@@ -1,4 +1,4 @@
-import ParkingAssistant from '../models/user.model.js'; // Import the ParkingAssistant model
+import User from '../models/user.model.js'; // Import the ParkingAssistant model
 import ParkingTicket from '../models/parkingTicket.model.js';
 import SupervisorSettlement from "../models/settlementTicket.model.js"
 import mongoose from 'mongoose';
@@ -20,7 +20,7 @@ export const settleParkingTickets = async (req, res) => {
                return res.status(404).json({ message: 'Please check reward amount.' });
           }
 
-          const findAssistant = await ParkingAssistant.findById(parkingAssistantID);
+          const findAssistant = await User.findById(parkingAssistantID);
 
           if (isEmpty(findAssistant)) {
                return res.status(404).json({ message: 'Assistant not find please check the id.' });
@@ -110,7 +110,12 @@ export const settleParkingTickets = async (req, res) => {
                     }
                });
 
-          await settleParkingTickets.updateOne(
+
+          await User.findByIdAndUpdate(parkingAssistantID, {
+               lastSettledTicketId: savedSettlement._id
+          });
+
+          await SupervisorSettlement.updateOne(
                {
                     _id: new mongoose.Types.ObjectId(savedSettlement._id),
                     settled: { $ne: 'true' }
@@ -121,7 +126,7 @@ export const settleParkingTickets = async (req, res) => {
                     }
                });
 
-          res.json({ message: 'Tickets settled successfully.', settlementId: savedSettlement._id });
+          res.json({ message: 'Tickets settled successfully.', result: { settlementId: savedSettlement._id } });
      } catch (error) {
           res.status(500).json({ message: error.message });
      }
@@ -129,52 +134,67 @@ export const settleParkingTickets = async (req, res) => {
 
 export const getParkingAssistants = async (req, res) => {
      const { supervisorID } = req.params;
+
      try {
-          console.log("supervisorID ", supervisorID);
-          if (isEmpty(supervisorID)) {
-               return res.status(404).json({ message: 'Not supervisor id provided please check again.' });
+          const supervisor = await User.findById(supervisorID)
+          if (isEmpty(supervisor)) {
+               return res.status(404).json({ message: 'Supervisor not found' });
           }
-          else {
 
-               const pipeline = [
-                    // Stage 1: Match document by _id
-                    { $match: { _id: new mongoose.Types.ObjectId(supervisorID) } },
+          // Query users where supervisorCode matches
+          let Assistants = await User.find({
+               supervisorCode: supervisor.code
+          }, {
+               isOnline: 1,
+               name: 1,
+               phone: 1
+          }).populate({
+               path: 'shiftId',
+               select: 'name startTime endTime',
+          }).populate({
+               path: 'lastSettledTicketId',
+               select: 'updatedAt'
+          });
 
-                    // Stage 2: Project to get the code field
-                    { $project: { code: 1 } },
+          if (!Assistants) {
+               return res.status(404).json({ message: 'Users not found' });
+          }
 
-                    // Stage 3: Lookup documents where supervisorCode matches the code value
-                    {
-                         $lookup: {
-                              from: 'users', // Replace 'users' with your actual collection name
-                              let: { supervisorCode: '$code' },
-                              pipeline: [
-                                   { $match: { $expr: { $eq: ['$supervisorCode', '$$supervisorCode'] } } },
-                                   // Optionally project specific fields from the matched documents
-                                   { $project: { name: 1, phone: 1, role: 1 } }
-                              ],
-                              as: 'parkingAssistants'
+          Assistants = Assistants.map(el => {
+               const { isOnline, _id, name, phone, shiftId, lastSettledTicketId } = el
+               if (isEmpty(shiftId)) {
+
+                    return {
+                         _id,
+                         name,
+                         phone,
+                         isOnline,
+                         lastSettled: isEmpty(lastSettledTicketId) ? null : lastSettledTicketId?.updatedAt,
+                         shiftDetails: {
+                              "_id": null,
+                              "name": null,
+                              "startTime": null,
+                              "endTime": null
                          }
                     }
-               ];
-
-               // Execute the aggregation pipeline
-               const result = await ParkingAssistant.aggregate(pipeline).exec();
-
-               console.log("Result ", result);
-               if (isEmpty(result) || isEmpty(result[0]?.parkingAssistants)) {
-                    return res.status(404).json({ message: 'No assistant found.' });
                }
                else {
+                    return {
+                         _id,
+                         name,
+                         phone,
+                         isOnline,
+                         lastSettled: isEmpty(lastSettledTicketId) ? null : lastSettledTicketId?.updatedAt,
+                         shiftDetails: shiftId
+                    }
 
-                    return res.status(404).json({ message: 'Here is the parking assistants list.', data: result[0]?.parkingAssistants });
                }
+          })
 
-          }
-
+          res.json({ message: "Here is all you parking assistant list", result: Assistants });
      } catch (error) {
-          console.error("Error getting the parking assistants.", error);
-          res.status(500).json({ message: error.message });
+          console.error(error);
+          res.status(500).json({ message: 'Server Error' });
      }
 }
 
@@ -204,7 +224,7 @@ export const getAllSettlementTickets = async (req, res) => {
                }
                else {
 
-                    return res.status(200).json({ message: 'Here is the settlement ticket list.', data: result });
+                    return res.status(200).json({ message: 'Here is the settlement ticket list.', result: result });
                }
           }
 
@@ -212,6 +232,7 @@ export const getAllSettlementTickets = async (req, res) => {
           console.error("Error gettig all ticket.");
      }
 }
+
 export const getSupervisorStats = async (req, res) => {
      const supervisorId = req.params.supervisorID; // Assuming supervisorId is passed in request params
      console.log("supervisorId ", supervisorId);
@@ -258,7 +279,7 @@ export const getSupervisorStats = async (req, res) => {
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
           };
 
-          res.status(200).json(supervisorStats);
+          res.status(200).json({ message: "Here is supervisor stats.", result: supervisorStats });
      } catch (error) {
           console.error("Error getting the supervisor stats.", error);
           res.status(500).json({ error: error.message });

@@ -12,7 +12,9 @@ const userSchema = new Schema({
   },
   password: { type: String },
   isOnline: { type: Boolean, default: false },
-  isActivated: { type: Boolean, default: true }
+  isActivated: { type: Boolean, default: true },
+  shiftId: { type: Schema.Types.ObjectId, ref: 'Shift' },
+  lastSettledTicketId: { type: Schema.Types.ObjectId, ref: 'SupervisorSettlementTicket' }
 });
 
 const User = model("User", userSchema);

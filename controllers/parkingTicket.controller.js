@@ -61,7 +61,7 @@ export const createParkingTicket = async (req, res) => {
           });
 
           const savedTicket = await newTicket.save();
-          res.status(201).json(savedTicket);
+          res.status(200).json({ message: "Parking ticket created", result: savedTicket });
      } catch (error) {
           if (error.name === 'ValidationError') {
                // Mongoose validation error
@@ -104,9 +104,12 @@ export const getTicketsByAssistantId = async (req, res) => {
           });
 
           res.json({
-               totalCount,
-               totalCost,
-               tickets
+               message: "here is the all parking tickets for you.",
+               result: {
+                    totalCount,
+                    totalCost,
+                    tickets
+               }
           });
      } catch (error) {
           res.status(500).json({ message: error.message });
@@ -148,7 +151,10 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
           const results = await ParkingTicket.aggregate(pipeline);
 
           // Return the results
-          res.json(results.length > 0 ? results[0] : { TotalAmount: 0, TotalCash: 0, TotalOnline: 0 });
+          res.json({
+               message: "Here is the ticket stats",
+               result: results.length > 0 ? results[0] : { TotalAmount: 0, TotalCash: 0, TotalOnline: 0 }
+          });
      } catch (error) {
           res.status(500).json({ message: error.message });
      }
@@ -158,7 +164,7 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
 export const getParkingTicketByQuery = async (req, res) => {
      const param = req.params.query;
 
-     console.log("Params ",param);
+     console.log("Params ", param);
      // Regex patterns for validation
      const phoneNumberRegex = /^\d{10}$/; // Matches exactly 10 digits
      const vehicleNumberRegex = /^[A-Za-z0-9]{1,10}$/; // Matches alphanumeric vehicle number up to 10 characters
@@ -176,14 +182,14 @@ export const getParkingTicketByQuery = async (req, res) => {
 
      try {
           const ticket = await ParkingTicket.findOne(query);
-               // .populate('parkingAssistant', 'name') // Populate parkingAssistant with 'name' field
-               // .populate('supervisor', 'name'); // Populate supervisor with 'name' field
+          // .populate('parkingAssistant', 'name') // Populate parkingAssistant with 'name' field
+          // .populate('supervisor', 'name'); // Populate supervisor with 'name' field
 
           if (isEmpty(ticket)) {
                return res.status(404).json({ message: 'Parking ticket not found' });
           }
 
-          res.json(ticket);
+          res.json({ message: "Here is all the matched results", result: ticket });
      } catch (error) {
           res.status(500).json({ message: error.message });
      }
@@ -196,7 +202,7 @@ export const updateParkingTicketById = async (req, res) => {
           if (!updatedTicket) {
                return res.status(404).json({ message: 'Parking ticket not found' });
           }
-          res.json(updatedTicket);
+          res.json({ message: "Tickets updated.", result: updatedTicket });
      } catch (error) {
           if (error.name === 'ValidationError') {
                // Mongoose validation error

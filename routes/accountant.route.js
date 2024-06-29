@@ -10,4 +10,4 @@ router.get('/accountant/tickets/all/:accountantID', getAllSettlementTickets);
 router.get('/accountant/stats/:accountantID', getAccountantStats);
 
 
-export default router
+export default router    
