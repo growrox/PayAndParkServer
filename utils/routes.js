@@ -14,5 +14,13 @@ export const ROUTES = {
   },
   ASSISTANT: {
     STATS: "/parking-assistant/stats"
+  },
+  SHIFT: {
+    CREATE_SHIFTS: '/shifts/create',
+    UPDATE_SHIFT: '/shifts/:id',
+  },
+  ATTENDENCE: {
+    CLOCK_IN: '/:userId/clock-in',
+    CLOCK_OUT: '/:userId/clock-out'
   }
 };

@@ -8,6 +8,7 @@ import ParkingTicket from "./routes/ticket.route.js";
 import ParkingAssistant from "./routes/assistant.route.js";
 import Supervisor from "./routes/supervisor.route.js";
 import Accountant from "./routes/accountant.route.js";
+import ShiftRoutes from "./routes/shift.route.js";
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ app.use("/api/v1", ParkingTicket);
 app.use("/api/v1", ParkingAssistant);
 app.use("/api/v1", Supervisor);
 app.use("/api/v1", Accountant);
+app.use('/api/v1', ShiftRoutes);
 
 app.use("/api/v1", vehicleType);
 
