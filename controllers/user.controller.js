@@ -277,16 +277,14 @@ export const validateOTP = async (req, res) => {
           { attempts: getOTPDetails?.attempts - 1 }
         );
       }
-      return res
-        .status(300)
-        .json({
-          message: `${
-            getOTPDetails?.attempts
-              ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
-              : "Maximum attempts reached generate new OTP."
-          }`,
-          attempts: getOTPDetails?.attempts,
-        });
+      return res.status(300).json({
+        message: `${
+          getOTPDetails?.attempts
+            ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
+            : "Maximum attempts reached generate new OTP."
+        }`,
+        attempts: getOTPDetails?.attempts,
+      });
     }
   } catch (error) {
     console.error("Error validating the OTP", error);
@@ -296,19 +294,20 @@ export const validateOTP = async (req, res) => {
 
 // Function to get all users with pagination and filtering
 export const getUsers = async (req, res) => {
-  const { page = 1, pageSize = 10, filter } = req.query;
+  const { page = 1, pageSize = 10, filter, role } = req.query;
   const query = {};
-
   // Apply filters based on query parameters if they exist
   if (!isEmpty(filter)) {
     // Create a $or condition to match name, phone, or role
     query.$or = [
       { name: { $regex: filter.trim(), $options: "i" } },
       { phone: { $regex: filter.trim(), $options: "i" } },
-      { role: { $regex: filter.trim(), $options: "i" } },
       { code: { $regex: filter.trim(), $options: "i" } },
       { supervisorCode: { $regex: filter.trim(), $options: "i" } },
     ];
+  }
+  if (!isEmpty(role)) {
+    query.$or = [{ role: { $regex: role.trim(), $options: "i" } }];
   }
   try {
     // Count total documents matching the query
@@ -321,16 +320,14 @@ export const getUsers = async (req, res) => {
     }
 
     if (page > totalPages) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "You have exceeded the available search results. Please check page.",
-        });
+      return res.status(400).json({
+        message:
+          "You have exceeded the available search results. Please check page.",
+      });
     }
 
     // Calculate total pages based on pageSize
-
+    console.log({ query });
     // Find users based on the query, select specific fields, and apply pagination
     const users = await User.find(query)
       .select("name code phone role supervisorCode")
