@@ -19,7 +19,7 @@ const {
 
 // Routes for user management
 router.post(CREATE, validateJWT, upload.single("image"), createVehicleType);
-router.get(GET, validateJWT, serveImage);
+router.get(GET, serveImage);
 router.put(UPDATE, validateJWT, upload.single("image"), updateVehicleType);
 router.get(GET_ALL, getAllVehicleType);
 router.get(GET_DETAIL, validateJWT, getVehicleTypeDetail);
