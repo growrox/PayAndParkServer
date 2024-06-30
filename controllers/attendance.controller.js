@@ -1,6 +1,7 @@
 import Attendance from '../models/attendance.model.js';
 import Shift from '../models/shift.model.js';
 import User from '../models/user.model.js';
+import { isEmpty } from '../utils/helperFunctions.js';
 
 // Clock-In
 export const clockIn = async (req, res) => {
@@ -99,12 +100,35 @@ export const clockOut = async (req, res) => {
           if (!updatedAttendance) {
                return res.status(404).json({ error: "Attendance record not found" });
           }
-          await User.findByIdAndUpdate(userId, { isOnline: false});
+          await User.findByIdAndUpdate(userId, { isOnline: false });
 
           return res.status(200).json({ message: "Clocke-out successfully. See you tomorrow." });
 
           // res.json(updatedAttendance);
      } catch (error) {
+          res.status(500).json({ error: error.message });
+     }
+};
+
+// Update Attendance
+export const updateAttendance = async (req, res) => {
+     const { attendanceId } = req.params;
+     const { isLateToday } = req.body;
+
+     console.log("attendanceId ", attendanceId);
+     try {
+          const attendanceAvailable = await Attendance.findById(attendanceId);
+          
+          if (isEmpty(attendanceAvailable)) { return res.status(404).json({ message: "No attendance available." }); }
+          if (attendanceAvailable.isLateToday == isLateToday) {
+               return res.status(202).json({ message: "The status is already same as requested to update." });
+          }
+
+          const updatedDEtails = await Attendance.findByIdAndUpdate(attendanceId, { isLateToday });
+
+          return res.status(200).json({ message: "Attedance updated successfully." });
+     }
+     catch (error) {
           res.status(500).json({ error: error.message });
      }
 };

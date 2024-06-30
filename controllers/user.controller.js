@@ -384,6 +384,45 @@ export const getUserStatus = async (req, res) => {
   }
 };
 
+// Update a user
+export const updateUser = async (req, res) => {
+  const { id } = req.params;
+  console.log("Id ", id);
+  console.log("Data ", req.body);
+  const { name, supervisorCode, shiftId } = req.body;
+
+  try {
+
+    const userAvailable = await User.findById(id);
+
+    if (isEmpty(userAvailable)) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    let updateDetails = {}
+    if (!isEmpty(name)) {
+      updateDetails.name = name
+    }
+    if (!isEmpty(supervisorCode)) {
+      updateDetails.supervisorCode = supervisorCode
+    }
+    if (!isEmpty(shiftId)) {
+      updateDetails.shiftId = shiftId
+    }
+
+    console.log("updateDetails ", updateDetails);
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      updateDetails
+    );
+
+    res.json({ message: "User updated successfully.", result: updateDetails });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+
 
 
 
@@ -402,25 +441,7 @@ export const getUserStatus = async (req, res) => {
 
 
 // --------------- For now thsese two routes are not being used.
-// Update a user
-export const updateUser = async (req, res) => {
-  const { id } = req.params;
-  const { name, code, phone, role } = req.body;
 
-  try {
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      { name, code, phone, role },
-      { new: true }
-    );
-    if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    res.json(updatedUser);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
 
 // Delete a user
 export const deleteUser = async (req, res) => {

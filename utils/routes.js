@@ -4,7 +4,8 @@ export const ROUTES = {
     LOGIN: "/login",
     VERIFY_OTP: "/verify-otp",
     GET_USER: "/users",
-    GET_USER_STATUS: "/users/status"
+    GET_USER_STATUS: "/users/status",
+    UPDATE_USER:"/user/:id"
   },
   VEHICLE_TYPE: {
     CREATE: "/create-vehicle-type",
@@ -22,8 +23,10 @@ export const ROUTES = {
     GET_SHIFT: '/shifts/list'
   },
   ATTENDENCE: {
-    CLOCK_IN: '/:userId/clock-in',
-    CLOCK_OUT: '/:userId/clock-out'
+    CLOCK_IN: '/attendance/clock-in/:userId',
+    CLOCK_OUT: '/attendance/clock-out/:userId',
+    UPDATE_ATTENDANCE: '/attendance/update/:attendanceId',
+
   },
   IMAGE: {
     GET: "/images/:imageName"
