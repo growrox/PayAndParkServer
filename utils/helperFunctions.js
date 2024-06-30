@@ -1,4 +1,6 @@
 import Otp from "../models/otp.model.js";
+import { fileURLToPath } from 'url';
+import path from 'path';
 
 export const isEmpty = (value) => {
   if (value === null || value === undefined) {
@@ -54,5 +56,8 @@ export const generateOTP = async (userID, phoneNumber) => {
   }
 };
 
+
+export const __filename = fileURLToPath(import.meta.url);
+export const __dirname = path.dirname(__filename);
 
 

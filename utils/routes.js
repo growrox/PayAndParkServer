@@ -22,5 +22,8 @@ export const ROUTES = {
   ATTENDENCE: {
     CLOCK_IN: '/:userId/clock-in',
     CLOCK_OUT: '/:userId/clock-out'
+  },
+  IMAGE: {
+    GET: "/images/:imageName"
   }
 };

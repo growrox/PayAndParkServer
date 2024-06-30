@@ -1,16 +1,24 @@
 import VehicleType from "../models/vehicleType.model.js"; // Assuming your model file is in 'models/user.model.js'
+import path from "path";
+import { __dirname } from "../utils/helperFunctions.js";
+import fs from "fs";
 
 export const createVehicleType = async (req, res) => {
   try {
-    const { name, image, hourlyPrices } = req.body;
-    console.log({ name, image, hourlyPrices });
+    const { name } = req.body;
+    const hourlyPrices = JSON.parse(req.body.hourlyPrices); // Parse hourlyPrices from JSON string to array of objects
+    const imageUrl = req.file ? `/images/${req.file.filename}` : ""; // Generate the URL based on the saved path
+    // name.trim.
+    console.log({ name, imageUrl, hourlyPrices });
     const newVehicleType = new VehicleType({
       name,
-      image,
+      image: imageUrl,
       hourlyPrices,
     });
     await newVehicleType.save();
-    return res.status(201).json({ message: "New vehical type created.", result: newVehicleType });
+    return res
+      .status(201)
+      .json({ message: "New vehical type created.", result: newVehicleType });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -19,17 +27,43 @@ export const createVehicleType = async (req, res) => {
 export const getAllVehicleType = async (req, res) => {
   try {
     const vehicleTypes = await VehicleType.find({});
-    return res.json({ message: "All vehicals type list.", result: vehicleTypes });
+
+    // Construct the full URL for each image
+    const vehicleTypesWithImageUrl = vehicleTypes.map((vehicleType) => ({
+      ...vehicleType._doc, // Spread the document to include all other fields
+      image: `${req.protocol}://${req.get("host")}${vehicleType.image}`, // Construct the full image URL
+    }));
+
+    return res.json({
+      message: "All vehicle types list.",
+      result: vehicleTypesWithImageUrl,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+export const serveImage = (req, res) => {
+  const { imageName } = req.params;
+  console.log({ imageName });
+  const imagePath = path.join(__dirname, "../images", imageName);
+  console.log({ imagePath });
+  res.sendFile(imagePath, (err) => {
+    if (err) {
+      res.status(404).json({ message: "Image not found" });
+    }
+  });
+};
+
 export const getVehicleTypeDetail = async (req, res) => {
   try {
     const vehicleType = await VehicleType.findById(req.params.id);
-    if (!vehicleType) return res.status(404).json({ message: "Vehicle type not found" });
-    return res.json({ message: "All vehicals details list.", result: vehicleType });
+    if (!vehicleType)
+      return res.status(404).json({ message: "Vehicle type not found" });
+    return res.json({
+      message: "All vehicals details list.",
+      result: vehicleType,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -37,21 +71,34 @@ export const getVehicleTypeDetail = async (req, res) => {
 
 export const updateVehicleType = async (req, res) => {
   try {
-    const { name, supervisorCode, phone, hourlyPrices, image } = req.body;
-    console.log({ id: req.params.id });
-    const vehicleType = await VehicleType.findById(req.params.id);
-    console.log({ vehicleType });
-    if (!vehicleType)
-      return res.status(404).json({ message: "Vehicle type not found" });
+    const { name } = req.body;
+    const hourlyPrices = JSON.parse(req.body.hourlyPrices); // Parse hourlyPrices from JSON string to array of objects
 
+    const newImage = req.file ? `/images/${req.file.filename}` : null; // New image path if uploaded
+
+    const vehicleType = await VehicleType.findById(req.params.id);
+
+    if (!vehicleType) {
+      return res.status(404).json({ message: "Vehicle type not found" });
+    }
+
+    // If there is a new image, remove the old image from the server
+    if (newImage && vehicleType.image) {
+      const oldImagePath = path.join(__dirname, "..", vehicleType.image);
+      fs.unlink(oldImagePath, (err) => {
+        if (err) throw new Error(`Failed to delete old image: ${err.message}`);
+      });
+    }
+
+    // Update vehicle type fields
     vehicleType.name = name;
-    vehicleType.supervisorCode = supervisorCode;
-    vehicleType.phone = phone;
     vehicleType.hourlyPrices = hourlyPrices;
-    vehicleType.image = image;
+    if (newImage) {
+      vehicleType.image = newImage;
+    }
 
     await vehicleType.save();
-    return res.json({ message: "Vehical type updated.", result: vehicleType });
+    return res.json({ message: "Vehicle type updated.", result: vehicleType });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -59,9 +106,22 @@ export const updateVehicleType = async (req, res) => {
 
 export const deleteVehicleType = async (req, res) => {
   try {
-    const vehicleType = await VehicleType.findByIdAndDelete(req.params.id);
-    if (!vehicleType)
+    const vehicleType = await VehicleType.findById(req.params.id);
+    if (!vehicleType) {
       return res.status(404).json({ message: "Vehicle type not found" });
+    }
+
+    // Remove the associated image file
+    if (vehicleType.image) {
+      const imagePath = path.join(__dirname, "../", vehicleType.image);
+      fs.unlink(imagePath, (err) => {
+        if (err) throw new Error(`Failed to delete old image: ${err.message}`);
+      });
+    }
+
+    // Delete the vehicle type from the database
+    await VehicleType.findByIdAndDelete(req.params.id);
+
     res.json({ message: "Vehicle type deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

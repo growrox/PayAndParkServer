@@ -12,7 +12,6 @@ import ShiftRoutes from "./routes/shift.route.js";
 import Attendance from "./routes/attendence.route.js";
 
 dotenv.config();
-
 const app = express();
 app.use(express.json());
 
