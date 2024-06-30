@@ -183,8 +183,8 @@ export const loginUser = async (req, res) => {
       });
       res.cookie("token", token, {
         httpOnly: true,
-        secure: true, // Set to true if using HTTPS, required for 'SameSite=None'
-        sameSite: "Strict",
+        secure: process.env.SECURE_COOKIE, // Set to true if using HTTPS, required for 'SameSite=None'
+        sameSite: process.env.SAME_SITE,
         maxAge: 86400000, // 24 hours
       });
       user.password = undefined;

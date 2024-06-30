@@ -44,17 +44,15 @@ console.log({ whitelist });
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) {
-      console.warn(
-        "Origin was undefined, handling as same-origin or non-browser client"
-      );
-      return callback(null, true); // Adjust based on your security needs
-    }
-    if (whitelist.indexOf(origin) !== -1) {
+      console.warn("Origin was undefined, handling as same-origin or non-browser client");
+      callback(null, true);
+    } else if (whitelist.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"), false);
     }
   },
+  credentials: true // Allow credentials
 };
 
 app.use(cors(corsOptions));
