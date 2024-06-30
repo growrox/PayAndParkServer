@@ -110,8 +110,8 @@ export const createUser = async (req, res) => {
     // Conditionally handle the response based on the source
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true, // Use secure: true in production with HTTPS
-      sameSite: "strict",
+      secure: process.env.SECURE_COOKIE, // Set to true if using HTTPS, required for 'SameSite=None'
+      sameSite: process.env.SAME_SITE,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
     return res.status(201).json({
