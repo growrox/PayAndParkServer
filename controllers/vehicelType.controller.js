@@ -31,7 +31,7 @@ export const getAllVehicleType = async (req, res) => {
     // Construct the full URL for each image
     const vehicleTypesWithImageUrl = vehicleTypes.map((vehicleType) => ({
       ...vehicleType._doc, // Spread the document to include all other fields
-      image: `${req.protocol}://${req.get("host")}${vehicleType.image}`, // Construct the full image URL
+      image: `${req.protocol}://${req.get("host")}/api/v1/${vehicleType.image}`, // Construct the full image URL
     }));
 
     return res.json({
