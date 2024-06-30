@@ -18,7 +18,8 @@ export const createParkingTicket = async (req, res) => {
                supervisor,
                settlementId,
                isPass,
-               passId
+               passId,
+               onlineTransactionId
           } = req.body;
 
           // Check if there is an assistant with the provided phone number and role
@@ -50,6 +51,15 @@ export const createParkingTicket = async (req, res) => {
                isPass,
                passId
           });
+          console.log("newTicket ", newTicket);
+
+          if (isEmpty(onlineTransactionId)) {
+               if (paymentMode == "Online") {
+                    res.status(200).json({ message: "OnlineTransactionId required in online payment" });
+               }
+          } else {
+               newTicket.onlineTransactionId = onlineTransactionId
+          }
 
           const savedTicket = await newTicket.save();
           res.status(200).json({ message: "Parking ticket created", result: savedTicket });
@@ -258,9 +268,9 @@ export const deletePaymentOrderById = async (req, res) => {
      try {
           const deletedTicket = await Transaction.findByIdAndDelete(req.params.id);
           if (!deletedTicket) {
-               return res.status(404).json({ message: 'Parking ticket not found' });
+               return res.status(404).json({ message: 'Parking payment ticket not found' });
           }
-          res.json({ message: 'Parking ticket deleted successfully' });
+          res.json({ message: 'Parking payment ticket deleted successfully' });
      } catch (error) {
           res.status(500).json({ message: error.message });
      }
