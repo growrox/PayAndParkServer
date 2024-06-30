@@ -5,7 +5,9 @@ import {
      getParkingTicketByQuery,
      updateParkingTicketById,
      deleteParkingTicketById,
-     getTicketsByAssistantId
+     getTicketsByAssistantId,
+     updatePaymentStatusOnline,
+     generatePaymentForTicket
 } from '../controllers/parkingTicket.controller.js';
 
 import checkParkingAssistant from "../middlewares/checkParkingAssistant.js"
@@ -13,6 +15,8 @@ import checkParkingAssistant from "../middlewares/checkParkingAssistant.js"
 const router = express.Router();
 
 router.post('/parking-tickets', checkParkingAssistant, createParkingTicket);
+router.post('/ticket/generate-order', checkParkingAssistant, generatePaymentForTicket);
+router.post('/ticket/payment-status', updatePaymentStatusOnline);
 router.get('/parking-tickets', getParkingTickets);
 router.get('/parking-tickets/:query', getParkingTicketByQuery);
 router.get('/parking-tickets/unsettled/:assistantId', getTicketsByAssistantId);

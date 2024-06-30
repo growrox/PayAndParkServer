@@ -14,7 +14,8 @@ const parkingTicketSchema = new Schema({
      supervisor: { type: Schema.Types.ObjectId, ref: 'Supervisor' },
      settlementId: { type: Schema.Types.ObjectId, ref: "SupervisorSettlementTicket" },
      isPass: { type: Boolean, default: false },
-     passId: { type: Schema.Types.ObjectId, ref: 'Pass' }
+     passId: { type: Schema.Types.ObjectId, ref: 'Pass' },
+     onlineTransactionId: { type: Schema.Types.ObjectId, ref: 'Transaction' }
 }, { timestamps: true });
 
 const ParkingTicket = model('ParkingTickets', parkingTicketSchema);

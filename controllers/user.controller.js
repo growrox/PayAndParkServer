@@ -1,11 +1,7 @@
 // controllers/userController.js
 
 import User from "../models/user.model.js"; // Assuming your model file is in 'models/user.model.js'
-import {
-  generateCode,
-  generateOTP,
-  isEmpty,
-} from "../utils/helperFunctions.js";
+import { generateCode, generateOTP, isEmpty } from "../utils/helperFunctions.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import Otp from "../models/otp.model.js";
@@ -17,12 +13,8 @@ export const createUser = async (req, res) => {
 
   try {
     // Check if user with the same phone number already exists
-    if (isEmpty(name))
-      return res.status(404).json({ message: "Name is a required field." });
-    if (isEmpty(phone))
-      return res
-        .status(404)
-        .json({ message: "Phone number is a required field." });
+    if (isEmpty(name)) return res.status(404).json({ message: "Name is a required field." });
+    if (isEmpty(phone)) return res.status(404).json({ message: "Phone number is a required field." });
 
     let newUser;
     const existingUser = await User.findOne({ phone: phone });
@@ -35,17 +27,11 @@ export const createUser = async (req, res) => {
 
     if (source === "app") {
       try {
-        if (isEmpty(supervisorCode))
-          return res
-            .status(404)
-            .json({ message: "supervisorCode is required field." });
+        if (isEmpty(supervisorCode)) return res.status(404).json({ message: "supervisorCode is required field." });
 
         const FindSupervisor = await User.findOne({ code: supervisorCode });
 
-        if (isEmpty(FindSupervisor))
-          return res
-            .status(404)
-            .json({ message: "Please check supervisor code." });
+        if (isEmpty(FindSupervisor)) return res.status(404).json({ message: "Please check supervisor code." });
 
         // Validate OTP for now
         newUser = new User({
@@ -53,8 +39,8 @@ export const createUser = async (req, res) => {
           phone,
           supervisorCode,
           role: "assistant",
-          isActivated: false,
-        });
+          isActivated: false
+        })
 
         await newUser.save();
         console.log("newUser ---- ", newUser);
@@ -64,35 +50,35 @@ export const createUser = async (req, res) => {
         //      process.env.JWT_SECRET, // Your JWT secret key
         //      { expiresIn: '24h' } // Token expiration time
         // );
-        const otpSent = await generateOTP(newUser._id, phone);
+        const otpSent = await generateOTP(newUser._id, phone)
         console.log("otpSent ", otpSent);
 
-        return res
-          .status(200)
-          .json({ message: "Please verify otp to activate the account." });
+        return res.status(200).json({ message: "Please verify otp to activate the account." });
+
       } catch (error) {
         console.error("Error creating the user account.", error);
-        return res
-          .status(403)
-          .json({ message: "Error creating the user account." });
+        return res.status(403).json({ message: "Error creating the user account." });
       }
-    } else if (source === "web") {
+    }
+    else if (source === "web") {
       if (role === "accountant") {
         newUser = new User({
           name,
           phone,
-          role,
-        });
-      } else if (role === "supervisor") {
+          role
+        })
+      }
+      else if (role === "supervisor") {
         const newUserCode = generateCode(6); // Assume generateCode function exists
 
         newUser = new User({
           name,
           phone,
           role,
-          code: newUserCode,
-        });
-      } else if (role === "superadmin") {
+          code: newUserCode
+        })
+      }
+      else if (role === "superadmin") {
         const hashedPassword = await bcrypt.hash(password, 10); // Hash password for web clients
         newUser = new User({
           name,
@@ -100,10 +86,12 @@ export const createUser = async (req, res) => {
           role,
           password: hashedPassword,
         });
-      } else {
+      }
+      else {
         return res.status(404).json({ message: "Invalid role type given." });
       }
-    } else {
+    }
+    else {
       return res.status(400).json({ message: "Invalid client source." });
     }
 
@@ -113,7 +101,7 @@ export const createUser = async (req, res) => {
       {
         userId: newUser._id,
         role: "superadmin",
-        source: "web",
+        source: "web"
       },
       process.env.JWT_SECRET, // Your JWT secret key
       { expiresIn: "24h" } // Token expiration time
@@ -130,6 +118,7 @@ export const createUser = async (req, res) => {
       message: "Account Created.",
       result: { name: newUser.name, phone: newUser.phone },
     });
+
   } catch (err) {
     console.error("Error creating user:", err);
     if (err.code === 11000) {
@@ -150,23 +139,19 @@ export const loginUser = async (req, res) => {
   try {
     if (source === "app") {
       try {
-        const newUser = await User.findOne({ phone: phone });
+        const newUser = await User.findOne({ phone: phone })
         console.log("new User ", newUser);
         if (isEmpty(newUser) || newUser?.role == "superadmin") {
-          return res
-            .status(404)
-            .json({ message: "User not found. Please register." });
+          return res.status(404).json({ message: "User not found. Please register." });
         }
 
-        const generateOTp = await generateOTP(newUser._id, phone); // UserID, Phone
+        const generateOTp = await generateOTP(newUser._id, phone) // UserID, Phone
         console.log("generateOTp ", generateOTp);
 
-        if ((generateCode.status = "success")) {
-          return res.json({
-            message: "OTP is sent to your registered number please verify.",
-            OTP: generateOTp.OTP,
-          });
-        } else {
+        if (generateCode.status = "success") {
+          return res.json({ message: "OTP is sent to your registered number please verify.", OTP: generateOTp.OTP });
+        }
+        else {
           return res.status(500).json({ message: "Error generating the OTP." });
         }
       } catch (error) {
@@ -181,7 +166,7 @@ export const loginUser = async (req, res) => {
         return res.status(401).json({ message: "Invalid Password" });
       }
       console.log({ password, userPassword: user.password, user });
-      if (user.role !== "superadmin") {
+      if (user.role !== 'superadmin') {
         return res.status(401).json({ message: "Invalid Role" });
       }
       const passwordMatch = await bcrypt.compare(password, user.password);
@@ -189,17 +174,13 @@ export const loginUser = async (req, res) => {
         return res.status(401).json({ message: "Invalid credentials." });
       }
 
-      const token = jwt.sign(
-        {
-          role: "superadmin",
-          userId: user._id,
-          source: "web",
-        },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: "24h",
-        }
-      );
+      const token = jwt.sign({
+        role: "superadmin",
+        userId: user._id,
+        source: "web",
+      }, process.env.JWT_SECRET, {
+        expiresIn: "24h",
+      });
       res.cookie("token", token, {
         httpOnly: true,
         secure: true, // Set to true if using HTTPS, required for 'SameSite=None'
@@ -224,41 +205,33 @@ export const validateOTP = async (req, res) => {
   // const source = req.headers["x-client-source"]; // This will not be required as this can only be called for app.
 
   try {
-    const newUser = await User.findOne({ phone: phone });
+    const newUser = await User.findOne({ phone: phone })
     // console.log("new User ", newUser);
 
     if (isEmpty(newUser) || newUser?.role == "superadmin") {
-      return res
-        .status(404)
-        .json({ message: "User not found. Please register." });
+      return res.status(404).json({ message: "User not found. Please register." });
     }
 
-    const getOTPDetails = await Otp.findOne({ phoneNumber: phone });
+    const getOTPDetails = await Otp.findOne({ phoneNumber: phone })
     // console.log("getOTPDetails ", getOTPDetails);
 
     if (isEmpty(getOTPDetails)) {
-      return res
-        .status(404)
-        .json({ message: "No OTP found. Please generate new one." });
+      return res.status(404).json({ message: "No OTP found. Please generate new one." });
     }
 
     // Check if OTP is expired (more than 5 minutes old)
     if (new Date().getTime() > new Date(getOTPDetails.expires_on).getTime()) {
-      await Otp.deleteOne({ phoneNumber: phone });
-      return res
-        .status(404)
-        .json({ message: "OTP expired please generate new one." });
+      await Otp.deleteOne({ phoneNumber: phone })
+      return res.status(404).json({ message: "OTP expired please generate new one." });
     }
     console.log(OTP, getOTPDetails.OTP, OTP == getOTPDetails.OTP);
     if (OTP == getOTPDetails.OTP) {
-      await Otp.deleteOne({ phoneNumber: phone });
-      await User.findByIdAndUpdate(newUser._id, {
-        $set: { isActivated: true },
-      });
+      await Otp.deleteOne({ phoneNumber: phone })
+      await User.findByIdAndUpdate(newUser._id, { $set: { isActivated: true } })
       const token = jwt.sign(
         { userId: newUser._id, role: newUser.role, source: "app" },
         process.env.JWT_SECRET, // Your JWT secret key
-        { expiresIn: "12h" } // Token expiration time
+        { expiresIn: '12h' } // Token expiration time
       );
 
       return res.status(200).json({
@@ -266,48 +239,40 @@ export const validateOTP = async (req, res) => {
         token,
         name: newUser.name,
         role: newUser.role,
-        userId: newUser._id,
+        userId: newUser._id
       });
-    } else {
+    }
+    else {
       if (!getOTPDetails?.attempts) {
-        await Otp.deleteOne({ phoneNumber: phone });
-      } else {
-        await Otp.updateOne(
-          { phoneNumber: phone },
-          { attempts: getOTPDetails?.attempts - 1 }
-        );
+        await Otp.deleteOne({ phoneNumber: phone })
       }
-      return res.status(300).json({
-        message: `${
-          getOTPDetails?.attempts
-            ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
-            : "Maximum attempts reached generate new OTP."
-        }`,
-        attempts: getOTPDetails?.attempts,
-      });
+      else {
+        await Otp.updateOne({ phoneNumber: phone }, { attempts: getOTPDetails?.attempts - 1 })
+      }
+      return res.status(300).json({ message: `${getOTPDetails?.attempts ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts : "Maximum attempts reached generate new OTP."}`, attempts: getOTPDetails?.attempts });
     }
   } catch (error) {
     console.error("Error validating the OTP", error);
     return res.status(500).json({ message: "Error validating the OTP." });
+
   }
-};
+}
 
 // Function to get all users with pagination and filtering
 export const getUsers = async (req, res) => {
-  const { page = 1, pageSize = 10, filter, role } = req.query;
+  const { page = 1, pageSize = 10, filter } = req.query;
   const query = {};
+
   // Apply filters based on query parameters if they exist
   if (!isEmpty(filter)) {
     // Create a $or condition to match name, phone, or role
     query.$or = [
-      { name: { $regex: filter.trim(), $options: "i" } },
-      { phone: { $regex: filter.trim(), $options: "i" } },
-      { code: { $regex: filter.trim(), $options: "i" } },
-      { supervisorCode: { $regex: filter.trim(), $options: "i" } },
+      { name: { $regex: filter.trim(), $options: 'i' } },
+      { phone: { $regex: filter.trim(), $options: 'i' } },
+      { role: { $regex: filter.trim(), $options: 'i' } },
+      { code: { $regex: filter.trim(), $options: 'i' } },
+      { supervisorCode: { $regex: filter.trim(), $options: 'i' } }
     ];
-  }
-  if (!isEmpty(role)) {
-    query.$or = [{ role: { $regex: role.trim(), $options: "i" } }];
   }
   try {
     // Count total documents matching the query
@@ -320,20 +285,20 @@ export const getUsers = async (req, res) => {
     }
 
     if (page > totalPages) {
-      return res.status(400).json({
-        message:
-          "You have exceeded the available search results. Please check page.",
-      });
+      return res.status(400).json({ message: "You have exceeded the available search results. Please check page." });
     }
 
+
     // Calculate total pages based on pageSize
-    console.log({ query });
+
     // Find users based on the query, select specific fields, and apply pagination
     const users = await User.find(query)
-      .select("name code phone role supervisorCode")
+      .select('name code phone role supervisorCode')
       .skip((page - 1) * pageSize)
       .limit(parseInt(pageSize))
       .exec();
+
+
 
     // Pagination logic to determine next and previous pages
     let nextPage = null;
@@ -342,28 +307,26 @@ export const getUsers = async (req, res) => {
     if (page < totalPages) {
       nextPage = {
         page: parseInt(page) + 1,
-        pageSize: parseInt(pageSize),
+        pageSize: parseInt(pageSize)
       };
     }
 
     if (page > 1) {
       prevPage = {
         page: parseInt(page) - 1,
-        pageSize: parseInt(pageSize),
+        pageSize: parseInt(pageSize)
       };
     }
 
     // Prepare response object with users, pagination details, and totalCount
     const response = {
-      result: {
-        users,
-        pagination: {
-          totalCount,
-          totalPages,
-          nextPage,
-          prevPage,
-        },
-      },
+      users,
+      pagination: {
+        totalCount,
+        totalPages,
+        nextPage,
+        prevPage
+      }
     };
 
     // Return successful response with status 200
@@ -398,6 +361,45 @@ export const getUserById = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
+// GEt user status
+export const getUserStatus = async (req, res) => {
+  const UserId = req.headers.userid
+  try {
+    const user = await User.findById(
+      UserId,
+      {
+        name: 1,
+        isOnline: 1,
+        role: 1,
+        phone: 1
+      }
+    );
+    if (isEmpty(user)) {
+      return res.status(404).json({ message: "User not found please check the userId" });
+    }
+    return res.status(200).json({ message: "Here is the user details", result: user });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // --------------- For now thsese two routes are not being used.
 // Update a user

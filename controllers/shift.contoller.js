@@ -16,14 +16,21 @@ export const createShift = async (req, res) => {
 
           // Create the shift if validations pass
           const shift = await Shift.create({ name, startTime, endTime });
-          res.status(201).json({ message: "new shift is created.", result: shift });
+          res.status(201).json({ message: "New shift is created.", result: shift });
      } catch (error) {
           res.status(500).json({ error: error.message });
      }
 };
 
-
-
+export const getShift = async (req, res) => {
+     try {
+          // Create the shift if validations pass
+          const shift = await Shift.find();
+          res.status(201).json({ message: "Here is the shift list.", result: shift });
+     } catch (error) {
+          res.status(500).json({ error: error.message });
+     }
+};
 
 // Update a shift
 export const updateShift = async (req, res) => {

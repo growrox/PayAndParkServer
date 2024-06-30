@@ -10,12 +10,20 @@ import Supervisor from "./routes/supervisor.route.js";
 import Accountant from "./routes/accountant.route.js";
 import ShiftRoutes from "./routes/shift.route.js";
 import Attendance from "./routes/attendence.route.js";
+import Razorpay from "razorpay";
 
 dotenv.config();
+
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+
+console.log("RAZORPAY_KEY_ID -- ", process.env.RAZORPAY_KEY_ID);
+console.log("RAZORPAY_KEY_SECRET -- ", process.env.RAZORPAY_KEY_SECRET);
+
+export const instance = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET })
+
 
 // const corsOptions = {
 //   origin: process.env.PRODUCTION_URL,

@@ -1,6 +1,7 @@
 import ParkingTicket from '../models/parkingTicket.model.js'; // Adjust the path based on your project structure
-import ParkingAssistant from "../models/user.model.js"
 import { isEmpty } from '../utils/helperFunctions.js';
+import generatePayment from '../utils/generatePayment.js';
+import Transaction from '../models/onlineTransaction.model.js';
 
 // Controller to create a new parking ticket
 export const createParkingTicket = async (req, res) => {
@@ -21,16 +22,6 @@ export const createParkingTicket = async (req, res) => {
           } = req.body;
 
           // Check if there is an assistant with the provided phone number and role
-          const getAssistant = await ParkingAssistant.findOne({ phone: phoneNumber, role: "assistant" });
-          console.log("getAssistant ", getAssistant);
-          if (isEmpty(getAssistant)) {
-               return res.status(404).json({ message: "Assistant account not found." });
-          }
-
-          // Check if assistant is online
-          if (!getAssistant.isOnline) {
-               return res.status(403).json({ message: "Assistant is not online." });
-          }
 
           // Check if there is already a ticket for the vehicle number created within the last 30 minutes
           const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
@@ -45,7 +36,7 @@ export const createParkingTicket = async (req, res) => {
 
           // Create a new parking ticket
           const newTicket = new ParkingTicket({
-               parkingAssistant: getAssistant._id,
+               parkingAssistant: req.headers.userId,
                vehicleType,
                duration,
                paymentMode,
@@ -68,6 +59,55 @@ export const createParkingTicket = async (req, res) => {
                const errors = Object.values(error.errors).map(err => err.message);
                return res.status(400).json({ message: 'Validation Error', errors });
           }
+          res.status(500).json({ message: error.message });
+     }
+};
+
+// Confirm payment details if the payment is cussessful.
+export const updatePaymentStatusOnline = async (req, res) => {
+     try {
+          console.log("Update order status", req.body);
+          const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+          console.log("razorpay_order_id", razorpay_order_id);
+
+          const generated_signature = hmac_sha256(razorpay_order_id + "|" + razorpay_payment_id, process.env.RAZORPAY_KEY_SECRET);
+
+          console.log("generated_signature ", generated_signature);
+
+          if (generated_signature == razorpay_signature) {
+               console.log("payment is successful");
+
+               const updatingThePAymentDetails = await Transaction.findOneAndUpdate({ order_id: razorpay_order_id }, {
+                    razorpay_order_id, razorpay_payment_id, razorpay_signature
+               })
+               console.log("updatingThePAymentDetails ", updatingThePAymentDetails);
+
+               return res.status(200).json({ message: "Payment completed successfully" })
+          }
+          else {
+               return res.status(404).json({ message: "Signature does not match." })
+          }
+     }
+     catch (error) {
+          res.status(500).json({ message: error.message });
+     }
+};
+
+// Generate order to accept the paymetns 
+export const generatePaymentForTicket = async (req, res) => {
+     try {
+          const { amount } = req.body;
+          const orderPaymentDetails = await generatePayment(amount);
+          if (orderPaymentDetails.success) {
+               const { reference_id, result: { amount, id } } = orderPaymentDetails;
+               console.log(" amount, id ", amount, id);
+               return res.status(200).json({ message: "Order generated for the ticket.", result: { id, amount, reference_id } });
+          }
+          else {
+               console.error("Error message creating payment.", orderPaymentDetails);
+               return res.status(500).json({ message: "Payment not generated please try again." });
+          }
+     } catch (error) {
           res.status(500).json({ message: error.message });
      }
 };
