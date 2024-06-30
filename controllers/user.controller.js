@@ -330,7 +330,7 @@ export const getUsers = async (req, res) => {
     };
 
     // Return successful response with status 200
-    return res.status(200).json(response);
+    return res.status(200).json({ message: "Here is users list", result: response });
   } catch (err) {
     // Handle errors and return status 500 with error message
     res.status(500).json({ message: err.message });
@@ -356,7 +356,7 @@ export const getUserById = async (req, res) => {
     if (isEmpty(user)) {
       return res.status(404).json({ message: "User not found" });
     }
-    return res.status(200).json(user);
+    return res.status(200).json({ message: "User found", result: user });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }

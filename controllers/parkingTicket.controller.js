@@ -254,6 +254,19 @@ export const updateParkingTicketById = async (req, res) => {
 };
 
 // Controller to delete a parking ticket by ID
+export const deletePaymentOrderById = async (req, res) => {
+     try {
+          const deletedTicket = await Transaction.findByIdAndDelete(req.params.id);
+          if (!deletedTicket) {
+               return res.status(404).json({ message: 'Parking ticket not found' });
+          }
+          res.json({ message: 'Parking ticket deleted successfully' });
+     } catch (error) {
+          res.status(500).json({ message: error.message });
+     }
+};
+
+// Controller to delete a parking ticket by ID
 export const deleteParkingTicketById = async (req, res) => {
      try {
           const deletedTicket = await ParkingTicket.findByIdAndRemove(req.params.id);

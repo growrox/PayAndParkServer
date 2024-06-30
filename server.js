@@ -57,6 +57,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+app.get("/", async (req,resp) => {return resp.json("Server is running. Please check the code developer") })
 // All the routes middle ware
 app.use("/api/v1", user);
 app.use("/api/v1", ParkingTicket);

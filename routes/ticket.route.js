@@ -7,7 +7,8 @@ import {
      deleteParkingTicketById,
      getTicketsByAssistantId,
      updatePaymentStatusOnline,
-     generatePaymentForTicket
+     generatePaymentForTicket,
+     deletePaymentOrderById
 } from '../controllers/parkingTicket.controller.js';
 
 import checkParkingAssistant from "../middlewares/checkParkingAssistant.js"
@@ -20,6 +21,7 @@ router.post('/ticket/payment-status', updatePaymentStatusOnline);
 router.get('/parking-tickets', getParkingTickets);
 router.get('/parking-tickets/:query', getParkingTicketByQuery);
 router.get('/parking-tickets/unsettled/:assistantId', getTicketsByAssistantId);
+router.delete('/ticket/order/:id', deletePaymentOrderById);
 // router.get('/parking-tickets/stats/:assistantId', getTicketsByAssistantId);
 
 
