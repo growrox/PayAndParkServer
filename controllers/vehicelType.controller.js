@@ -86,7 +86,8 @@ export const updateVehicleType = async (req, res) => {
     if (newImage && vehicleType.image) {
       const oldImagePath = path.join(__dirname, "..", vehicleType.image);
       fs.unlink(oldImagePath, (err) => {
-        if (err) throw new Error(`Failed to delete old image: ${err.message}`);
+        console.log(`Failed to delete old image: ${err.message}`);
+        // if (err) throw new Error(`Failed to delete old image: ${err.message}`);
       });
     }
 
@@ -106,6 +107,7 @@ export const updateVehicleType = async (req, res) => {
 
 export const deleteVehicleType = async (req, res) => {
   try {
+    console.log({ id: req.params.id });
     const vehicleType = await VehicleType.findById(req.params.id);
     if (!vehicleType) {
       return res.status(404).json({ message: "Vehicle type not found" });
@@ -115,7 +117,8 @@ export const deleteVehicleType = async (req, res) => {
     if (vehicleType.image) {
       const imagePath = path.join(__dirname, "../", vehicleType.image);
       fs.unlink(imagePath, (err) => {
-        if (err) throw new Error(`Failed to delete old image: ${err.message}`);
+        console.log(`Failed to delete old image: ${err.message}`);
+        // if (err) throw new Error(`Failed to delete old image: ${err.message}`);
       });
     }
 
