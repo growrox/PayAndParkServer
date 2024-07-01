@@ -58,6 +58,9 @@ export const serveImage = (req, res) => {
 export const getVehicleTypeDetail = async (req, res) => {
   try {
     const vehicleType = await VehicleType.findById(req.params.id);
+    vehicleType.image = `${req.protocol}://${req.get("host")}/api/v1/${
+      vehicleType.image
+    }`;
     if (!vehicleType)
       return res.status(404).json({ message: "Vehicle type not found" });
     return res.json({
