@@ -89,7 +89,7 @@ export const updateVehicleType = async (req, res) => {
     if (newImage && vehicleType.image) {
       const oldImagePath = path.join(__dirname, "..", vehicleType.image);
       fs.unlink(oldImagePath, (err) => {
-        console.log(`Failed to delete old image: ${err.message}`);
+        console.log(`Failed to delete old image: ${err}`);
         // if (err) throw new Error(`Failed to delete old image: ${err.message}`);
       });
     }
@@ -104,7 +104,7 @@ export const updateVehicleType = async (req, res) => {
     await vehicleType.save();
     return res.json({ message: "Vehicle type updated.", result: vehicleType });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: error });
   }
 };
 
