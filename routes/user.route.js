@@ -5,9 +5,9 @@ import {
   validateOTP,
   getUsers,
   getUserStatus,
-  getUserById,
   updateUser,
-  deleteUser,
+  getUserById,
+  deleteUser
 } from "../controllers/user.controller.js";
 import validateJWT from "../middlewares/validateJWT.js";
 import checkParkingAssistant from "../middlewares/checkParkingAssistant.js"
