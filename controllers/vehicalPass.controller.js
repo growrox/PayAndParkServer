@@ -47,6 +47,7 @@ export const getAllVehiclePasses = async (req, res) => {
 export const getVehiclePass = async (req, res) => {
      const { filter } = req.params;
      try {
+          // Find passes matching the filter
           const passes = await VehiclePass.find({
                $or: [
                     { phone: { $regex: filter, $options: 'i' } }, // Case-insensitive search for phone
@@ -58,7 +59,19 @@ export const getVehiclePass = async (req, res) => {
                return res.status(404).json({ message: 'No vehicle passes found' });
           }
 
-          res.status(200).json({ message: "Here is the passes.", result: passes });
+          // Check for expired passes and update isActive status
+          const currentDate = new Date();
+          const updatedPasses = passes.map(pass => {
+               if (pass.expireDate < currentDate) {
+                    // If pass has expired, update isActive to false
+                    pass.isActive = false;
+                    // Save the updated pass (optional)
+                    pass.save();
+               }
+               return pass.toObject(); // Convert Mongoose document to plain JavaScript object
+          });
+
+          res.status(200).json({ message: 'Here are the passes.', result: updatedPasses });
      } catch (error) {
           res.status(500).json({ error: error.message });
      }
