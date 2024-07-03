@@ -2,6 +2,8 @@ import ParkingTicket from '../models/parkingTicket.model.js'; // Adjust the path
 import { isEmpty } from '../utils/helperFunctions.js';
 import generatePayment from '../utils/generatePayment.js';
 import Transaction from '../models/onlineTransaction.model.js';
+import crypto from "crypto"
+import CryptoJS from 'crypto-js';
 
 // Controller to create a new parking ticket
 export const createParkingTicket = async (req, res) => {
@@ -80,25 +82,35 @@ export const updatePaymentStatusOnline = async (req, res) => {
           const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
           console.log("razorpay_order_id", razorpay_order_id);
 
-          const generated_signature = hmac_sha256(razorpay_order_id + "|" + razorpay_payment_id, process.env.RAZORPAY_KEY_SECRET);
+          // Generate signature using Razorpay's key secret
+          const hmac = CryptoJS.HmacSHA256(`${razorpay_order_id}|${razorpay_payment_id}`, process.env.RAZORPAY_KEY_SECRET);
+          const generated_signature = hmac.toString(CryptoJS.enc.Hex);
 
-          console.log("generated_signature ", generated_signature);
+          console.log("generated_signature", generated_signature);
 
-          if (generated_signature == razorpay_signature) {
-               console.log("payment is successful");
+          // Verify if generated_signature matches razorpay_signature
+          if (generated_signature === razorpay_signature) {
+               console.log("Payment is successful");
 
-               const updatingThePAymentDetails = await Transaction.findOneAndUpdate({ order_id: razorpay_order_id }, {
-                    razorpay_order_id, razorpay_payment_id, razorpay_signature
-               })
-               console.log("updatingThePAymentDetails ", updatingThePAymentDetails);
+               const transactionAvailable = await Transaction.findOne({ order_id: razorpay_order_id });
+               if (isEmpty(transactionAvailable)) {
+                    console.log("Payment Not found. ", transactionAvailable);
+               }
 
-               return res.status(200).json({ message: "Payment completed successfully" })
+               // Update payment details in your database (example with Transaction model)
+               const updatingThePaymentDetails = await Transaction.findOneAndUpdate(
+                    { order_id: razorpay_order_id },
+                    { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+               );
+
+               console.log("updatingThePaymentDetails", updatingThePaymentDetails);
+
+               return res.status(200).json({ message: "Payment completed successfully" });
+          } else {
+               return res.status(404).json({ message: "Signature does not match." });
           }
-          else {
-               return res.status(404).json({ message: "Signature does not match." })
-          }
-     }
-     catch (error) {
+     } catch (error) {
+          console.error("Error:", error);
           res.status(500).json({ message: error.message });
      }
 };
