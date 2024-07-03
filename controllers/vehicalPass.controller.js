@@ -71,7 +71,7 @@ export const getVehiclePass = async (req, res) => {
                return pass.toObject(); // Convert Mongoose document to plain JavaScript object
           });
 
-          res.status(200).json({ message: 'Here are the passes.', result: updatedPasses });
+         return res.status(200).json({ message: 'Here are the passes.', result: updatedPasses });
      } catch (error) {
           res.status(500).json({ error: error.message });
      }

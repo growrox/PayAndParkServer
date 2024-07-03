@@ -57,21 +57,21 @@ export const createParkingTicket = async (req, res) => {
 
           if (isEmpty(onlineTransactionId)) {
                if (paymentMode == "Online") {
-                    res.status(200).json({ message: "OnlineTransactionId required in online payment" });
+                  return res.status(200).json({ message: "OnlineTransactionId required in online payment" });
                }
           } else {
                newTicket.onlineTransactionId = onlineTransactionId
           }
 
           const savedTicket = await newTicket.save();
-          res.status(200).json({ message: "Parking ticket created", result: savedTicket });
+          return res.status(200).json({ message: "Parking ticket created", result: savedTicket });
      } catch (error) {
           if (error.name === 'ValidationError') {
                // Mongoose validation error
                const errors = Object.values(error.errors).map(err => err.message);
                return res.status(400).json({ message: 'Validation Error', errors });
           }
-          res.status(500).json({ message: error.message });
+          return res.status(500).json({ message: error.message });
      }
 };
 
@@ -111,7 +111,7 @@ export const updatePaymentStatusOnline = async (req, res) => {
           }
      } catch (error) {
           console.error("Error:", error);
-          res.status(500).json({ message: error.message });
+         return res.status(500).json({ message: error.message });
      }
 };
 
@@ -130,7 +130,7 @@ export const generatePaymentForTicket = async (req, res) => {
                return res.status(500).json({ message: "Payment not generated please try again." });
           }
      } catch (error) {
-          res.status(500).json({ message: error.message });
+         return res.status(500).json({ message: error.message });
      }
 };
 
@@ -138,9 +138,9 @@ export const generatePaymentForTicket = async (req, res) => {
 export const getParkingTickets = async (req, res) => {
      try {
           const tickets = await ParkingTicket.find();
-          res.json(tickets);
+         return res.json(tickets);
      } catch (error) {
-          res.status(500).json({ message: error.message });
+         return res.status(500).json({ message: error.message });
      }
 };
 
@@ -165,7 +165,7 @@ export const getTicketsByAssistantId = async (req, res) => {
                totalCost += ticket.amount;
           });
 
-          res.json({
+         return res.json({
                message: "here is the all parking tickets for you.",
                result: {
                     totalCount,
@@ -174,7 +174,7 @@ export const getTicketsByAssistantId = async (req, res) => {
                }
           });
      } catch (error) {
-          res.status(500).json({ message: error.message });
+         return res.status(500).json({ message: error.message });
      }
 };
 
