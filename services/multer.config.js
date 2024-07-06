@@ -1,11 +1,20 @@
 // const multer = require("multer");
 // const path = require("path");
 import multer from "multer";
-
+import path from "path";
+import fs from "fs";
 // Set up the storage engine
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "images/"); // Path where the uploaded files will be stored
+    // Access the folderName parameter from the URL
+    const folderName = req.params.folderName;
+    const uploadPath = path.join("images", folderName);
+
+    // Ensure the directory structure exists, you might need to create it if it does not exist
+    // Here using `fs` to ensure directory exists
+    fs.mkdirSync(uploadPath, { recursive: true });
+
+    cb(null, uploadPath); // Set the new path
   },
   filename: function (req, file, cb) {
     // Create a unique name for the file using the current timestamp

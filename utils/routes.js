@@ -8,7 +8,7 @@ export const ROUTES = {
     UPDATE_USER: "/user/:id"
   },
   VEHICLE_TYPE: {
-    CREATE: "/create-vehicle-type",
+    CREATE: "/create-vehicle-type/:folderName",
     GET_DETAIL: "/get-vehicle-type/:id",
     GET_ALL: "/get-all-vehicle-type",
     UPDATE: "/update-vehicle-type/:id",
@@ -29,7 +29,7 @@ export const ROUTES = {
 
   },
   IMAGE: {
-    GET: "/images/:imageName"
+    GET: "/images/:folderName/:imageName"
   },
   VEHICAL_PASS: {
     GET_PASS: "/vehicle-passes",

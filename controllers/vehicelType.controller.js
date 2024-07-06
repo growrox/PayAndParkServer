@@ -7,8 +7,11 @@ export const createVehicleType = async (req, res) => {
   try {
     const { name } = req.body;
     const hourlyPrices = JSON.parse(req.body.hourlyPrices); // Parse hourlyPrices from JSON string to array of objects
-    const imageUrl = req.file ? `/images/${req.file.filename}` : ""; // Generate the URL based on the saved path
+    const imageUrl = req.file
+      ? `/images/${req.params.folderName}/${req.file.filename}`
+      : ""; // Generate the URL based on the saved path
     // name.trim.
+    console.log({ imageUrl });
     console.log({ name, imageUrl, hourlyPrices });
     const newVehicleType = new VehicleType({
       name,
@@ -44,15 +47,18 @@ export const getAllVehicleType = async (req, res) => {
 };
 
 export const serveImage = (req, res) => {
-  const { imageName } = req.params;
-  console.log({ imageName });
-  const imagePath = path.join(__dirname, "../images", imageName);
-  console.log({ imagePath });
-  res.sendFile(imagePath, (err) => {
-    if (err) {
-      res.status(404).json({ message: "Image not found" });
-    }
-  });
+  try {
+    const { imageName, folderName } = req.params;
+    const imagePath = path.join(__dirname, "../images/", folderName, imageName);
+    return res.sendFile(imagePath, (err) => {
+      if (err) {
+        res.status(404).json({ message: "Image not found" });
+      }
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send(error);
+  }
 };
 
 export const getVehicleTypeDetail = async (req, res) => {
