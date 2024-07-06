@@ -52,7 +52,7 @@ export const getAllVehiclePasses = async (req, res) => {
     // Default values for pagination
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const search = parseInt(req.query.search) || "";
+    const search = req.query.search || "";
 
     // Calculating the skipping of documents
     const skip = (page - 1) * limit;
