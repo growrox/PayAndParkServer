@@ -277,16 +277,14 @@ export const validateOTP = async (req, res) => {
           { attempts: getOTPDetails?.attempts - 1 }
         );
       }
-      return res
-        .status(300)
-        .json({
-          message: `${
-            getOTPDetails?.attempts
-              ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
-              : "Maximum attempts reached generate new OTP."
-          }`,
-          attempts: getOTPDetails?.attempts,
-        });
+      return res.status(300).json({
+        message: `${
+          getOTPDetails?.attempts
+            ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
+            : "Maximum attempts reached generate new OTP."
+        }`,
+        attempts: getOTPDetails?.attempts,
+      });
     }
   } catch (error) {
     console.error("Error validating the OTP", error);
@@ -296,19 +294,29 @@ export const validateOTP = async (req, res) => {
 
 // Function to get all users with pagination and filtering
 export const getUsers = async (req, res) => {
-  const { page = 1, pageSize = 10, filter } = req.query;
+  const { page = 1, pageSize = 10, filter, role } = req.query;
   const query = {};
 
-  // Apply filters based on query parameters if they exist
+  const orConditions = [];
+
+  // Apply general filter to multiple fields if filter is not empty
   if (!isEmpty(filter)) {
-    // Create a $or condition to match name, phone, or role
-    query.$or = [
+    orConditions.push(
       { name: { $regex: filter.trim(), $options: "i" } },
       { phone: { $regex: filter.trim(), $options: "i" } },
-      { role: { $regex: filter.trim(), $options: "i" } },
       { code: { $regex: filter.trim(), $options: "i" } },
-      { supervisorCode: { $regex: filter.trim(), $options: "i" } },
-    ];
+      { supervisorCode: { $regex: filter.trim(), $options: "i" } }
+    );
+  }
+
+  // Apply a specific role filter if role is not empty
+  if (!isEmpty(role)) {
+    orConditions.push({ role: { $regex: role.trim(), $options: "i" } });
+  }
+
+  // Only add $or to query if there are conditions to include
+  if (orConditions.length > 0) {
+    query.$or = orConditions;
   }
   try {
     // Count total documents matching the query
@@ -321,12 +329,10 @@ export const getUsers = async (req, res) => {
     }
 
     if (page > totalPages) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "You have exceeded the available search results. Please check page.",
-        });
+      return res.status(400).json({
+        message:
+          "You have exceeded the available search results. Please check page.",
+      });
     }
 
     // Calculate total pages based on pageSize
