@@ -339,7 +339,7 @@ export const getUsers = async (req, res) => {
 
     // Find users based on the query, select specific fields, and apply pagination
     const users = await User.find(query)
-      .select("name code phone role supervisorCode shiftId")
+      .select("name code phone role supervisorCode shiftId isOnline")
       .populate("shiftId")
       .skip((page - 1) * pageSize)
       .limit(parseInt(pageSize))
