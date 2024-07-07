@@ -39,8 +39,24 @@ export const createParkingTicket = async (req, res) => {
           "A ticket for this vehicle was already created within the last 30 minutes.",
       });
     }
-    const image = req.file ? `/images/${req.params.folderName}/${req.file.filename}` : ""; // Generate the URL based on the saved path
+    const image = req.file
+      ? `/images/${req.params.folderName}/${req.file.filename}`
+      : ""; // Generate the URL based on the saved path
     console.log({ image });
+    console.log({
+      vehicleType,
+      duration,
+      paymentMode,
+      remark,
+      vehicleNumber,
+      phoneNumber,
+      amount,
+      supervisor,
+      settlementId,
+      isPass,
+      passId,
+      onlineTransactionId,
+    });
     // Create a new parking ticket
     const newTicket = new ParkingTicket({
       parkingAssistant: req.headers.userId,
