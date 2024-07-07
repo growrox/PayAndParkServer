@@ -73,7 +73,7 @@ app.use("/api/v1", vehicleType);
 
 app.listen(PORT, async () => {
   // Connect to MongoDB using Mongoose
-  // await mongoose.connect(process.env.DB_URL);
-  await mongoose.connect(process.env.DB_URL_PROD);
+  await mongoose.connect(process.env.DB_URL);
+  // await mongoose.connect(process.env.DB_URL_PROD);
   console.log(`Server is running on port ${PORT}`);
 });

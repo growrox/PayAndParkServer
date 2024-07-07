@@ -1,6 +1,7 @@
 import Otp from "../models/otp.model.js";
 import { fileURLToPath } from 'url';
 import path from 'path';
+import axios from "axios"
 
 export const isEmpty = (value) => {
   if (value === null || value === undefined) {
@@ -45,8 +46,12 @@ export const generateOTP = async (userID, phoneNumber) => {
       },
       { upsert: true } // Options to upsert if record doesn't exist
     );
-    
+
     console.log(`Generated OTP ${otp} for userID ${userID} and phone number ${phoneNumber}`);
+
+    const sendSMSResponse = await sendOTP(phoneNumber, otp);
+    console.log("sendSMSResponse ", sendSMSResponse);
+
     return { status: "success", OTP: otp };
   } catch (error) {
     console.error('Error generating OTP:', error);
@@ -56,8 +61,145 @@ export const generateOTP = async (userID, phoneNumber) => {
   }
 };
 
-
 export const __filename = fileURLToPath(import.meta.url);
 export const __dirname = path.dirname(__filename);
 
+
+async function sendOTP(toNumber, otp) {
+  console.log("new DAte ", new Date().toTimeString());
+
+  // Prepare parameters
+  const data = {
+    username: process.env.SMSGW_USER_NAME,
+    password: process.env.SMSGW_USER_PSSWORD,
+    "from": process.env.SMSGW_SENDER_NAME,
+    "pe_id": process.env.SMS_PE_ID,
+    "template_id": process.env.SMS_TEMPLATE_ID,
+    "to": [toNumber],
+    "text": `${otp} is the OTP for Authentication on Traffic Rewards. Please do not share this with anyone. Thank You, Team Traffic Rewards. TRWARD`,
+    "scheduletime": formatTime()
+  };
+
+  console.log("Data ", data);
+
+  let config = {
+    method: 'post',
+    // maxBodyLength: Infinity,
+    url: process.env.SMSGW_BASE_URL,
+    headers: {
+      // 'x-client-source': 'app',
+      'Content-Type': 'application/json'
+    },
+    data: data
+  };
+
+  // Encode text parameter
+  try {
+    // Make GET request using Axios
+    const response = await axios.request(config);
+
+    // Check if request was successful
+    if (response.status === 200) {
+      console.log("SMS sent successfully.");
+      // console.log("");
+      console.log("Response:", response.data);
+      return response.data;
+    } else {
+      console.error(`Failed to send SMS. Status code: ${response.status}`);
+      console.log("Error Response:");
+      console.log(response.data);
+    }
+  } catch (error) {
+    console.error("Error sending SMS:", error);
+
+  }
+}
+
+export async function sendTicketConfirmation(ticketDetails) {
+  const { Name, toNumber, TicketNumber, VehicalNumber, ParkingAssistant, Duration, Amount, PaymentMode } = ticketDetails;
+  const ninePercent = (Amount * 0.09).toFixed(2);
+
+
+  // console.log("new DAte ", new Date());
+
+  // Prepare parameters
+  const data = {
+    username: process.env.SMSGW_USER_NAME,
+    password: process.env.SMSGW_USER_PSSWORD,
+    "from": process.env.SMSGW_SENDER_NAME,
+    "pe_id": process.env.TICKET_CONFIRMATION_PE_ID,
+    "template_id": process.env.TICKET_CONFIRMATION_TEMPLATE_ID,
+    "to": [toNumber],
+    "text": `M.B.M.C Pay&Park, Bhalavi Grp DATE:- ${getDateTime().date} ,TIME :- ${getDateTime().time} Dear ${Name} Your parking ticket has been successfully generated. Ticket Number: ${TicketNumber} Vehicle Number: ${VehicalNumber} Parking Assistant: ${ParkingAssistant} Duration: ${Duration + "hrs"} Base Amount : ${Amount - (ninePercent * 2)} CGST 9% : ${ninePercent} SGST 9% : ${ninePercent} RND OFF : ${Amount} GRAND TOTAL : ${Amount} Payment Mode: ${PaymentMode}. MBMC`,
+    // "text": "M.B.M.C Pay&Park 3, Bhalavi Grp DATE:- 07.07.24,TIME :- 2: 00pm Dear Hitesh Pal Your parking ticket has been successfully generated. Ticket Number: AB1235 Vehicle Number: MH04 GK 3445 Parking Assistant: Aditya Singh Duration: 2hrs Base Amount : 30 CGST 9%  : 9 SGST 9%   : 9 RND OFF : 38 GRAND TOTAL : 38Payment Mode: Online. MBMC",
+    "scheduletime": formatTime()
+  };
+
+  console.log("Data ", data);
+
+  let config = {
+    method: 'post',
+    url: process.env.SMSGW_BASE_URL,
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    data: data
+  };
+
+  // Encode text parameter
+  try {
+    // Make GET request using Axios
+    const response = await axios.request(config);
+    // Check if request was successful
+    if (response.status == 200) {
+      console.log("SMS sent successfully.");
+      console.log("Response:", response.data);
+      return response.data;
+    } else {
+      console.error(`Failed to send SMS. Status code: ${response.status}`);
+      console.log("Error Response:");
+      console.log(response.data);
+    }
+  }
+  catch (error) {
+    console.error("Error sending SMS:", error);
+
+  }
+}
+
+function formatTime() {
+  const date = new Date();
+
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-indexed
+  const day = date.getDate().toString().padStart(2, '0');
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
+function getDateTime() {
+  const date = new Date();
+
+  // Get date components
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-indexed
+  const year = date.getFullYear().toString().slice(-2); // Last two digits of the year
+
+  // Get time components
+  let hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'pm' : 'am';
+
+  hours = hours % 12 || 12; // Convert hour to 12-hour format
+  const time = `${hours.toString().padStart(2, '0')}:${minutes}${ampm}`;
+
+  // Format date and time strings
+  const formattedDate = `${day}-${month}-${year}`;
+  const formattedTime = `${time}`;
+
+  // Return date and time object
+  return { date: formattedDate, time: formattedTime };
+}
 

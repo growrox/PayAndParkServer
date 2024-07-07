@@ -1,8 +1,8 @@
 import ParkingTicket from "../models/parkingTicket.model.js"; // Adjust the path based on your project structure
-import { isEmpty } from "../utils/helperFunctions.js";
+import { __dirname, isEmpty, sendTicketConfirmation } from "../utils/helperFunctions.js";
 import generatePayment from "../utils/generatePayment.js";
 import Transaction from "../models/onlineTransaction.model.js";
-import crypto from "crypto";
+import User from "../models/user.model.js";
 import CryptoJS from "crypto-js";
 
 // Controller to create a new parking ticket
@@ -13,7 +13,7 @@ export const createParkingTicket = async (req, res) => {
       duration,
       paymentMode,
       remark,
-      // image,
+      name,
       vehicleNumber,
       phoneNumber,
       amount,
@@ -22,10 +22,17 @@ export const createParkingTicket = async (req, res) => {
       isPass,
       passId,
       onlineTransactionId,
+      image,
+      address
     } = req.body;
 
+    console.log("Body ", req.body);
+    const { userId } = req.headers;
     // Check if there is an assistant with the provided phone number and role
 
+    console.log("userid  ", userId);
+    const AssistanceAvailable = await User.findById(userId);
+    console.log("AssistanceAvailable ", AssistanceAvailable);
     // Check if there is already a ticket for the vehicle number created within the last 30 minutes
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
     const existingTicket = await ParkingTicket.findOne({
@@ -39,24 +46,7 @@ export const createParkingTicket = async (req, res) => {
           "A ticket for this vehicle was already created within the last 30 minutes.",
       });
     }
-    const image = req.file
-      ? `/images/${req.params.folderName}/${req.file.filename}`
-      : ""; // Generate the URL based on the saved path
-    console.log({ image });
-    console.log({
-      vehicleType,
-      duration,
-      paymentMode,
-      remark,
-      vehicleNumber,
-      phoneNumber,
-      amount,
-      supervisor,
-      settlementId,
-      isPass,
-      passId,
-      onlineTransactionId,
-    });
+
     // Create a new parking ticket
     const newTicket = new ParkingTicket({
       parkingAssistant: req.headers.userId,
@@ -72,8 +62,10 @@ export const createParkingTicket = async (req, res) => {
       settlementId,
       isPass,
       passId,
+      name,
+      address
     });
-    console.log("newTicket ", newTicket);
+    console.log("newTicket ", newTicket._id);
 
     if (isEmpty(onlineTransactionId)) {
       if (paymentMode == "Online") {
@@ -86,6 +78,24 @@ export const createParkingTicket = async (req, res) => {
     }
 
     const savedTicket = await newTicket.save();
+    const ticketId = "666f0e35284b2b8f1707c77b" // savedTicket._id; 
+    // sendTicketConfirmation  Date, Time, Name, TicketNumber, VehicalNumber, ParkingAssistant, Duration, Amount, PaymentMode
+    const smsParams = {
+      Name: name,
+      toNumber: phoneNumber,
+      TicketNumber: `PnP${ticketId.toString().slice(5, 9)}`,
+      VehicalNumber: vehicleNumber,
+      ParkingAssistant: AssistanceAvailable.name,
+      Duration: duration,
+      Amount: amount,
+      PaymentMode: paymentMode
+    }
+
+    console.log("sms Params ", smsParams);
+
+    // const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
+    // console.log("sendTicketConfirmationMessage  ", sendTicketConfirmationMessage);
+
     return res
       .status(200)
       .json({ message: "Parking ticket created", result: savedTicket });
@@ -103,9 +113,8 @@ export const createParkingTicket = async (req, res) => {
 export const getVehicleTypeDetail = async (req, res) => {
   try {
     const parkingTicket = await ParkingTicket.findById(req.params.id);
-    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${
-      parkingTicket.image
-    }`;
+    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${parkingTicket.image
+      }`;
     if (!parkingTicket)
       return res.status(404).json({ message: "Parking ticket not found" });
     return res.json({
@@ -191,15 +200,67 @@ export const generatePaymentForTicket = async (req, res) => {
   }
 };
 
-// Controller to get all parking tickets
+// Controller to get all parking tickets with pagination
 export const getParkingTickets = async (req, res) => {
   try {
-    const tickets = await ParkingTicket.find();
-    return res.json(tickets);
+    const { page = 1, pageSize = 10 } = req.query;
+
+    // Parse page and pageSize into integers
+    const parsedPage = parseInt(page);
+    const parsedPageSize = parseInt(pageSize);
+
+    // Calculate skip value for pagination
+    const skip = (parsedPage - 1) * parsedPageSize;
+
+    // Fetch parking tickets based on pagination
+    const tickets = await ParkingTicket.find()
+      .skip(skip)
+      .limit(parsedPageSize)
+      .exec();
+
+    // Count total documents
+    const totalCount = await ParkingTicket.countDocuments();
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalCount / parsedPageSize);
+
+    // Pagination logic to determine next and previous pages
+    let nextPage = null;
+    let prevPage = null;
+
+    if (parsedPage < totalPages) {
+      nextPage = {
+        page: parsedPage + 1,
+        pageSize: parsedPageSize,
+      };
+    }
+
+    if (parsedPage > 1) {
+      prevPage = {
+        page: parsedPage - 1,
+        pageSize: parsedPageSize,
+      };
+    }
+
+    // Prepare response object with tickets, pagination details, and totalCount
+    const response = {
+      tickets,
+      pagination: {
+        totalCount,
+        totalPages,
+        nextPage,
+        prevPage,
+      },
+    };
+
+    // Return successful response with status 200
+    return res.status(200).json({ message: "Here is the parking tickets list", result: response });
   } catch (error) {
+    // Handle errors and return status 500 with error message
     return res.status(500).json({ message: error.message });
   }
 };
+
 
 // Controller to get all the non settle tickets
 export const getTicketsByAssistantId = async (req, res) => {
@@ -364,5 +425,23 @@ export const deleteParkingTicketById = async (req, res) => {
     res.json({ message: "Parking ticket deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+
+export const uploadTicketImage = async (req, res) => {
+  try {
+    const file = req.file;
+
+    console.log('userid,  file', file)
+
+    if (!file) {
+      return res.status(400).json({ error: 'No file received' });
+    }
+
+    return res.status(200).json({ filename: file.filename, path: `/images/tickets/${file.filename}` });
+  } catch (error) {
+    console.error('Error:', error);
+    return res.status(500).json({ error: error });
   }
 };

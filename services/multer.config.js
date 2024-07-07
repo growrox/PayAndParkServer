@@ -1,5 +1,3 @@
-// const multer = require("multer");
-// const path = require("path");
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -24,6 +22,7 @@ const storage = multer.diskStorage({
 
 // File filter can be customized based on the requirement
 const fileFilter = (req, file, cb) => {
+  console.log("Form DAta is ",req.body);
   if (file.mimetype === "image/jpeg" || file.mimetype === "image/png") {
     cb(null, true); // Accept file
   } else {

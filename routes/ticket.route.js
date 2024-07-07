@@ -9,20 +9,52 @@ import {
   updatePaymentStatusOnline,
   generatePaymentForTicket,
   deletePaymentOrderById,
-  getVehicleTypeDetail
+  getVehicleTypeDetail,
+  uploadTicketImage
 } from "../controllers/parkingTicket.controller.js";
+import multer from "multer";
+import path from "path";
 
 import checkParkingAssistant from "../middlewares/checkParkingAssistant.js";
-import upload from "../services/multer.config.js";
 
 const router = express.Router();
+
+
+const storage = multer.diskStorage({
+  destination: 'images/tickets',
+  filename: (req, file, cb) => {
+    const { userId } = req.headers;
+    console.log("req.headers", req.headers);
+    console.log('adfasdf', req.body.assistantID);
+    console.log("file.fieldname ", file.fieldname);
+    cb(null, userId + '_' + Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'image') {
+      cb(null, true);
+    } else {
+      cb(new Error('Unexpected field'));
+    }
+  }
+});
+
+router.post(
+  "/parking-tickets/uploadParkingTicket",
+  checkParkingAssistant,
+  upload.single("image"),
+  uploadTicketImage
+);
 
 router.post(
   "/parking-tickets/:folderName",
   checkParkingAssistant,
-  upload.single("image"),
   createParkingTicket
 );
+
 router.post(
   "/ticket/generate-order",
   checkParkingAssistant,

@@ -1,6 +1,12 @@
 import { Schema, model } from "mongoose";
 
+const addressSchema = new Schema({
+     latitude: { type: String, required: true },
+     longitude: { type: String, required: true }
+})
+
 const parkingTicketSchema = new Schema({
+     name: { type: String, required: true },
      parkingAssistant: { type: Schema.Types.ObjectId, ref: 'ParkingAssistant', required: true },
      vehicleType: { type: String, required: true },
      duration: { type: Number, required: true },
@@ -15,7 +21,8 @@ const parkingTicketSchema = new Schema({
      settlementId: { type: Schema.Types.ObjectId, ref: "SupervisorSettlementTicket" },
      isPass: { type: Boolean, default: false },
      passId: { type: Schema.Types.ObjectId, ref: 'Pass' },
-     onlineTransactionId: { type: Schema.Types.ObjectId, ref: 'Transaction' }
+     onlineTransactionId: { type: Schema.Types.ObjectId, ref: 'Transaction' },
+     address: addressSchema
 }, { timestamps: true });
 
 const ParkingTicket = model('ParkingTickets', parkingTicketSchema);
