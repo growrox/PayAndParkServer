@@ -15,7 +15,8 @@ export const ROUTES = {
     DELETE: "/delete-vehicle-type/:id",
   },
   ASSISTANT: {
-    STATS: "/parking-assistant/stats"
+    STATS: "/parking-assistant/stats",
+    GET_TICKETS: "/parking-assistant/tickets"
   },
   SHIFT: {
     CREATE_SHIFTS: '/shifts/create',

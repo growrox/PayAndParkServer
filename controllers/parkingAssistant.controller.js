@@ -147,3 +147,87 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
           res.status(500).json({ message: error.message });
      }
 };
+
+
+// Controller function to fetch tickets
+export const getTickets = async (req, res) => {
+     try {
+          let { page, userid, role, page_limit } = req.headers;
+          let { searchQuery } = req.query;
+          let filter = [];
+
+          console.log(searchQuery, " Query --- ", req.query);
+
+          // Handle pagination and default limit
+          const limit = page && page === 'home' ? 5 : parseInt(page_limit) || 20;  // 5 tickets for 'page=home', or custom limit from headers, defaulting to 20
+          const pageNumber = parseInt(req.query.pageNumber) || 1;
+          const skip = (pageNumber - 1) * limit;
+
+          // Apply filters if provided
+          if (searchQuery) {
+               filter.push({ vehicleNumber: { $regex: new RegExp(searchQuery, 'i') } }); // Case-insensitive regex match
+               filter.push({ phoneNumber: { $regex: new RegExp(searchQuery, 'i') } }); // Case-insensitive regex match
+               filter.push({ paymentMode: { $regex: new RegExp(searchQuery, 'i') } }); // Case-insensitive regex match
+               filter.push({ status: { $regex: new RegExp(searchQuery, 'i') } }); // Case-insensitive regex match
+          }
+
+          console.log("filter ", filter);
+
+          let tickets = [];
+
+          if (page === 'home') {
+               // Fetch latest 5 tickets without filters
+               tickets = await ParkingTicket.find({})
+                    .sort({ createdAt: -1 }) // Sort by createdAt descending (latest first)
+                    .limit(5)
+                    .populate('supervisor', 'name') // Populate supervisor with 'name' field
+                    .populate('settlementId') // Populate settlementId with referenced document
+                    .populate('passId') // Populate passId with referenced document
+                    .populate('onlineTransactionId') // Populate onlineTransactionId with referenced document
+                    .exec();
+          } else {
+               // Fetch tickets with applied filters and pagination
+               if (filter.length > 0) {
+                    tickets = await ParkingTicket.find({ $or: filter })
+                         .sort({ createdAt: -1 }) // Sort by createdAt descending (latest first)
+                         .skip(skip)
+                         .limit(limit)
+                         .populate('supervisor', 'name') // Populate supervisor with 'name' field
+                         .populate('settlementId') // Populate settlementId with referenced document
+                         .populate('passId') // Populate passId with referenced document
+                         .populate('onlineTransactionId') // Populate onlineTransactionId with referenced document
+                         .exec();
+               } else {
+                    tickets = await ParkingTicket.find({})
+                         .sort({ createdAt: -1 }) // Sort by createdAt descending (latest first)
+                         .skip(skip)
+                         .limit(limit)
+                         .populate('supervisor', 'name') // Populate supervisor with 'name' field
+                         .populate('settlementId') // Populate settlementId with referenced document
+                         .populate('passId') // Populate passId with referenced document
+                         .populate('onlineTransactionId') // Populate onlineTransactionId with referenced document
+                         .exec();
+               }
+          }
+
+          // Count total number of tickets (for pagination details)
+          const totalCount = await ParkingTicket.countDocuments();
+
+          if (tickets.length === 0) {
+               return res.status(200).json({ message: 'No tickets found', data: [], pagination: { total: 0, limit, pageNumber } });
+          }
+
+          let responseObj = {
+               message: "Here are the parking tickets.",
+               result: { data: tickets },
+          }
+          if (!page && page != 'home') {
+               responseObj["result"] = { ...responseObj["result"], pagination: { total: totalCount, limit, pageNumber } }
+          }
+
+          res.status(200).json(responseObj);
+     } catch (err) {
+          console.error('Error fetching tickets:', err);
+          res.status(500).json({ error: 'Server error' });
+     }
+};
