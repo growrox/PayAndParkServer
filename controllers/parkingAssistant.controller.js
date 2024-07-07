@@ -177,7 +177,7 @@ export const getTickets = async (req, res) => {
 
           if (page === 'home') {
                // Fetch latest 5 tickets without filters
-               tickets = await ParkingTicket.find({})
+               tickets = await ParkingTicket.find({ parkingAssistant: new mongoose.Types.ObjectId(userid) })
                     .sort({ createdAt: -1 }) // Sort by createdAt descending (latest first)
                     .limit(5)
                     .populate('supervisor', 'name') // Populate supervisor with 'name' field
@@ -188,7 +188,7 @@ export const getTickets = async (req, res) => {
           } else {
                // Fetch tickets with applied filters and pagination
                if (filter.length > 0) {
-                    tickets = await ParkingTicket.find({ $or: filter })
+                    tickets = await ParkingTicket.find({ parkingAssistant: new mongoose.Types.ObjectId(userid), $or: filter })
                          .sort({ createdAt: -1 }) // Sort by createdAt descending (latest first)
                          .skip(skip)
                          .limit(limit)
@@ -198,7 +198,7 @@ export const getTickets = async (req, res) => {
                          .populate('onlineTransactionId') // Populate onlineTransactionId with referenced document
                          .exec();
                } else {
-                    tickets = await ParkingTicket.find({})
+                    tickets = await ParkingTicket.find({ parkingAssistant: new mongoose.Types.ObjectId(userid) })
                          .sort({ createdAt: -1 }) // Sort by createdAt descending (latest first)
                          .skip(skip)
                          .limit(limit)
@@ -211,7 +211,7 @@ export const getTickets = async (req, res) => {
           }
 
           // Count total number of tickets (for pagination details)
-          const totalCount = await ParkingTicket.countDocuments();
+          const totalCount = await ParkingTicket.find({ parkingAssistant: new mongoose.Types.ObjectId(userid) }).countDocuments();
 
           if (tickets.length === 0) {
                return res.status(200).json({ message: 'No tickets found', data: [], pagination: { total: 0, limit, pageNumber } });
