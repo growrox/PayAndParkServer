@@ -286,3 +286,13 @@ export const getSupervisorStats = async (req, res) => {
      }
 
 }
+
+export const getAllSuperVisors = async (req, resp) => {
+     try {
+          const allSupervisors = await User.find({ role: "supervisor" }, {_id:1,code:1,name:1})
+          return resp.status(200).json({ message: "All supervisors list.", result: allSupervisors });
+     } catch (error) {
+          console.error("Error getting the supervisor stats.", error);
+          return resp.status(500).json({ error: error.message });
+     }
+}

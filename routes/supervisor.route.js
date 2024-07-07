@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { settleParkingTickets, getParkingAssistants, getAllSettlementTickets, getSupervisorStats } from "../controllers/supervisor.controller.js"
+import { settleParkingTickets, getParkingAssistants, getAllSettlementTickets, getSupervisorStats, getAllSuperVisors } from "../controllers/supervisor.controller.js"
 
 const router = Router();
 
@@ -8,6 +8,7 @@ router.post('/supervisor/settle-tickets/:parkingAssistantID', settleParkingTicke
 router.get('/supervisor/parkings-assistants/:supervisorID', getParkingAssistants);
 router.get('/supervisor/tickets/all/:supervisorID', getAllSettlementTickets);
 router.get('/supervisor/stats/:supervisorID', getSupervisorStats);
+router.get('/supervisor/all', getAllSuperVisors)
 
 // router.get('/users/:phone', validateJWT, getUserById);
 // router.put('/users/:phone', updateUser);
