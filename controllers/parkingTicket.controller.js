@@ -93,8 +93,8 @@ export const createParkingTicket = async (req, res) => {
 
     console.log("sms Params ", smsParams);
 
-    // const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
-    // console.log("sendTicketConfirmationMessage  ", sendTicketConfirmationMessage);
+    const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
+    console.log("sendTicketConfirmationMessage  ", sendTicketConfirmationMessage);
 
     return res
       .status(200)
