@@ -5,7 +5,8 @@ const VehiclePassSchema = new Schema({
      vehicleNo: { type: String, required: true },
      phone: { type: String, required: true },
      expireDate: { type: Date, required: true },
-     isActive: { type: Boolean, default: true }
+     isActive: { type: Boolean, default: true },
+     name: { type: String, required: true }
 }, { timestamps: true });
 
 // Create a model based on the schema

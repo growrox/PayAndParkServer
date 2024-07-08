@@ -10,7 +10,7 @@ const parkingTicketSchema = new Schema({
      parkingAssistant: { type: Schema.Types.ObjectId, ref: 'ParkingAssistant', required: true },
      vehicleType: { type: String, required: true },
      duration: { type: Number, required: true },
-     paymentMode: { type: String, enum: ['Cash', 'Online', 'Free'], required: true },
+     paymentMode: { type: String, enum: ['Cash', 'Online', 'Free', 'Pass'], required: true },
      remark: { type: String },
      image: { type: String },
      vehicleNumber: { type: String, required: true },

@@ -4,7 +4,7 @@ import { isEmpty } from "../utils/helperFunctions.js";
 // Example: Create a new vehicle pass
 export const createVehiclePass = async (req, res) => {
   try {
-    const { vehicleNo, expireDate, phone } = req.body;
+    const { vehicleNo, expireDate, phone, name } = req.body;
 
     if (isEmpty(vehicleNo))
       return res
@@ -34,12 +34,13 @@ export const createVehiclePass = async (req, res) => {
       phone,
       vehicleNo,
       expireDate: new Date(expireDate),
+      name
     });
     const savedPass = await newPass.save();
     const { _id } = savedPass;
     return res.status(201).json({
       message: "Vehical pass created.",
-      result: { vehicleNo, expireDate, phone, _id },
+      result: { vehicleNo, expireDate, phone, _id, name },
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -60,6 +61,7 @@ export const getAllVehiclePasses = async (req, res) => {
     // Find the vehicle passes with pagination
     const passes = await VehiclePass.find({
       $or: [
+        { name: { $regex: search, $options: "i" } }, // Case-insensitive search for name
         { phone: { $regex: search, $options: "i" } }, // Case-insensitive search for phone
         { vehicleNo: { $regex: search, $options: "i" } }, // Case-insensitive search for vehicleNo
       ],
@@ -100,6 +102,7 @@ export const getVehiclePass = async (req, res) => {
     // Find passes matching the filter
     const passes = await VehiclePass.find({
       $or: [
+        { name: { $regex: filter, $options: "i" } }, // Case-insensitive search for name
         { phone: { $regex: filter, $options: "i" } }, // Case-insensitive search for phone
         { vehicleNo: { $regex: filter, $options: "i" } }, // Case-insensitive search for vehicleNo
       ],
@@ -130,7 +133,7 @@ export const getVehiclePass = async (req, res) => {
 };
 
 export const updateVehiclePass = async (req, res) => {
-  const { vehicleNo, expireDate, phone } = req.body;
+  const { vehicleNo, expireDate, phone, name } = req.body;
   const passId = req.params.passId;
   try {
     if (isEmpty(passId))
@@ -144,6 +147,7 @@ export const updateVehiclePass = async (req, res) => {
 
     const updateObject = {};
     if (!isEmpty(phone)) updateObject.phone = phone;
+    if (!isEmpty(name)) updateObject.name = name;
     if (!isEmpty(vehicleNo)) updateObject.vehicleNo = vehicleNo;
     if (!isEmpty(expireDate)) updateObject.expireDate = new Date(expireDate);
 
