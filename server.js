@@ -95,7 +95,7 @@ try {
 }
 
 // Define the cron job to run every 5 minutes
-cron.schedule('* */7 * * * *', () => {
+cron.schedule('*/7 * * * *', () => {
   console.log("Cron run --- ");
   // Increment the count
   currentCount++;
