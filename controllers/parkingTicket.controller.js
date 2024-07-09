@@ -4,6 +4,8 @@ import generatePayment from "../utils/generatePayment.js";
 import Transaction from "../models/onlineTransaction.model.js";
 import User from "../models/user.model.js";
 import CryptoJS from "crypto-js";
+import fs from "fs"
+import path from "path";
 
 // Controller to create a new parking ticket
 export const createParkingTicket = async (req, res) => {
@@ -261,7 +263,6 @@ export const getParkingTickets = async (req, res) => {
   }
 };
 
-
 // Controller to get all the non settle tickets
 export const getTicketsByAssistantId = async (req, res) => {
   const phoneNumber = req.params.assistantId;
@@ -443,5 +444,40 @@ export const uploadTicketImage = async (req, res) => {
   } catch (error) {
     console.error('Error:', error);
     return res.status(500).json({ error: error });
+  }
+};
+
+
+// Controller function to delete an image
+export const deleteTicketImage = async (req, res) => {
+  const filename = req.params.filename;
+  const imagePath = path.join(__dirname, '..', 'images', 'tickets', filename);
+
+  try {
+    const myPromise = new Promise((resolve, reject) => {
+      fs.unlink(imagePath, function (err) {
+        if (err && err.code == 'ENOENT') {
+          console.info("File doesn't exist, won't remove it.");
+          resolve(false)
+        } else if (err) {
+          resolve(false)
+          console.error("Error occurred while trying to remove file");
+        } else {
+          console.info(`removed`);
+          resolve(true)
+        }
+      });
+    })
+
+    if (await myPromise) {
+      res.status(200).json({ message: "File deleted successfully." });
+    }
+    else {
+      res.status(404).json({ error: "File not does not exist." });
+    }
+
+  } catch (error) {
+    console.log("Error in the route ", error);
+    res.status(500).json({ error: error });
   }
 };

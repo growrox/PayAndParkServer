@@ -10,7 +10,8 @@ import {
   generatePaymentForTicket,
   deletePaymentOrderById,
   getVehicleTypeDetail,
-  uploadTicketImage
+  uploadTicketImage,
+  deleteTicketImage
 } from "../controllers/parkingTicket.controller.js";
 import multer from "multer";
 import path from "path";
@@ -67,6 +68,8 @@ router.get("/parking-tickets/unsettled/:assistantId", getTicketsByAssistantId);
 router.delete("/ticket/order/:id", deletePaymentOrderById);
 router.get("/ticket/detail/:id", getVehicleTypeDetail);
 // router.get('/parking-tickets/stats/:assistantId', getTicketsByAssistantId);
+
+router.delete('/parking-tickets/:filename', deleteTicketImage);
 
 // Bellow two routes will not be used yet.
 router.put("/parking-tickets/:id", updateParkingTicketById);
