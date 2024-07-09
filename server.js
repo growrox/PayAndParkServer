@@ -81,39 +81,9 @@ app.use("/api/v1", vehicleType);
 
 // ----------------------------
 
-const jsonFilePath = './data.json'; // Path to your JSON file
-
-// Initialize or load the current count
-let currentCount = 0;
-
-try {
-  const data = fs.readFileSync(jsonFilePath, 'utf8');
-  const jsonData = JSON.parse(data);
-  currentCount = jsonData.totalCount;
-} catch (err) {
-  console.error('Error reading JSON file:', err);
-}
-
 // Define the cron job to run every 5 minutes
 cron.schedule('*/7 * * * *', () => {
   console.log("Cron run --- ");
-  // Increment the count
-  currentCount++;
-
-  // Prepare updated data
-  const newData = {
-    totalCount: currentCount,
-    updatedAt: new Date().toISOString()
-  };
-
-  // Write to JSON file
-  fs.writeFile(jsonFilePath, JSON.stringify(newData, null, 2), 'utf8', (err) => {
-    if (err) {
-      console.error('Error writing JSON file:', err);
-    } else {
-      console.log(`JSON file updated: Total count is now ${currentCount}`);
-    }
-  });
 }, {
   scheduled: true,
   timezone: 'Asia/Kolkata' // Adjust timezone as per your location
