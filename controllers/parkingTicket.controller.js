@@ -42,7 +42,7 @@ export const createParkingTicket = async (req, res) => {
 
     if (existingTicket) {
       return res.status(400).json({
-        message:
+        error:
           "A ticket for this vehicle was already created within the last 30 minutes.",
       });
     }
@@ -103,9 +103,9 @@ export const createParkingTicket = async (req, res) => {
     if (error.name === "ValidationError") {
       // Mongoose validation error
       const errors = Object.values(error.errors).map((err) => err.message);
-      return res.status(400).json({ message: "Validation Error", errors });
+      return res.status(400).json({ error: "Validation Error", errors });
     }
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -116,13 +116,13 @@ export const getVehicleTypeDetail = async (req, res) => {
     parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${parkingTicket.image
       }`;
     if (!parkingTicket)
-      return res.status(404).json({ message: "Parking ticket not found" });
+      return res.status(404).json({ error: "Parking ticket not found" });
     return res.json({
       message: "All vehicals details list.",
       result: parkingTicket,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -166,11 +166,11 @@ export const updatePaymentStatusOnline = async (req, res) => {
         .status(200)
         .json({ message: "Payment completed successfully" });
     } else {
-      return res.status(404).json({ message: "Signature does not match." });
+      return res.status(404).json({ error: "Signature does not match." });
     }
   } catch (error) {
     console.error("Error:", error);
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -193,10 +193,10 @@ export const generatePaymentForTicket = async (req, res) => {
       console.error("Error message creating payment.", orderPaymentDetails);
       return res
         .status(500)
-        .json({ message: "Payment not generated please try again." });
+        .json({ error: "Payment not generated please try again." });
     }
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -257,7 +257,7 @@ export const getParkingTickets = async (req, res) => {
     return res.status(200).json({ message: "Here is the parking tickets list", result: response });
   } catch (error) {
     // Handle errors and return status 500 with error message
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -292,7 +292,7 @@ export const getTicketsByAssistantId = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -339,7 +339,7 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
           : { TotalAmount: 0, TotalCash: 0, TotalOnline: 0 },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -360,7 +360,7 @@ export const getParkingTicketByQuery = async (req, res) => {
   } else if (vehicleNumberRegex.test(param)) {
     query = { vehicleNumber: param };
   } else {
-    return res.status(400).json({ message: "Invalid query provided." });
+    return res.status(400).json({ error: "Invalid query provided." });
   }
 
   try {
@@ -369,12 +369,12 @@ export const getParkingTicketByQuery = async (req, res) => {
     // .populate('supervisor', 'name'); // Populate supervisor with 'name' field
 
     if (isEmpty(ticket)) {
-      return res.status(404).json({ message: "Parking ticket not found" });
+      return res.status(404).json({ error: "Parking ticket not found" });
     }
 
-    res.json({ message: "Here is all the matched results", result: ticket });
+    return res.json({ message: "Here is all the matched results", result: ticket });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -387,16 +387,16 @@ export const updateParkingTicketById = async (req, res) => {
       { new: true }
     );
     if (!updatedTicket) {
-      return res.status(404).json({ message: "Parking ticket not found" });
+      return res.status(404).json({ error: "Parking ticket not found" });
     }
-    res.json({ message: "Tickets updated.", result: updatedTicket });
+    return res.json({ message: "Tickets updated.", result: updatedTicket });
   } catch (error) {
     if (error.name === "ValidationError") {
       // Mongoose validation error
       const errors = Object.values(error.errors).map((err) => err.message);
-      return res.status(400).json({ message: "Validation Error", errors });
+      return res.status(400).json({ error: "Validation Error", errors });
     }
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -407,11 +407,11 @@ export const deletePaymentOrderById = async (req, res) => {
     if (!deletedTicket) {
       return res
         .status(404)
-        .json({ message: "Parking payment ticket not found" });
+        .json({ error: "Parking payment ticket not found" });
     }
-    res.json({ message: "Parking payment ticket deleted successfully" });
+    return res.json({ message: "Parking payment ticket deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -420,11 +420,11 @@ export const deleteParkingTicketById = async (req, res) => {
   try {
     const deletedTicket = await ParkingTicket.findByIdAndRemove(req.params.id);
     if (!deletedTicket) {
-      return res.status(404).json({ message: "Parking ticket not found" });
+      return res.status(404).json({ error: "Parking ticket not found" });
     }
-    res.json({ message: "Parking ticket deleted successfully" });
+    return res.json({ message: "Parking ticket deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 

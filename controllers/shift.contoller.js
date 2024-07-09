@@ -16,9 +16,9 @@ export const createShift = async (req, res) => {
 
           // Create the shift if validations pass
           const shift = await Shift.create({ name, startTime, endTime });
-          res.status(201).json({ message: "New shift is created.", result: shift });
+          return res.status(201).json({ message: "New shift is created.", result: shift });
      } catch (error) {
-          res.status(500).json({ error: error.message });
+          return res.status(500).json({ error: error.message });
      }
 };
 
@@ -26,9 +26,9 @@ export const getShift = async (req, res) => {
      try {
           // Create the shift if validations pass
           const shift = await Shift.find();
-          res.status(201).json({ message: "Here is the shift list.", result: shift });
+          return res.status(201).json({ message: "Here is the shift list.", result: shift });
      } catch (error) {
-          res.status(500).json({ error: error.message });
+          return res.status(500).json({ error: error.message });
      }
 };
 
@@ -41,13 +41,13 @@ export const updateShift = async (req, res) => {
           // Validate time format (HH:MM AM/PM)
           const timeFormat = /^(0?[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/;
           if (!timeFormat.test(startTime) || !timeFormat.test(endTime)) {
-               return res.status(400).json({ message: 'Invalid time format. Use HH:MM AM/PM.' });
+               return res.status(400).json({ error: 'Invalid time format. Use HH:MM AM/PM.' });
           }
 
           // Check if shift with given ID exists
           const existingShift = await Shift.findById(id);
           if (!existingShift) {
-               return res.status(404).json({ message: 'Shift not found please check the shift id.' });
+               return res.status(404).json({ error: 'Shift not found please check the shift id.' });
           }
 
           // Update shift details
@@ -58,7 +58,7 @@ export const updateShift = async (req, res) => {
           // Save updated shift
           await existingShift.save();
 
-          res.status(200).json({
+          return res.status(200).json({
                message: "Shift updated successfully.",
                result: {
                     name: existingShift.name,
@@ -68,7 +68,7 @@ export const updateShift = async (req, res) => {
                }
           });
      } catch (error) {
-          res.status(500).json({ message: error.message });
+          return res.status(500).json({ error: error.message });
      }
 };
 

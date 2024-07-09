@@ -109,7 +109,7 @@ export const getVehiclePass = async (req, res) => {
     });
 
     if (passes.length === 0) {
-      return res.status(404).json({ message: "No vehicle passes found" });
+      return res.status(404).json({ error: "No vehicle passes found" });
     }
 
     // Check for expired passes and update isActive status
@@ -137,12 +137,12 @@ export const updateVehiclePass = async (req, res) => {
   const passId = req.params.passId;
   try {
     if (isEmpty(passId))
-      return res.status(404).json({ message: "Please provide pass ID" });
+      return res.status(404).json({ error: "Please provide pass ID" });
 
     // Check if the pass exists
     const existingPass = await VehiclePass.findById(passId);
     if (!existingPass) {
-      return res.status(404).json({ message: "Vehicle pass not found" });
+      return res.status(404).json({ error: "Vehicle pass not found" });
     }
 
     const updateObject = {};

@@ -14,16 +14,16 @@ export const settleParkingTickets = async (req, res) => {
 
           // Check if the reward Is valid amount.
           if ((totalCollection - TotalFine) < 2000 && TotalRewards > 0) {
-               return res.status(404).json({ message: 'Not eligible for the rewards.' });
+               return res.status(404).json({ error: 'Not eligible for the rewards.' });
           }
           if ((totalCollection - TotalFine) >= 2000 && TotalRewards != 200) {
-               return res.status(404).json({ message: 'Please check reward amount.' });
+               return res.status(404).json({ error: 'Please check reward amount.' });
           }
 
           const findAssistant = await User.findById(parkingAssistantID);
 
           if (isEmpty(findAssistant)) {
-               return res.status(404).json({ message: 'Assistant not find please check the id.' });
+               return res.status(404).json({ error: 'Assistant not find please check the id.' });
           }
 
           const pipeline = [
@@ -60,20 +60,20 @@ export const settleParkingTickets = async (req, res) => {
           if (isEmpty(ticketsToUpdate)) {
                const lastUpdated = await ParkingTicket.findOne({ parkingAssistant: new mongoose.Types.ObjectId(parkingAssistantID), status: 'settled' }, { updatedAt: 1 }).sort({ updatedAt: -1 })
 
-               return res.status(404).json({ message: 'No non-settled tickets found for the provided assistant ID.', lastSettled: (new Date(lastUpdated.updatedAt)) });
+               return res.status(404).json({ error: 'No non-settled tickets found for the provided assistant ID.', result: { lastSettled: (new Date(lastUpdated.updatedAt)) } });
           }
 
           // Check if there is a mismatch in the amount submitted by the supervior
           if (totalCollection != ticketsToUpdate.TotalAmount) {
                return res.status(404).json(
                     {
-                         message: "Total Amount not matching to the ticket's overall total.",
-                         amountToCollect: ticketsToUpdate.TotalAmount
+                         error: "Total Amount not matching to the ticket's overall total.",
+                         result: { amountToCollect: ticketsToUpdate.TotalAmount }
                     });
           }
 
           if (totalCollectedAmount != ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) {
-               return res.status(404).json({ message: "Please re-check the collected amount." });
+               return res.status(404).json({ error: "Please re-check the collected amount." });
           }
 
 
@@ -126,9 +126,9 @@ export const settleParkingTickets = async (req, res) => {
                     }
                });
 
-          res.json({ message: 'Tickets settled successfully.', result: { settlementId: savedSettlement._id } });
+          return res.json({ message: 'Tickets settled successfully.', result: { settlementId: savedSettlement._id } });
      } catch (error) {
-          res.status(500).json({ message: error.message });
+          return res.status(500).json({ error: error.message });
      }
 }
 
@@ -138,7 +138,7 @@ export const getParkingAssistants = async (req, res) => {
      try {
           const supervisor = await User.findById(supervisorID)
           if (isEmpty(supervisor)) {
-               return res.status(404).json({ message: 'Supervisor not found' });
+               return res.status(404).json({ error: 'Supervisor not found' });
           }
 
           // Query users where supervisorCode matches
@@ -157,7 +157,7 @@ export const getParkingAssistants = async (req, res) => {
           });
 
           if (!Assistants) {
-               return res.status(404).json({ message: 'Users not found' });
+               return res.status(404).json({ error: 'Users not found' });
           }
 
           Assistants = Assistants.map(el => {
@@ -191,10 +191,10 @@ export const getParkingAssistants = async (req, res) => {
                }
           })
 
-          res.json({ message: "Here is all you parking assistant list", result: Assistants });
+          return res.json({ message: "Here is all you parking assistant list", result: Assistants });
      } catch (error) {
-          console.error(error);
-          res.status(500).json({ message: 'Server Error' });
+          console.error("error getting parking assistance ", error);
+          return res.status(500).json({ error: 'Server Error' });
      }
 }
 
@@ -203,7 +203,7 @@ export const getAllSettlementTickets = async (req, res) => {
      try {
           console.log("supervisorID ", supervisorID);
           if (isEmpty(supervisorID)) {
-               return res.status(404).json({ message: 'Not supervisor id provided please check again.' });
+               return res.status(404).json({ error: 'Not supervisor id provided please check again.' });
           }
           else {
 
@@ -220,16 +220,17 @@ export const getAllSettlementTickets = async (req, res) => {
 
                console.log("Result ", result);
                if (isEmpty(result)) {
-                    return res.status(404).json({ message: 'No tickets found.' });
+                    return res.status(404).json({ error: 'No tickets found.' });
                }
                else {
 
-                    return res.status(200).json({ message: 'Here is the settlement ticket list.', result: result });
+                    return res.status(200).json({ error: 'Here is the settlement ticket list.', result: result });
                }
           }
 
      } catch (error) {
           console.error("Error gettig all ticket.");
+          return res.stats(500).json({ error: "Error on the server geting tickets" })
      }
 }
 
@@ -279,17 +280,17 @@ export const getSupervisorStats = async (req, res) => {
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
           };
 
-          res.status(200).json({ message: "Here is supervisor stats.", result: supervisorStats });
+          return res.status(200).json({ message: "Here is supervisor stats.", result: supervisorStats });
      } catch (error) {
           console.error("Error getting the supervisor stats.", error);
-          res.status(500).json({ error: error.message });
+          return res.status(500).json({ error: error.message });
      }
 
 }
 
 export const getAllSuperVisors = async (req, resp) => {
      try {
-          const allSupervisors = await User.find({ role: "supervisor" }, {_id:1,code:1,name:1})
+          const allSupervisors = await User.find({ role: "supervisor" }, { _id: 1, code: 1, name: 1 })
           return resp.status(200).json({ message: "All supervisors list.", result: allSupervisors });
      } catch (error) {
           console.error("Error getting the supervisor stats.", error);

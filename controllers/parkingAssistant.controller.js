@@ -9,9 +9,9 @@ export const createParkingAssistant = async (req, res) => {
           const { name, supervisorCode, phone, email, address } = req.body;
           const newAssistant = new ParkingAssistant({ name, supervisorCode, phone, email, address });
           const savedAssistant = await newAssistant.save();
-          res.status(201).json(savedAssistant);
+          return res.status(201).json({ message: "Assistant account created.", result: savedAssistant });
      } catch (err) {
-          res.status(500).json({ error: err.message });
+          return res.status(500).json({ error: err.message });
      }
 };
 
@@ -19,9 +19,9 @@ export const createParkingAssistant = async (req, res) => {
 export const getAllParkingAssistants = async (req, res) => {
      try {
           const assistants = await ParkingAssistant.find();
-          res.json(assistants);
+          return res.json({ message: "data", result: assistants });
      } catch (err) {
-          res.status(500).json({ error: err.message });
+          return res.status(500).json({ error: err.message });
      }
 };
 
@@ -33,9 +33,9 @@ export const getParkingAssistantById = async (req, res) => {
           if (!assistant) {
                return res.status(404).json({ error: 'Parking Assistant not found' });
           }
-          res.json(assistant);
+          return res.json(assistant);
      } catch (err) {
-          res.status(500).json({ error: err.message });
+          return res.status(500).json({ error: err.message });
      }
 };
 
@@ -51,9 +51,9 @@ export const updateParkingAssistant = async (req, res) => {
           if (!updatedAssistant) {
                return res.status(404).json({ error: 'Parking Assistant not found' });
           }
-          res.json(updatedAssistant);
+          return res.json({ message: "Details updated", result: updatedAssistant });
      } catch (err) {
-          res.status(500).json({ error: err.message });
+          return res.status(500).json({ error: err.message });
      }
 };
 
@@ -64,9 +64,9 @@ export const deleteParkingAssistant = async (req, res) => {
           if (!deletedAssistant) {
                return res.status(404).json({ error: 'Parking Assistant not found' });
           }
-          res.json({ message: 'Parking Assistant deleted successfully' });
+          return res.json({ message: 'Parking Assistant deleted successfully' });
      } catch (err) {
-          res.status(500).json({ error: err.message });
+          return res.status(500).json({ error: err.message });
      }
 };
 
@@ -74,9 +74,6 @@ export const deleteParkingAssistant = async (req, res) => {
 
 // Get the stats of the tickets for the asistant
 export const getTicketsStatsByAssistantId = async (req, res) => {
-
-     // if (isEmpty(req.user)) return res.status(404).json({ message: "Required headers are missing." });
-
      // console.log(req.headers);
      const parkingAssistant = req.headers.userid;
      console.log("parkingAssistant ", parkingAssistant);
@@ -133,7 +130,7 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
           console.log("results2 ", results2);
 
           // Return the results
-          res.json(results.length > 0 ?
+          return res.json(results.length > 0 ?
                {
                     message: "Here is the settlements.",
                     result: [{ ...results[0], ...results2[0] }][0]
@@ -144,7 +141,7 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
                     result: { TotalAmount: 0, TotalCash: 0, TotalOnline: 0, LastSettledDate: null }
                });
      } catch (error) {
-          res.status(500).json({ message: error.message });
+          return res.status(500).json({ message: error.message });
      }
 };
 
@@ -225,9 +222,9 @@ export const getTickets = async (req, res) => {
                responseObj["result"] = { ...responseObj["result"], pagination: { total: totalCount, limit, pageNumber } }
           }
 
-          res.status(200).json(responseObj);
+          return res.status(200).json(responseObj);
      } catch (err) {
           console.error('Error fetching tickets:', err);
-          res.status(500).json({ error: 'Server error' });
+          return res.status(500).json({ error: 'Server error' });
      }
 };

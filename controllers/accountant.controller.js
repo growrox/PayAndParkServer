@@ -16,11 +16,11 @@ export const settleSupervisorTickets = async (req, res) => {
           const findSupervisor = await User.findById(supervisorID);
 
           if (isEmpty(findAccountant)) {
-               return res.status(404).json({ message: 'Accountaint not found please check the id.' });
+               return res.status(404).json({ error: 'Accountaint not found please check the id.' });
           }
 
           if (isEmpty(findSupervisor)) {
-               return res.status(404).json({ message: 'Supervisor not found please check the id.' });
+               return res.status(404).json({ error: 'Supervisor not found please check the id.' });
           }
 
           const pipeline = [
@@ -58,12 +58,9 @@ export const settleSupervisorTickets = async (req, res) => {
           console.log("Check amount difference ", expense);
           console.log(Math.abs(totalCollectedAmount - (TotalCollectedAmount - (TotalFine + TotalReward))) != expense);
 
-          // return res.status(404).json({ message: "Please re-check the collected amount or change the expense." });
-
-
           if (Math.abs(totalCollectedAmount - (TotalCollectedAmount - (TotalFine + TotalReward))) != expense) {
                return res.status(404).json({
-                    message: "Please re-check the collected amount or change the expense.",
+                    error: "Please re-check the collected amount or change the expense.",
                     amount: TotalCollectedAmount - (TotalFine + TotalReward)
                });
           }
@@ -111,37 +108,28 @@ export const settleSupervisorTickets = async (req, res) => {
                     }
                });
 
-          res.json({ message: 'Supervisor tickets settled successfully.', result: { settlementId: savedSettlement._id } });
+          return res.json({ message: 'Supervisor tickets settled successfully.', result: { settlementId: savedSettlement._id } });
      } catch (error) {
           console.error("Error settling the supervisor tickets.", error);
-          res.status(500).json({ message: error.message });
+          return res.status(500).json({ error: error.message });
      }
 }
 
 export const getSupervisors = async (req, res) => {
-     const { supervisorID } = req.params;
      try {
-          // console.log("supervisorID ", supervisorID);
-          // if (isEmpty(supervisorID)) {
-          //      return res.status(404).json({ message: 'Not supervisor id provided please check again.' });
-          // }
-          // else {
-
           const supervisorsList = await User.find({ role: "supervisor" }, { name: 1, phone: 1 })
 
           console.log("Result ", supervisorsList);
           if (isEmpty(supervisorsList)) {
-               return res.status(404).json({ message: 'No Supervisor found.' });
+               return res.status(404).json({ error: 'No Supervisor found.' });
           }
           else {
-               return res.status(404).json({ message: 'Here is the supervisor list.', result: supervisorsList });
+               return res.status(200).json({ error: 'Here is the supervisor list.', result: supervisorsList });
           }
-
-          // }
 
      } catch (error) {
           console.error("Error getting the parking assistants.", error);
-          res.status(500).json({ message: error.message });
+          return res.status(500).json({ error: error.message });
      }
 }
 
@@ -150,7 +138,7 @@ export const getAllSettlementTickets = async (req, res) => {
      try {
           console.log("supervisorID ", supervisorID);
           if (isEmpty(supervisorID)) {
-               return res.status(404).json({ message: 'Not supervisor id provided please check again.' });
+               return res.status(404).json({ error: 'Not supervisor id provided please check again.' });
           }
           else {
 
@@ -167,7 +155,7 @@ export const getAllSettlementTickets = async (req, res) => {
 
                console.log("Result ", result);
                if (isEmpty(result)) {
-                    return res.status(404).json({ message: 'No tickets found.' });
+                    return res.status(404).json({ error: 'No tickets found.' });
                }
                else {
                     return res.status(200).json({ message: 'Here is the settlement ticket list.', result: result });
@@ -176,6 +164,8 @@ export const getAllSettlementTickets = async (req, res) => {
 
      } catch (error) {
           console.error("Error gettig all ticket.");
+          return res.status(500).json({ error: error.message });
+
      }
 }
 export const getAccountantStats = async (req, res) => {
@@ -224,10 +214,10 @@ export const getAccountantStats = async (req, res) => {
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
           };
 
-          res.status(200).json({ message: "Here is the supervisor stats.", result: supervisorStats });
+          return res.status(200).json({ message: "Here is the supervisor stats.", result: supervisorStats });
      } catch (error) {
           console.error("Error getting the supervisor stats.", error);
-          res.status(500).json({ error: error.message });
+          return res.status(500).json({ error: error.message });
      }
 
 }

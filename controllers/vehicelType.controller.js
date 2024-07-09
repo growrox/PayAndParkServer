@@ -23,7 +23,7 @@ export const createVehicleType = async (req, res) => {
       .status(201)
       .json({ message: "New vehical type created.", result: newVehicleType });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -42,7 +42,7 @@ export const getAllVehicleType = async (req, res) => {
       result: vehicleTypesWithImageUrl,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -52,12 +52,12 @@ export const serveImage = (req, res) => {
     const imagePath = path.join(__dirname, "../images/", folderName, imageName);
     return res.sendFile(imagePath, (err) => {
       if (err) {
-        res.status(404).json({ message: "Image not found" });
+        res.status(404).json({ error: "Image not found" });
       }
     });
   } catch (error) {
     console.log(error);
-    return res.status(500).send(error);
+    return res.status(500).send({ error: error });
   }
 };
 
@@ -68,13 +68,13 @@ export const getVehicleTypeDetail = async (req, res) => {
       vehicleType.image
     }`;
     if (!vehicleType)
-      return res.status(404).json({ message: "Vehicle type not found" });
+      return res.status(404).json({ error: "Vehicle type not found" });
     return res.json({
       message: "All vehicals details list.",
       result: vehicleType,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -88,7 +88,7 @@ export const updateVehicleType = async (req, res) => {
     const vehicleType = await VehicleType.findById(req.params.id);
 
     if (!vehicleType) {
-      return res.status(404).json({ message: "Vehicle type not found" });
+      return res.status(404).json({ error: "Vehicle type not found" });
     }
 
     // If there is a new image, remove the old image from the server
@@ -110,7 +110,7 @@ export const updateVehicleType = async (req, res) => {
     await vehicleType.save();
     return res.json({ message: "Vehicle type updated.", result: vehicleType });
   } catch (error) {
-    res.status(400).json({ message: error });
+    res.status(500).json({ error: error });
   }
 };
 
@@ -119,7 +119,7 @@ export const deleteVehicleType = async (req, res) => {
     console.log({ id: req.params.id });
     const vehicleType = await VehicleType.findById(req.params.id);
     if (!vehicleType) {
-      return res.status(404).json({ message: "Vehicle type not found" });
+      return res.status(404).json({ error: "Vehicle type not found" });
     }
 
     // Remove the associated image file
@@ -136,6 +136,6 @@ export const deleteVehicleType = async (req, res) => {
 
     res.json({ message: "Vehicle type deleted" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ error: error.message });
   }
 };

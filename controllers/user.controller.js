@@ -18,11 +18,11 @@ export const createUser = async (req, res) => {
   try {
     // Check if user with the same phone number already exists
     if (isEmpty(name))
-      return res.status(404).json({ message: "Name is a required field." });
+      return res.status(404).json({ error: "Name is a required field." });
     if (isEmpty(phone))
       return res
         .status(404)
-        .json({ message: "Phone number is a required field." });
+        .json({ error: "Phone number is a required field." });
 
     let newUser;
     const existingUser = await User.findOne({ phone: phone });
@@ -30,7 +30,7 @@ export const createUser = async (req, res) => {
       console.log("User Already Present ", existingUser);
       return res
         .status(400)
-        .json({ message: "User already available. Please Login." });
+        .json({ error: "User already available. Please Login." });
     }
 
     if (source === "app") {
@@ -38,14 +38,14 @@ export const createUser = async (req, res) => {
         if (isEmpty(supervisorCode))
           return res
             .status(404)
-            .json({ message: "supervisorCode is required field." });
+            .json({ error: "supervisorCode is required field." });
 
         const FindSupervisor = await User.findOne({ code: supervisorCode });
 
         if (isEmpty(FindSupervisor))
           return res
             .status(404)
-            .json({ message: "Please check supervisor code." });
+            .json({ error: "Please check supervisor code." });
 
         // Validate OTP for now
         newUser = new User({
@@ -74,7 +74,7 @@ export const createUser = async (req, res) => {
         console.error("Error creating the user account.", error);
         return res
           .status(403)
-          .json({ message: "Error creating the user account." });
+          .json({ error: "Error creating the user account." });
       }
     } else if (source === "web") {
       if (role === "accountant") {
@@ -101,10 +101,10 @@ export const createUser = async (req, res) => {
           password: hashedPassword,
         });
       } else {
-        return res.status(404).json({ message: "Invalid role type given." });
+        return res.status(404).json({ error: "Invalid role type given." });
       }
     } else {
-      return res.status(400).json({ message: "Invalid client source." });
+      return res.status(400).json({ error: "Invalid client source." });
     }
 
     await newUser.save();
@@ -134,11 +134,11 @@ export const createUser = async (req, res) => {
     console.error("Error creating user:", err);
     if (err.code === 11000) {
       return res.status(400).json({
-        message: "User already exists with given details.",
+        error: "User already exists with given details.",
         code: err.code,
       });
     }
-    return res.status(500).json({ message: err.message, code: err.code });
+    return res.status(500).json({ error: err.message, code: err.code });
   }
 };
 
@@ -155,7 +155,7 @@ export const loginUser = async (req, res) => {
         if (isEmpty(newUser) || newUser?.role == "superadmin") {
           return res
             .status(404)
-            .json({ message: "User not found. Please register." });
+            .json({ error: "User not found. Please register." });
         }
 
         const generateOTp = await generateOTP(newUser._id, phone); // UserID, Phone
@@ -167,26 +167,26 @@ export const loginUser = async (req, res) => {
             OTP: generateOTp.OTP,
           });
         } else {
-          return res.status(500).json({ message: "Error generating the OTP." });
+          return res.status(500).json({ error: "Error generating the OTP." });
         }
       } catch (error) {
-        return res.status(500).json({ message: "Error generating the OTP." });
+        return res.status(500).json({ error: "Error generating the OTP." });
       }
     } else if (source === "web") {
       const user = await User.findOne({ phone: phone });
       if (!user) {
-        return res.status(404).json({ message: "User not found." });
+        return res.status(404).json({ error: "User not found." });
       }
       if (!password) {
-        return res.status(401).json({ message: "Invalid Password" });
+        return res.status(401).json({ error: "Invalid Password" });
       }
       console.log({ password, userPassword: user.password, user });
       if (user.role !== "superadmin") {
-        return res.status(401).json({ message: "Invalid Role" });
+        return res.status(401).json({ error: "Invalid Role" });
       }
       const passwordMatch = await bcrypt.compare(password, user.password);
       if (!passwordMatch) {
-        return res.status(401).json({ message: "Invalid credentials." });
+        return res.status(401).json({ error: "Invalid credentials." });
       }
 
       const token = jwt.sign(
@@ -209,7 +209,7 @@ export const loginUser = async (req, res) => {
       user.password = undefined;
       return res.json({ result: user, message: "Login successful." });
     } else {
-      return res.status(400).json({ message: "Invalid client source." });
+      return res.status(400).json({ error: "Invalid client source." });
     }
   } catch (err) {
     console.error("Error during login:", err);
@@ -230,7 +230,7 @@ export const validateOTP = async (req, res) => {
     if (isEmpty(newUser) || newUser?.role == "superadmin") {
       return res
         .status(404)
-        .json({ message: "User not found. Please register." });
+        .json({ error: "User not found. Please register." });
     }
 
     const getOTPDetails = await Otp.findOne({ phoneNumber: phone });
@@ -239,7 +239,7 @@ export const validateOTP = async (req, res) => {
     if (isEmpty(getOTPDetails)) {
       return res
         .status(404)
-        .json({ message: "No OTP found. Please generate new one." });
+        .json({ error: "No OTP found. Please generate new one." });
     }
 
     // Check if OTP is expired (more than 5 minutes old)
@@ -247,7 +247,7 @@ export const validateOTP = async (req, res) => {
       await Otp.deleteOne({ phoneNumber: phone });
       return res
         .status(404)
-        .json({ message: "OTP expired please generate new one." });
+        .json({ error: "OTP expired please generate new one." });
     }
     console.log(OTP, getOTPDetails.OTP, OTP == getOTPDetails.OTP);
     if (OTP == getOTPDetails.OTP) {
@@ -278,17 +278,16 @@ export const validateOTP = async (req, res) => {
         );
       }
       return res.status(300).json({
-        message: `${
-          getOTPDetails?.attempts
+        message: `${getOTPDetails?.attempts
             ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
             : "Maximum attempts reached generate new OTP."
-        }`,
+          }`,
         attempts: getOTPDetails?.attempts,
       });
     }
   } catch (error) {
     console.error("Error validating the OTP", error);
-    return res.status(500).json({ message: "Error validating the OTP." });
+    return res.status(500).json({ error: "Error validating the OTP." });
   }
 };
 
@@ -325,13 +324,12 @@ export const getUsers = async (req, res) => {
 
     // Return 404 if no users found
     if (totalCount === 0) {
-      return res.status(404).json({ message: "No users found." });
+      return res.status(404).json({ error: "No users found." });
     }
 
     if (page > totalPages) {
       return res.status(400).json({
-        message:
-          "You have exceeded the available search results. Please check page.",
+        error: "You have exceeded the available search results. Please check page.",
       });
     }
 
@@ -380,7 +378,7 @@ export const getUsers = async (req, res) => {
       .json({ message: "Here is users list", result: response });
   } catch (err) {
     // Handle errors and return status 500 with error message
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({ error: err.message });
   }
 };
 
@@ -401,11 +399,11 @@ export const getUserById = async (req, res) => {
       }
     );
     if (isEmpty(user)) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ error: "User not found" });
     }
     return res.status(200).json({ message: "User found", result: user });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    return res.status(500).json({ error: err.message });
   }
 };
 
@@ -422,13 +420,13 @@ export const getUserStatus = async (req, res) => {
     if (isEmpty(user)) {
       return res
         .status(404)
-        .json({ message: "User not found please check the userId" });
+        .json({ error: "User not found please check the userId" });
     }
     return res
       .status(200)
       .json({ message: "Here is the user details", result: user });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    return res.status(500).json({ error: err.message });
   }
 };
 
@@ -443,7 +441,7 @@ export const updateUser = async (req, res) => {
     const userAvailable = await User.findById(id);
 
     if (isEmpty(userAvailable)) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ error: "User not found" });
     }
 
     let updateDetails = {};
@@ -460,9 +458,9 @@ export const updateUser = async (req, res) => {
     console.log("updateDetails ", updateDetails);
     const updatedUser = await User.findByIdAndUpdate(id, updateDetails);
 
-    res.json({ message: "User updated successfully.", result: updateDetails });
+    return res.json({ message: "User updated successfully.", result: updateDetails });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    return res.status(500).json({ error: err.message });
   }
 };
 
@@ -475,10 +473,10 @@ export const deleteUser = async (req, res) => {
   try {
     const deletedUser = await User.findByIdAndDelete(id);
     if (!deletedUser) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ error: "User not found" });
     }
-    res.json({ message: "User deleted successfully" });
+    return res.json({ message: "User deleted successfully" });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({ error: err.message });
   }
 };

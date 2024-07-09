@@ -17,21 +17,21 @@ const onlineStatusMiddleware = async (req, res, next) => {
           // Split the header into Bearer and the token
           const token = authHeader?.split(" ")[1] || req.headers.cookie?.split("=")[1];
           if (!token) {
-               return res.status(401).json({ message: "Authorization token is missing" });
+               return res.status(401).json({ error: "Authorization token is missing" });
           }
 
           // Verify JWT token
           jwt.verify(token, JWT_SECRET, async (err, decoded) => {
                if (err) {
                     console.error("JWT verification error:", err);
-                    return res.status(406).json({ message: "Failed to authenticate token" });
+                    return res.status(406).json({ error: "Failed to authenticate token" });
                }
                // Attach decoded payload to request object
                console.log("decoded ", decoded);
 
                const { userId, source, role } = decoded
 
-               if (role != "assistant") return res.status(401).json({ message: "You are not authorized for this action." });
+               if (role != "assistant") return res.status(401).json({ error: "You are not authorized for this action." });
 
                req.headers.role = role;
                req.headers.userId = userId;
@@ -42,14 +42,14 @@ const onlineStatusMiddleware = async (req, res, next) => {
 
                // Check if assistant exists and is online
                if (!assistant || !assistant.isOnline) {
-                    return res.status(403).json({ message: 'Assistant is not available or not online.' });
+                    return res.status(403).json({ error: 'Assistant is not available or not online.' });
                }
 
                // Assistant is online, proceed to next middleware or route handler
                next();
           })
      } catch (error) {
-          res.status(500).json({ message: error.message });
+          res.status(500).json({ error: error.message });
      }
 };
 

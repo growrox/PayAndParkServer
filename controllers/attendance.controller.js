@@ -54,6 +54,10 @@ export const clockIn = async (req, res) => {
           const shiftStartDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), shiftStartTime.getHours(), shiftStartTime.getMinutes());
           const shiftEndDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), shiftEndTime.getHours(), shiftEndTime.getMinutes());
 
+          console.log("shiftStartDate ", shiftStartDate);
+          console.log("shiftEndDate ", shiftEndDate);
+
+
           if (clockInTime < shiftStartDate || clockInTime > shiftEndDate) {
                return res.status(400).json({ error: "You can only clock in during your shift hours" });
           }
@@ -69,7 +73,7 @@ export const clockIn = async (req, res) => {
 
      } catch (error) {
           console.error("Error: ", error);
-          res.status(500).json({ error: error.message });
+          return res.status(500).json({ error: error.message });
      }
 };
 
@@ -104,9 +108,8 @@ export const clockOut = async (req, res) => {
 
           return res.status(200).json({ message: "Clocke-out successfully. See you tomorrow." });
 
-          // res.json(updatedAttendance);
      } catch (error) {
-          res.status(500).json({ error: error.message });
+          return res.status(500).json({ error: error.message });
      }
 };
 
@@ -118,8 +121,11 @@ export const updateAttendance = async (req, res) => {
      console.log("attendanceId ", attendanceId);
      try {
           const attendanceAvailable = await Attendance.findById(attendanceId);
-          
-          if (isEmpty(attendanceAvailable)) { return res.status(404).json({ message: "No attendance available." }); }
+
+          if (isEmpty(attendanceAvailable)) {
+               return res.status(404).json({ error: "No attendance available." });
+          }
+
           if (attendanceAvailable.isLateToday == isLateToday) {
                return res.status(202).json({ message: "The status is already same as requested to update." });
           }
@@ -129,7 +135,7 @@ export const updateAttendance = async (req, res) => {
           return res.status(200).json({ message: "Attedance updated successfully." });
      }
      catch (error) {
-          res.status(500).json({ error: error.message });
+          return res.status(500).json({ error: error.message });
      }
 };
 
