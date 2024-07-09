@@ -12,6 +12,9 @@ import ShiftRoutes from "./routes/shift.route.js";
 import Attendance from "./routes/attendence.route.js";
 import VehicalPass from "./routes/vehicalPass.route.js";
 import Razorpay from "razorpay";
+import cron from "node-cron"
+import fs from "fs"
+import path from "path"
 
 dotenv.config();
 
@@ -58,7 +61,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.get("/", async (req,resp) => {return resp.json("Server is running. Please check the code developer") })
+app.get("/", async (req, resp) => { return resp.json("Server is running. Please check the code developer") })
 // All the routes middle ware
 app.use("/api/v1", user);
 app.use("/api/v1", ParkingTicket);
@@ -70,6 +73,61 @@ app.use('/api/v1', Attendance);
 app.use('/api/v1', VehicalPass);
 
 app.use("/api/v1", vehicleType);
+
+
+
+
+//Remove this code in production of liver server
+
+// ----------------------------
+
+const jsonFilePath = './data.json'; // Path to your JSON file
+
+// Initialize or load the current count
+let currentCount = 0;
+
+try {
+  const data = fs.readFileSync(jsonFilePath, 'utf8');
+  const jsonData = JSON.parse(data);
+  currentCount = jsonData.totalCount;
+} catch (err) {
+  console.error('Error reading JSON file:', err);
+}
+
+// Define the cron job to run every 5 minutes
+cron.schedule('* */7 * * * *', () => {
+  console.log("Cron run --- ");
+  // Increment the count
+  currentCount++;
+
+  // Prepare updated data
+  const newData = {
+    totalCount: currentCount,
+    updatedAt: new Date().toISOString()
+  };
+
+  // Write to JSON file
+  fs.writeFile(jsonFilePath, JSON.stringify(newData, null, 2), 'utf8', (err) => {
+    if (err) {
+      console.error('Error writing JSON file:', err);
+    } else {
+      console.log(`JSON file updated: Total count is now ${currentCount}`);
+    }
+  });
+}, {
+  scheduled: true,
+  timezone: 'Asia/Kolkata' // Adjust timezone as per your location
+});
+
+console.log('Cron job started.');
+
+//-----------
+
+
+
+
+
+
 
 app.listen(PORT, async () => {
   // Connect to MongoDB using Mongoose
