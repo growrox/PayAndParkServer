@@ -498,9 +498,9 @@ export const deleteTicketImage = async (req, res) => {
 };
 export const getAllTickets = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "" } = req.query;
-    console.log({ page, limit, search, status });
-    console.log("get Parking ticker");
+    const { search = "" } = req.query;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.page) || 10;
     let query = {};
     if (search) {
       query.$or = [
@@ -508,8 +508,8 @@ export const getAllTickets = async (req, res) => {
         { vehicleNumber: { $regex: search, $options: "i" } },
       ];
     }
-
     const parkingTickets = await ParkingTicket.find(query)
+      .populate("parkingAssistant supervisor")
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .exec();
@@ -518,7 +518,7 @@ export const getAllTickets = async (req, res) => {
     return res.status(200).json({
       result: {
         parkingTickets,
-        totalPages: Math.ceil(count / limit),
+        totalPages: count,
         currentPage: page,
         totalCount: count,
       },
