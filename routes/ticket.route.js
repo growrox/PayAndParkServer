@@ -11,12 +11,15 @@ import {
   deletePaymentOrderById,
   getVehicleTypeDetail,
   uploadTicketImage,
-  deleteTicketImage
+  deleteTicketImage,
+  getAllTickets,
+  getTicketLocation
 } from "../controllers/parkingTicket.controller.js";
 import multer from "multer";
 import path from "path";
 
 import checkParkingAssistant from "../middlewares/checkParkingAssistant.js";
+import { getTickets } from "../controllers/parkingAssistant.controller.js";
 
 const router = express.Router();
 
@@ -61,8 +64,10 @@ router.post(
   checkParkingAssistant,
   generatePaymentForTicket
 );
+router.get("/admin/parking-tickets", getAllTickets);
 router.post("/ticket/payment-status", updatePaymentStatusOnline);
 router.get("/parking-tickets", getParkingTickets);
+router.get("/parking-ticket/location", getTicketLocation);
 router.get("/parking-tickets/:query", getParkingTicketByQuery);
 router.get("/parking-tickets/unsettled/:assistantId", getTicketsByAssistantId);
 router.delete("/ticket/order/:id", deletePaymentOrderById);

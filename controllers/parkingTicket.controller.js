@@ -1,13 +1,18 @@
 import ParkingTicket from "../models/parkingTicket.model.js"; // Adjust the path based on your project structure
-import { __dirname, isEmpty, sendTicketConfirmation } from "../utils/helperFunctions.js";
+import {
+  __dirname,
+  isEmpty,
+  sendTicketConfirmation,
+} from "../utils/helperFunctions.js";
 import generatePayment from "../utils/generatePayment.js";
 import Transaction from "../models/onlineTransaction.model.js";
 import User from "../models/user.model.js";
 import CryptoJS from "crypto-js";
-import fs from "fs"
+import fs from "fs";
 import path from "path";
-
 // Controller to create a new parking ticket
+import NodeGeocoder from "node-geocoder";
+
 export const createParkingTicket = async (req, res) => {
   try {
     const {
@@ -25,7 +30,7 @@ export const createParkingTicket = async (req, res) => {
       passId,
       onlineTransactionId,
       image,
-      address
+      address,
     } = req.body;
 
     console.log("Body ", req.body);
@@ -65,7 +70,7 @@ export const createParkingTicket = async (req, res) => {
       isPass,
       passId,
       name,
-      address
+      address,
     });
     console.log("newTicket ", newTicket._id);
 
@@ -80,7 +85,7 @@ export const createParkingTicket = async (req, res) => {
     }
 
     const savedTicket = await newTicket.save();
-    const ticketId = "666f0e35284b2b8f1707c77b" // savedTicket._id; 
+    const ticketId = "666f0e35284b2b8f1707c77b"; // savedTicket._id;
     // sendTicketConfirmation  Date, Time, Name, TicketNumber, VehicalNumber, ParkingAssistant, Duration, Amount, PaymentMode
     const smsParams = {
       Name: name,
@@ -90,13 +95,18 @@ export const createParkingTicket = async (req, res) => {
       ParkingAssistant: AssistanceAvailable.name,
       Duration: duration,
       Amount: amount,
-      PaymentMode: paymentMode
-    }
+      PaymentMode: paymentMode,
+    };
 
     console.log("sms Params ", smsParams);
 
-    const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
-    console.log("sendTicketConfirmationMessage  ", sendTicketConfirmationMessage);
+    const sendTicketConfirmationMessage = await sendTicketConfirmation(
+      smsParams
+    );
+    console.log(
+      "sendTicketConfirmationMessage  ",
+      sendTicketConfirmationMessage
+    );
 
     return res
       .status(200)
@@ -115,8 +125,9 @@ export const createParkingTicket = async (req, res) => {
 export const getVehicleTypeDetail = async (req, res) => {
   try {
     const parkingTicket = await ParkingTicket.findById(req.params.id);
-    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${parkingTicket.image
-      }`;
+    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${
+      parkingTicket.image
+    }`;
     if (!parkingTicket)
       return res.status(404).json({ error: "Parking ticket not found" });
     return res.json({
@@ -256,7 +267,9 @@ export const getParkingTickets = async (req, res) => {
     };
 
     // Return successful response with status 200
-    return res.status(200).json({ message: "Here is the parking tickets list", result: response });
+    return res
+      .status(200)
+      .json({ message: "Here is the parking tickets list", result: response });
   } catch (error) {
     // Handle errors and return status 500 with error message
     return res.status(500).json({ error: error.message });
@@ -373,7 +386,10 @@ export const getParkingTicketByQuery = async (req, res) => {
       return res.status(404).json({ error: "Parking ticket not found" });
     }
 
-    return res.json({ message: "Here is all the matched results", result: ticket });
+    return res.json({
+      message: "Here is all the matched results",
+      result: ticket,
+    });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -429,55 +445,113 @@ export const deleteParkingTicketById = async (req, res) => {
   }
 };
 
-
 export const uploadTicketImage = async (req, res) => {
   try {
     const file = req.file;
 
-    console.log('userid,  file', file)
+    console.log("userid,  file", file);
 
     if (!file) {
-      return res.status(400).json({ error: 'No file received' });
+      return res.status(400).json({ error: "No file received" });
     }
 
-    return res.status(200).json({ filename: file.filename, path: `/images/tickets/${file.filename}` });
+    return res.status(200).json({
+      filename: file.filename,
+      path: `/images/tickets/${file.filename}`,
+    });
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     return res.status(500).json({ error: error });
   }
 };
 
-
 // Controller function to delete an image
 export const deleteTicketImage = async (req, res) => {
   const filename = req.params.filename;
-  const imagePath = path.join(__dirname, '..', 'images', 'tickets', filename);
+  const imagePath = path.join(__dirname, "..", "images", "tickets", filename);
 
   try {
     const myPromise = new Promise((resolve, reject) => {
       fs.unlink(imagePath, function (err) {
-        if (err && err.code == 'ENOENT') {
+        if (err && err.code == "ENOENT") {
           console.info("File doesn't exist, won't remove it.");
-          resolve(false)
+          resolve(false);
         } else if (err) {
-          resolve(false)
+          resolve(false);
           console.error("Error occurred while trying to remove file");
         } else {
           console.info(`removed`);
-          resolve(true)
+          resolve(true);
         }
       });
-    })
+    });
 
     if (await myPromise) {
       res.status(200).json({ message: "File deleted successfully." });
-    }
-    else {
+    } else {
       res.status(404).json({ error: "File not does not exist." });
     }
-
   } catch (error) {
     console.log("Error in the route ", error);
     res.status(500).json({ error: error });
+  }
+};
+export const getAllTickets = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = "" } = req.query;
+    console.log({ page, limit, search, status });
+    console.log("get Parking ticker");
+    let query = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { vehicleNumber: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const parkingTickets = await ParkingTicket.find(query)
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .exec();
+    const count = await ParkingTicket.countDocuments(query);
+
+    return res.status(200).json({
+      result: {
+        parkingTickets,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+        totalCount: count,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: err });
+  }
+};
+export const getTicketLocation = async (req, res) => {
+  try {
+    const { lat, lon } = req.query;
+
+    var options = {
+      provider: "google",
+
+      // Optionnal depending of the providers
+      httpAdapter: "https", // Default
+      apiKey: process.env.GEO_LOCATION_API, // for Mapquest, OpenCage, Google Premier
+      formatter: null, // 'gpx', 'string', ...
+    };
+
+    const geocoder = NodeGeocoder(options);
+
+    const result = await geocoder.reverse(
+      { lat, lon },
+      function (err, response) {
+        return response;
+      }
+    );
+    return res.status(200).json({
+      result,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err });
   }
 };
