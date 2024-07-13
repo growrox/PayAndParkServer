@@ -22,7 +22,8 @@ const parkingTicketSchema = new Schema({
      isPass: { type: Boolean, default: false },
      passId: { type: Schema.Types.ObjectId, ref: 'Pass' },
      onlineTransactionId: { type: Schema.Types.ObjectId, ref: 'Transaction' },
-     address: addressSchema
+     address: addressSchema,
+     createdAtClient: { type: Date, required: true }
 }, { timestamps: true });
 
 const ParkingTicket = model('ParkingTickets', parkingTicketSchema);

@@ -31,6 +31,7 @@ export const createParkingTicket = async (req, res) => {
       onlineTransactionId,
       image,
       address,
+      createdAtClient
     } = req.body;
 
     console.log("Body ", req.body);
@@ -71,6 +72,7 @@ export const createParkingTicket = async (req, res) => {
       passId,
       name,
       address,
+      createdAtClient
     });
     console.log("newTicket ", newTicket._id);
 
@@ -89,6 +91,7 @@ export const createParkingTicket = async (req, res) => {
     // sendTicketConfirmation  Date, Time, Name, TicketNumber, VehicalNumber, ParkingAssistant, Duration, Amount, PaymentMode
     const smsParams = {
       Name: name,
+      DateTime: createdAtClient,
       toNumber: phoneNumber,
       TicketNumber: `PnP${ticketId.toString().slice(5, 9)}`,
       VehicalNumber: vehicleNumber,
