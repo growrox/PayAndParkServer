@@ -2,6 +2,7 @@ import Otp from "../models/otp.model.js";
 import { fileURLToPath } from 'url';
 import path from 'path';
 import axios from "axios"
+import moment from "moment-timezone";
 
 export const isEmpty = (value) => {
   if (value === null || value === undefined) {
@@ -203,3 +204,17 @@ function getDateTime() {
   return { date: formattedDate, time: formattedTime };
 }
 
+
+export function scheduleCronAfterMinutes(endTime, minutesToAdd) {
+  // Parse endTime using moment.js to ensure correct time parsing
+  const endTimeMoment = moment(endTime, 'hh:mm A');
+
+  // Calculate the target time by adding minutes
+  const targetTimeMoment = endTimeMoment.clone().add(minutesToAdd, 'minutes');
+
+  // Construct the cron schedule string
+  const cronSchedule = `${targetTimeMoment.minutes()} ${targetTimeMoment.hours()} * * *`;
+
+  // Schedule the cron job
+  return cronSchedule
+}

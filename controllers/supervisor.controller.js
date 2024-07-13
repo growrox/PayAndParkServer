@@ -128,7 +128,7 @@ export const getParkingAssistants = async (req, res) => {
           }
 
           // Query users where supervisorCode matches
-          let Assistants = await User.find({
+          let assistants = await User.find({
                supervisorCode: supervisor.code
           }, {
                isOnline: 1,
@@ -142,44 +142,57 @@ export const getParkingAssistants = async (req, res) => {
                select: 'updatedAt'
           });
 
-          if (!Assistants) {
-               return res.status(404).json({ error: 'Users not found' });
+          if (!assistants || assistants.length === 0) {
+               return res.status(404).json({ error: 'No assistants found' });
           }
 
-          Assistants = Assistants.map(el => {
-               const { isOnline, _id, name, phone, shiftId, lastSettledTicketId } = el
-               if (isEmpty(shiftId)) {
+          // Iterate through assistants and fetch amountToCollect for each
+          assistants = await Promise.all(assistants.map(async (assistant) => {
+               const { isOnline, _id, name, phone, shiftId, lastSettledTicketId } = assistant;
 
-                    return {
-                         _id,
-                         name,
-                         phone,
-                         isOnline,
-                         lastSettled: isEmpty(lastSettledTicketId) ? null : lastSettledTicketId?.updatedAt,
-                         shiftDetails: {
-                              "_id": null,
-                              "name": null,
-                              "startTime": null,
-                              "endTime": null
+               let amountToCollect = 0;
+
+               // Fetch total amount to collect where payment mode is cash and status is not settled
+               if (shiftId) {
+
+                    amountToCollect = await ParkingTicket.aggregate([
+                         {
+                              $match: {
+                                   parkingAssistant: _id,
+                                   paymentMode: 'Cash',
+                                   status: { $ne: 'settled' }
+                              }
+                         },
+                         {
+                              $group: {
+                                   _id:null,
+                                   totalAmount: { $sum: '$amount' }
+                              }
                          }
-                    }
-               }
-               else {
-                    return {
-                         _id,
-                         name,
-                         phone,
-                         isOnline,
-                         lastSettled: isEmpty(lastSettledTicketId) ? null : lastSettledTicketId?.updatedAt,
-                         shiftDetails: shiftId
-                    }
+                    ]);
+                    amountToCollect = amountToCollect.length > 0 ? amountToCollect[0].totalAmount : 0;
 
                }
-          })
 
-          return res.json({ message: "Here is all you parking assistant list", result: Assistants });
+               return {
+                    _id,
+                    name,
+                    phone,
+                    isOnline,
+                    lastSettled: isEmpty(lastSettledTicketId) ? null : lastSettledTicketId?.updatedAt,
+                    shiftDetails: shiftId ? shiftId : {
+                         _id: null,
+                         name: null,
+                         startTime: null,
+                         endTime: null
+                    },
+                    amountToCollect
+               };
+          }));
+
+          return res.json({ message: "Here is all your parking assistant list", result: assistants });
      } catch (error) {
-          console.error("error getting parking assistance ", error);
+          console.error("Error getting parking assistance ", error);
           return res.status(500).json({ error: 'Server Error' });
      }
 }

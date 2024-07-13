@@ -2,6 +2,7 @@ import Attendance from '../models/attendance.model.js';
 import Shift from '../models/shift.model.js';
 import User from '../models/user.model.js';
 import { isEmpty } from '../utils/helperFunctions.js';
+import mongoose from 'mongoose';
 
 // Clock-In
 export const clockIn = async (req, res) => {
@@ -180,4 +181,16 @@ function parseTime(startTime, endTime) {
      }
 
      return { shiftStartTime, shiftEndTime };
+}
+
+
+export async function AutoClockOutUser(shiftId) {
+     try {
+          const allShifts = await Attendance.updateMany({ shiftId: new mongoose.Types.ObjectId(shiftId) }, { clockOutTime: new Date() });
+          const allUsers = await User.updateMany({ shiftId: new mongoose.Types.ObjectId(shiftId) }, { isOnline: false });
+          return true
+     } catch (error) {
+          console.log("Error clocking out the users. ", error);
+          return false
+     }
 }

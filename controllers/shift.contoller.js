@@ -25,7 +25,7 @@ export const createShift = async (req, res) => {
 export const getShift = async (req, res) => {
      try {
           // Create the shift if validations pass
-          const shift = await Shift.find();
+          const shift = await getShiftList();
           return res.status(201).json({ message: "Here is the shift list.", result: shift });
      } catch (error) {
           return res.status(500).json({ error: error.message });
@@ -73,9 +73,18 @@ export const updateShift = async (req, res) => {
 };
 
 
-
 function isValidTimeFormat(time) {
      // Regular expression to validate time format HH:mm
      const regex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9] (AM|PM)$/;
      return regex.test(time);
+}
+
+export async function getShiftList() {
+     try {
+          // Create the shift if validations pass
+          const shift = await Shift.find();
+          return shift
+     } catch (error) {
+          return [];
+     }
 }

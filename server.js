@@ -15,6 +15,10 @@ import Razorpay from "razorpay";
 import cron from "node-cron"
 import fs from "fs"
 import path from "path"
+import { getShiftList } from "./controllers/shift.contoller.js";
+import { scheduleCronAfterMinutes } from "./utils/helperFunctions.js";
+import { AutoClockOutUser } from "./controllers/attendance.controller.js";
+
 
 dotenv.config();
 
@@ -92,6 +96,43 @@ cron.schedule('*/7 * * * *', () => {
 console.log('Cron job started.');
 
 //-----------
+
+function scheduleShiftCronJobs(shifts) {
+  shifts.forEach(shift => {
+    // Calculate the cron schedule time (15 minutes after the shift's end time)
+    // console.log("endTime ", shift.endTime);
+    const cronTime = scheduleCronAfterMinutes(shift.endTime, process.env.AUTO_CLOCKOUT_AFTER || 15)
+    // console.log(" cronTime ", cronTime);
+
+    // Define the cron job task
+
+    cron.schedule(cronTime, async () => {
+    // cron.schedule("1 2 * * *", async () => {
+
+      const loggedOutUsers = await AutoClockOutUser(shift._id)
+      console.log(`All users logged-out for the "${shift.name}" at ${cronTime}`);
+      // Perform your desired action here
+    }, {
+      scheduled: true,
+      timezone: 'Asia/Kolkata', // Replace with your timezone
+    });
+
+    // console.log(`Cron job scheduled for shift "${shift.name}" at ${cronTime}`);
+  });
+}
+
+async function fetchShiftsAndScheduleJobs() {
+  try {
+    const shifts = await getShiftList();
+    console.log("shifts  ", shifts.length);
+    scheduleShiftCronJobs(shifts);
+  } catch (error) {
+    console.error('Error scheduling cron jobs:', error);
+  }
+}
+
+// Call the function to initiate the process
+fetchShiftsAndScheduleJobs();
 
 
 
