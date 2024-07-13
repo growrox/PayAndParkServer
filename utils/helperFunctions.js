@@ -186,13 +186,13 @@ function getDateTime(DateTime) {
   const date = new Date(DateTime);
 
   // Get date components
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-indexed
-  const year = date.getFullYear().toString().slice(-2); // Last two digits of the year
+  const day = date.getUTCDate().toString().padStart(2, '0');
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, '0'); // Month is zero-indexed
+  const year = date.getUTCFullYear().toString().slice(-2); // Last two digits of the year
 
   // Get time components
-  let hours = date.getHours();
-  const minutes = date.getMinutes().toString().padStart(2, '0');
+  let hours = date.getUTCHours();
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
   const ampm = hours >= 12 ? 'pm' : 'am';
 
   hours = hours % 12 || 12; // Convert hour to 12-hour format
@@ -205,6 +205,7 @@ function getDateTime(DateTime) {
   // Return date and time object
   return { date: formattedDate, time: formattedTime };
 }
+
 
 export function scheduleCronAfterMinutes(endTime, minutesToAdd) {
   // Parse endTime using moment.js to ensure correct time parsing
