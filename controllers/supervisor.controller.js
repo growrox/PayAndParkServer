@@ -11,6 +11,18 @@ export const settleParkingTickets = async (req, res) => {
      console.log("parkingAssistantID ", parkingAssistantID);
      try {
           // Fetch non-settled parking tickets with paymentMode as Cash and matching parkingAssistantID
+          if (isEmpty(CashComponent)) {
+               return res.status(404).json({
+                    error: 'Cash components are required.'
+               });
+          }
+          console.log("Total ", Object.keys(CashComponent).reduce((total, key) => key !== "Total" ? total + parseInt(key) * CashComponent[key] : total, 0));
+
+          if (CashComponent["Total"] != Object.keys(CashComponent).reduce((total, key) => key !== "Total" ? total + parseInt(key) * CashComponent[key] : total, 0)) {
+               return res.status(404).json({
+                    error: 'Please check cash amount and total field.'
+               });
+          }
 
           // Check if the reward Is valid amount.
           if ((totalCollection - TotalFine) < 2000 && TotalRewards > 0) {
@@ -165,7 +177,7 @@ export const getParkingAssistants = async (req, res) => {
                          },
                          {
                               $group: {
-                                   _id:null,
+                                   _id: null,
                                    totalAmount: { $sum: '$amount' }
                               }
                          }
@@ -274,7 +286,7 @@ export const getSupervisorStats = async (req, res) => {
                TotalTicketsCount: stats[0].totalTicketsCount || 0,
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
           };
-          
+
           if (!stats || stats.length === 0) {
                return res.status(200).json({ message: 'No unseteled tickets found for the supervisor.', result: supervisorStats });
           }
