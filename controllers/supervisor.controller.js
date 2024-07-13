@@ -63,20 +63,6 @@ export const settleParkingTickets = async (req, res) => {
                return res.status(404).json({ error: 'No non-settled tickets found for the provided assistant ID.', result: { lastSettled: (new Date(lastUpdated.updatedAt)) } });
           }
 
-          // Check if there is a mismatch in the amount submitted by the supervior
-          if (totalCollection != ticketsToUpdate.TotalAmount) {
-               return res.status(404).json(
-                    {
-                         error: "Total Amount not matching to the ticket's overall total.",
-                         result: { amountToCollect: ticketsToUpdate.TotalAmount }
-                    });
-          }
-
-          if (totalCollectedAmount != ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) {
-               return res.status(404).json({ error: "Please re-check the collected amount." });
-          }
-
-
           // Create a new settlement ticket
           const settlementTicket = new SupervisorSettlement({
                supervisor: new mongoose.Types.ObjectId(supervisorID),
@@ -267,10 +253,6 @@ export const getSupervisorStats = async (req, res) => {
 
           console.log("stats  ", stats);
 
-          if (!stats || stats.length === 0) {
-               return res.status(404).json({ error: 'No unseteled tickets found for the supervisor.' });
-          }
-
           const supervisorStats = {
                TotalCollection: stats[0].totalCollection || 0,
                TotalCollectedAmount: stats[0].totalCollectedAmount || 0,
@@ -279,6 +261,10 @@ export const getSupervisorStats = async (req, res) => {
                TotalTicketsCount: stats[0].totalTicketsCount || 0,
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
           };
+          
+          if (!stats || stats.length === 0) {
+               return res.status(200).json({ message: 'No unseteled tickets found for the supervisor.', result: supervisorStats });
+          }
 
           return res.status(200).json({ message: "Here is supervisor stats.", result: supervisorStats });
      } catch (error) {
