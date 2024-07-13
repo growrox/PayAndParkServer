@@ -30,10 +30,11 @@ const authMiddleware = (req, res, next) => {
 
     const { userId, source, role } = decoded
 
-    if (userID != userId) return res.status(401).json({ error: "This token is for different user." });
+    // if (userID != userId) return res.status(401).json({ error: "This token is for different user." });
 
     req.headers.role = role;
     req.headers['x-client-source'] = source;
+    req.headers.userId = userId
 
     next(); // Pass control to the next middleware or route handler
   });
