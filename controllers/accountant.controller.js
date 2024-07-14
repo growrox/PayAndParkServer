@@ -6,22 +6,24 @@ import AccountantSettlementTicket from '../models/accountantSettlementTicket.mod
 
 
 export const settleSupervisorTickets = async (req, res) => {
-     const { supervisorID, totalCollectedAmount, remark, expense } = req.body;
-     const { accountantID } = req.params;
+     const { accountantID, totalCollectedAmount, remark, expense } = req.body;
+     const { supervisorID } = req.params;
      console.log("accountantID ", accountantID);
      try {
           // Fetch non-settled parking tickets with paymentMode as Cash and matching parkingAssistantID
 
-          const findAccountant = await User.findById(accountantID);
           const findSupervisor = await User.findById(supervisorID);
+          if (isEmpty(findSupervisor)) {
+               return res.status(404).json({ error: 'Supervisor not found please check the id.' });
+          }
 
+
+          const findAccountant = await User.findById(accountantID);
           if (isEmpty(findAccountant)) {
                return res.status(404).json({ error: 'Accountaint not found please check the id.' });
           }
 
-          if (isEmpty(findSupervisor)) {
-               return res.status(404).json({ error: 'Supervisor not found please check the id.' });
-          }
+         
 
           const pipeline = [
                // Match documents where phoneNumber matches and status is not settled
