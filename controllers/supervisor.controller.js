@@ -132,7 +132,7 @@ export const settleParkingTickets = async (req, res) => {
 
 export const getParkingAssistants = async (req, res) => {
      const { supervisorID } = req.params;
-     const { queryParam } = req.query; // Extract query parameter from request
+     const { queryParam, shiftID } = req.query; // Extract query parameter from request
 
      try {
           const supervisor = await User.findById(supervisorID);
@@ -154,11 +154,14 @@ export const getParkingAssistants = async (req, res) => {
                          []
                          :
                          [
-                              { 'shiftId': queryParam },
                               { 'isOnline': queryParam === 'isOnline' }, // Convert string 'true' to boolean true
                               { 'phone': queryParam },
                               { 'name': queryParam }
-                         ]
+                         ],
+                    $or: isEmpty(shiftID) ?
+                         []
+                         :
+                         [{ 'shiftId': queryParam }]
                };
           }
 
