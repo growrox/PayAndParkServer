@@ -132,17 +132,34 @@ export const settleParkingTickets = async (req, res) => {
 
 export const getParkingAssistants = async (req, res) => {
      const { supervisorID } = req.params;
+     const { queryParam } = req.query; // Extract query parameter from request
 
      try {
-          const supervisor = await User.findById(supervisorID)
+          const supervisor = await User.findById(supervisorID);
           if (isEmpty(supervisor)) {
                return res.status(404).json({ error: 'Supervisor not found' });
           }
 
-          // Query users where supervisorCode matches
-          let assistants = await User.find({
+          // Construct base query to find assistants by supervisor code
+          let query = {
                supervisorCode: supervisor.code
-          }, {
+          };
+
+          // If queryParam is provided, add additional filters
+          if (queryParam) {
+               query = {
+                    ...query,
+                    $or: [
+                         { 'shiftId': queryParam },
+                         { 'isOnline': queryParam === 'isOnline' }, // Convert string 'true' to boolean true
+                         { 'phone':  queryParam }, 
+                         { 'name': queryParam }
+                    ]
+               };
+          }
+
+          // Query users based on constructed query
+          let assistants = await User.find(query, {
                isOnline: 1,
                name: 1,
                phone: 1
@@ -166,7 +183,6 @@ export const getParkingAssistants = async (req, res) => {
 
                // Fetch total amount to collect where payment mode is cash and status is not settled
                if (shiftId) {
-
                     amountToCollect = await ParkingTicket.aggregate([
                          {
                               $match: {
@@ -183,7 +199,6 @@ export const getParkingAssistants = async (req, res) => {
                          }
                     ]);
                     amountToCollect = amountToCollect.length > 0 ? amountToCollect[0].totalAmount : 0;
-
                }
 
                return {
@@ -208,6 +223,7 @@ export const getParkingAssistants = async (req, res) => {
           return res.status(500).json({ error: 'Server Error' });
      }
 }
+
 
 export const getAllSettlementTickets = async (req, res) => {
      const { supervisorID } = req.params;
