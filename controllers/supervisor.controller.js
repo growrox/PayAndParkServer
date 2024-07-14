@@ -293,12 +293,12 @@ export const getSupervisorStats = async (req, res) => {
           }
 
           const supervisorStats = {
-               TotalCollection: stats[0].totalCollection || 0,
-               TotalCollectedAmount: stats[0].totalCollectedAmount || 0,
-               TotalFine: stats[0].totalFine || 0,
-               TotalReward: stats[0].totalReward || 0,
-               TotalTicketsCount: stats[0].totalTicketsCount || 0,
-               LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
+               TotalCollection: stats[0]?.totalCollection || 0,
+               TotalCollectedAmount: stats[0]?.totalCollectedAmount || 0,
+               TotalFine: stats[0]?.totalFine || 0,
+               TotalReward: stats[0]?.totalReward || 0,
+               TotalTicketsCount: stats[0]?.totalTicketsCount || 0,
+               LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket?.updatedAt : null
           };
 
           return res.status(200).json({ message: "Here is supervisor stats.", result: supervisorStats });
