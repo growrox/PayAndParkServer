@@ -26,7 +26,10 @@ export const getShift = async (req, res) => {
      try {
           // Create the shift if validations pass
           const shift = await getShiftList();
-          return res.status(201).json({ message: "Here is the shift list.", result: shift });
+          if (isEmpty(shift)) { 
+               return res.status(404).json({ message: "No shift found.", result: [] });
+          }
+          return res.status(200).json({ message: "Here is the shift list.", result: shift });
      } catch (error) {
           return res.status(500).json({ error: error.message });
      }
