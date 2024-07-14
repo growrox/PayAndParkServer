@@ -154,14 +154,11 @@ export const getParkingAssistants = async (req, res) => {
                          []
                          :
                          [
+                              isEmpty(shiftID) ? [] : [{ 'shiftId': queryParam }],
                               { 'isOnline': queryParam === 'isOnline' }, // Convert string 'true' to boolean true
                               { 'phone': queryParam },
                               { 'name': queryParam }
                          ],
-                    $or: isEmpty(shiftID) ?
-                         []
-                         :
-                         [{ 'shiftId': queryParam }]
                };
           }
 
@@ -230,7 +227,6 @@ export const getParkingAssistants = async (req, res) => {
           return res.status(500).json({ error: 'Server Error' });
      }
 }
-
 
 export const getAllSettlementTickets = async (req, res) => {
      const { supervisorID } = req.params;
