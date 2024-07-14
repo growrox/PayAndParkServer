@@ -278,6 +278,20 @@ export const getSupervisorStats = async (req, res) => {
 
           console.log("stats  ", stats);
 
+          if (!stats || stats.length === 0) {
+               return res.status(200).json({
+                    message: 'No unseteled tickets found for the supervisor.',
+                    result: {
+                         TotalCollection: 0,
+                         TotalCollectedAmount: 0,
+                         TotalFine: 0,
+                         TotalReward: 0,
+                         TotalTicketsCount: 0,
+                         LastSettledTicketUpdatedAt: null
+                    }
+               });
+          }
+
           const supervisorStats = {
                TotalCollection: stats[0].totalCollection || 0,
                TotalCollectedAmount: stats[0].totalCollectedAmount || 0,
@@ -286,10 +300,6 @@ export const getSupervisorStats = async (req, res) => {
                TotalTicketsCount: stats[0].totalTicketsCount || 0,
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
           };
-
-          if (!stats || stats.length === 0) {
-               return res.status(200).json({ message: 'No unseteled tickets found for the supervisor.', result: supervisorStats });
-          }
 
           return res.status(200).json({ message: "Here is supervisor stats.", result: supervisorStats });
      } catch (error) {
