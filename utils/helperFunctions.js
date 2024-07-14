@@ -183,8 +183,9 @@ function formatTime(timeZone = 'Asia/Kolkata') {
 
 function getDateTime(dateTime, timeZone = 'Asia/Kolkata') {
   // Convert the input dateTime to a moment object with the specified time zone
-  const date = moment(dateTime).tz(timeZone, true); // 'true' preserves the local time
+  const date = moment.tz(dateTime, timeZone); // 'true' preserves the local time
 
+  console.log("moment date ", date);
   // Get date components
   const day = date.date().toString().padStart(2, '0');
   const month = (date.month() + 1).toString().padStart(2, '0'); // Month is zero-indexed
@@ -206,6 +207,11 @@ function getDateTime(dateTime, timeZone = 'Asia/Kolkata') {
   return { date: formattedDate, time: formattedTime };
 }
 
+console.log(
+  "Time ",
+  getDateTime("2024-07-14T21:06:23.000Z"),
+  getDateTime("2024-07-15T02:36:23+05:30")
+);
 
 export function scheduleCronAfterMinutes(endTime, minutesToAdd) {
   // Parse endTime using moment.js to ensure correct time parsing
