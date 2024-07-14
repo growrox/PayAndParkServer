@@ -146,15 +146,19 @@ export const getParkingAssistants = async (req, res) => {
           };
 
           // If queryParam is provided, add additional filters
+
           if (queryParam) {
                query = {
                     ...query,
-                    $or: [
-                         { 'shiftId': queryParam },
-                         { 'isOnline': queryParam === 'isOnline' }, // Convert string 'true' to boolean true
-                         { 'phone':  queryParam }, 
-                         { 'name': queryParam }
-                    ]
+                    $or: isEmpty(queryParam) ?
+                         []
+                         :
+                         [
+                              { 'shiftId': queryParam },
+                              { 'isOnline': queryParam === 'isOnline' }, // Convert string 'true' to boolean true
+                              { 'phone': queryParam },
+                              { 'name': queryParam }
+                         ]
                };
           }
 
