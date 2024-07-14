@@ -130,7 +130,7 @@ export const settleParkingTickets = async (req, res) => {
      }
 }
 
-export const getParkingAssistants = async (req, res) => {
+export const getParkingAssistantsOld = async (req, res) => {
      const { supervisorID } = req.params;
      const { queryParam, shiftID } = req.query; // Extract query parameter from request
 
@@ -146,19 +146,20 @@ export const getParkingAssistants = async (req, res) => {
           };
 
           // If queryParam is provided, add additional filters
+          let queryArray = [
+               { 'isOnline': queryParam === 'isOnline' }, // Convert string 'true' to boolean true
+               { 'phone': { $regex: queryParam } },
+               { 'name': { $regex: queryParam } }
+          ]
+
+          isEmpty(shiftID) ? console.log("Not query for shift id") : queryArray.push({ 'shiftId': queryParam });
+          console.log("queryArray  ", queryArray);
+
 
           if (queryParam) {
                query = {
                     ...query,
-                    $or: isEmpty(queryParam) ?
-                         []
-                         :
-                         [
-                              isEmpty(shiftID) ? [] : [{ 'shiftId': queryParam }],
-                              { 'isOnline': queryParam === 'isOnline' }, // Convert string 'true' to boolean true
-                              { 'phone': queryParam },
-                              { 'name': queryParam }
-                         ],
+                    $or: queryArray
                };
           }
 
@@ -227,6 +228,118 @@ export const getParkingAssistants = async (req, res) => {
           return res.status(500).json({ error: 'Server Error' });
      }
 }
+
+export const getParkingAssistants = async (req, res) => {
+     const { supervisorID } = req.params;
+     const { queryParam, shiftID } = req.query;
+
+     try {
+          // Find the supervisor by ID
+          const supervisor = await User.findById(supervisorID);
+          if (!supervisor) {
+               return res.status(404).json({ error: 'Supervisor not found' });
+          }
+
+          // Construct the base query to find assistants by supervisor code
+          let query = {
+               supervisorCode: supervisor.code
+          };
+
+          // Add additional filters based on query parameters
+          if (queryParam) {
+               query.$or = [];
+
+               // Regex for partial matches and case-insensitive search
+               if (/^\d+$/.test(queryParam)) {
+                    query.$or.push({ phone: { $regex: queryParam, $options: 'i' } });  // Regex for phone numbers
+               } else {
+                    query.$or.push({ name: { $regex: queryParam, $options: 'i' } });  // Regex for names
+               }
+
+               // Check if queryParam indicates online status
+               if (queryParam.toLowerCase() === 'isonline') {
+                    query.$or.push({ isOnline: true });
+               } else if (queryParam.toLowerCase() === 'isoffline') {
+                    query.$or.push({ isOnline: false });
+               }
+          }
+
+          // Add shiftID filter if provided
+          if (shiftID) {
+               query.shiftId = shiftID;
+          }
+
+          // Query users based on constructed query
+          let assistants = await User.find(query, {
+               isOnline: 1,
+               name: 1,
+               phone: 1,
+               shiftId: 1,
+               lastSettledTicketId: 1
+          })
+               .populate({
+                    path: 'shiftId',
+                    select: 'name startTime endTime',
+               })
+               .populate({
+                    path: 'lastSettledTicketId',
+                    select: 'updatedAt'
+               });
+
+          // If no assistants match the query, return an empty array
+          if (assistants.length === 0) {
+               return res.json({ message: 'No assistants found', result: [] });
+          }
+
+          // Iterate through assistants and fetch amountToCollect for each
+          assistants = await Promise.all(assistants.map(async (assistant) => {
+               const { isOnline, _id, name, phone, shiftId, lastSettledTicketId } = assistant;
+
+               let amountToCollect = 0;
+
+               // Fetch total amount to collect where payment mode is cash and status is not settled
+               if (shiftId) {
+                    const amountData = await ParkingTicket.aggregate([
+                         {
+                              $match: {
+                                   parkingAssistant: _id,
+                                   paymentMode: 'Cash',
+                                   status: { $ne: 'settled' }
+                              }
+                         },
+                         {
+                              $group: {
+                                   _id: null,
+                                   totalAmount: { $sum: '$amount' }
+                              }
+                         }
+                    ]);
+                    amountToCollect = amountData.length > 0 ? amountData[0].totalAmount : 0;
+               }
+
+               return {
+                    _id,
+                    name,
+                    phone,
+                    isOnline,
+                    lastSettled: lastSettledTicketId ? lastSettledTicketId.updatedAt : null,
+                    shiftDetails: shiftId ? shiftId : {
+                         _id: null,
+                         name: null,
+                         startTime: null,
+                         endTime: null
+                    },
+                    amountToCollect
+               };
+          }));
+
+          return res.json({ message: 'Here is all your parking assistant list', result: assistants });
+     } catch (error) {
+          console.error("Error getting parking assistance ", error);
+          return res.status(500).json({ error: 'Server Error' });
+     }
+}
+
 
 export const getAllSettlementTickets = async (req, res) => {
      const { supervisorID } = req.params;
