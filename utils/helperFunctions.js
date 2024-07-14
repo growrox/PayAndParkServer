@@ -171,29 +171,28 @@ export async function sendTicketConfirmation(ticketDetails) {
   }
 }
 
-function formatTime() {
-  const date = new Date();
+function formatTime(timeZone = 'Asia/Kolkata') {
+  // Get the current date and time in the specified time zone
+  const date = moment().tz(timeZone);
 
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-indexed
-  const day = date.getDate().toString().padStart(2, '0');
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
+  // Format the date and time
+  const formattedDateTime = date.format('YYYY-MM-DD HH:mm');
 
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
+  return formattedDateTime;
 }
 
-function getDateTime(DateTime) {
-  const date = new Date(DateTime);
+function getDateTime(dateTime, timeZone = 'Asia/Kolkata') {
+  // Convert the input dateTime to a moment object with the specified time zone
+  const date = moment(dateTime).tz(timeZone, true); // 'true' preserves the local time
 
   // Get date components
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is zero-indexed
-  const year = date.getFullYear().toString().slice(-2); // Last two digits of the year
+  const day = date.date().toString().padStart(2, '0');
+  const month = (date.month() + 1).toString().padStart(2, '0'); // Month is zero-indexed
+  const year = date.year().toString().slice(-2); // Last two digits of the year
 
   // Get time components
-  let hours = date.getHours();
-  const minutes = date.getMinutes().toString().padStart(2, '0');
+  let hours = date.hours();
+  const minutes = date.minutes().toString().padStart(2, '0');
   const ampm = hours >= 12 ? 'pm' : 'am';
 
   hours = hours % 12 || 12; // Convert hour to 12-hour format
