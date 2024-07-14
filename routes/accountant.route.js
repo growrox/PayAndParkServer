@@ -4,7 +4,7 @@ import { settleSupervisorTickets, getSupervisors, getAllSettlementTickets, getAc
 const router = Router();
 
 // Routes for user management
-router.post('/accountant/settle-tickets/:accountantID', settleSupervisorTickets);
+router.post('/accountant/settle-tickets/:supervisorID', settleSupervisorTickets);
 router.get('/accountant/supervisors', getSupervisors);
 router.get('/accountant/tickets/all/:accountantID', getAllSettlementTickets);
 router.get('/accountant/stats/:accountantID', getAccountantStats);
