@@ -10,68 +10,117 @@ export const settleParkingTickets = async (req, res) => {
      const { parkingAssistantID } = req.params;
      console.log("parkingAssistantID ", parkingAssistantID);
      try {
-          // Fetch non-settled parking tickets with paymentMode as Cash and matching parkingAssistantID
+          // Check if a settlement ticket was created today for this assistant
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Set hours to start of day for comparison
+
+          const existingTicketToday = await SupervisorSettlement.findOne({
+               parkingAssistant: parkingAssistantID,
+               createdAt: { $gte: today }
+          });
+
+          if (existingTicketToday) {
+               return res.status(400).json({
+                    error: 'Tickets already settled for today.',
+                    result: { settlementId: existingTicketToday._id }
+               });
+          }
+
+          // Proceed with the existing logic to settle tickets if no ticket was settled today
           if (isEmpty(CashComponent)) {
-               return res.status(404).json({
+               return res.status(400).json({
                     error: 'Cash components are required.'
                });
           }
-          console.log("Total ", Object.keys(CashComponent).reduce((total, key) => key !== "Total" ? total + parseInt(key) * CashComponent[key] : total, 0));
 
-          if (CashComponent["Total"] != Object.keys(CashComponent).reduce((total, key) => key !== "Total" ? total + parseInt(key) * CashComponent[key] : total, 0)) {
-               return res.status(404).json({
-                    error: 'Please check cash amount and total field.'
+          // Validate cash amount and total
+          const calculatedTotalCash = Object.keys(CashComponent).reduce((total, key) => key !== "Total" ? total + parseInt(key) * CashComponent[key] : total, 0);
+          if (CashComponent["Total"] !== calculatedTotalCash) {
+               return res.status(400).json({
+                    error: "Please check cash amount and it's total.",
+                    result: {
+                         expectedAmount: CashComponent["Total"],
+                         recivedAmount: calculatedTotalCash
+                    }
                });
           }
 
-          // Check if the reward Is valid amount.
+          // Check eligibility for rewards based on total collection and fines
           if ((totalCollection - TotalFine) < 2000 && TotalRewards > 0) {
-               return res.status(404).json({ error: 'Not eligible for the rewards.' });
+               return res.status(400).json({ error: 'Not eligible for rewards.' });
           }
-          if ((totalCollection - TotalFine) >= 2000 && TotalRewards != 200) {
-               return res.status(404).json({ error: 'Please check reward amount.' });
+          if ((totalCollection - TotalFine) >= 2000 && TotalRewards !== 200) {
+               return res.status(400).json({ error: 'Please check reward amount.' });
           }
 
+          // Find the parking assistant
           const findAssistant = await User.findById(parkingAssistantID);
-
           if (isEmpty(findAssistant)) {
-               return res.status(404).json({ error: 'Assistant not find please check the id.' });
+               return res.status(404).json({ error: 'Assistant not found. Please check the ID.' });
           }
 
+          // Aggregate pipeline to calculate totals for unsettled tickets
           const pipeline = [
-               // Match documents where phoneNumber matches and status is not settled
                { $match: { parkingAssistant: new mongoose.Types.ObjectId(parkingAssistantID), status: { $ne: 'settled' } } },
-
-               // Group by null to calculate totals
                {
                     $group: {
                          _id: null,
                          TotalAmount: { $sum: "$amount" },
-                         TotalCash: {
-                              $sum: {
-                                   $cond: [{ $eq: ["$paymentMode", "Cash"] }, "$amount", 0]
-                              }
-                         },
-                         TotalOnline: {
-                              $sum: {
-                                   $cond: [{ $eq: ["$paymentMode", "Online"] }, "$amount", 0]
-                              }
-                         },
+                         TotalCash: { $sum: { $cond: [{ $eq: ["$paymentMode", "Cash"] }, "$amount", 0] } },
+                         TotalOnline: { $sum: { $cond: [{ $eq: ["$paymentMode", "Online"] }, "$amount", 0] } },
                     }
                },
-
-               // Optionally project to reshape the output (if needed)
                { $project: { _id: 0, TotalAmount: 1, TotalCash: 1, TotalOnline: 1 } },
-
           ];
 
+          // Execute aggregation to get unsettled tickets totals
           let ticketsToUpdate = await ParkingTicket.aggregate(pipeline);
           ticketsToUpdate = ticketsToUpdate ? ticketsToUpdate[0] : [];
-          console.log("ticketsToUpdate ", ticketsToUpdate);
 
+
+          if (totalCollectedAmount != (ticketsToUpdate.TotalCash - (TotalFine + TotalRewards))) {
+               return res.status(404).json({
+                    error: 'Collected amount is not same as cash amount after giving reward and fine.',
+                    result: {
+                         recivedAmount: totalCollectedAmount,
+                         expectedAmount: ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)
+                    }
+               });
+          }
+
+          if ((ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) <= 0 && calculatedTotalCash != 0) {
+               return res.status(404).json({
+                    error: "Please check cash collection amount it should be zero.",
+                    result: {
+                         recivedCashAmount: calculatedTotalCash,
+                         expectedCashAmount: ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)
+                    }
+               });
+          }
+
+          if ((ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) > 0 && (ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) > calculatedTotalCash) {
+               return res.status(404).json({
+                    error: "Please check cash collection amount it's less then expected.",
+                    result: {
+                         recivedCashAmount: calculatedTotalCash,
+                         expectedCashAmount: ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)
+                    }
+               });
+          }
+
+          if ((ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) > 0 && (ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) < calculatedTotalCash) {
+               return res.status(404).json({
+                    error: "Please check cash collection amount it's greater then expected.",
+                    result: {
+                         recivedCashAmount: calculatedTotalCash,
+                         expectedCashAmount: ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)
+                    }
+               });
+          }
+
+          // Handle case where no unsettled tickets are found
           if (isEmpty(ticketsToUpdate)) {
-               const lastUpdated = await ParkingTicket.findOne({ parkingAssistant: new mongoose.Types.ObjectId(parkingAssistantID), status: 'settled' }, { updatedAt: 1 }).sort({ updatedAt: -1 })
-
+               const lastUpdated = await ParkingTicket.findOne({ parkingAssistant: new mongoose.Types.ObjectId(parkingAssistantID), status: 'settled' }, { updatedAt: 1 }).sort({ updatedAt: -1 });
                return res.status(404).json({ error: 'No non-settled tickets found for the provided assistant ID.', result: { lastSettled: (new Date(lastUpdated.updatedAt)) } });
           }
 
@@ -83,7 +132,7 @@ export const settleParkingTickets = async (req, res) => {
                totalCollectedAmount,
                totalFine: TotalFine,
                totalReward: TotalRewards,
-               cashCollected: [], // Assuming you'll handle this based on your business logic
+               cashCollected: [], // Placeholder for actual logic
                accountantId: parkingAssistantID, // Placeholder, adjust as needed
                isSettled: false // Will be set to true after updating tickets
           });
@@ -91,10 +140,7 @@ export const settleParkingTickets = async (req, res) => {
           // Save the new settlement ticket
           const savedSettlement = await settlementTicket.save();
 
-          // Execute all update tickets
-          // const UpdatedTicketStatus = await ParkingTicket.aggregate(updateStatusPipeline).exec();
-          // console.log("UpdatedTicketStatus ", UpdatedTicketStatus);
-
+          // Update status of unsettled tickets
           await ParkingTicket.updateMany(
                {
                     parkingAssistant: new mongoose.Types.ObjectId(parkingAssistantID),
@@ -103,32 +149,33 @@ export const settleParkingTickets = async (req, res) => {
                {
                     $set: {
                          status: 'settled',
-                         supervisor: supervisorID, // Add supervisorId (assuming supervisorId is a variable)
-                         settlementId: savedSettlement._id // Add settlementId (assuming settlementId is a variable)
+                         supervisor: supervisorID,
+                         settlementId: savedSettlement._id
                     }
-               });
+               }
+          );
 
+          // Update last settled ticket ID for the parking assistant
+          await User.findByIdAndUpdate(parkingAssistantID, { lastSettledTicketId: savedSettlement._id });
 
-          await User.findByIdAndUpdate(parkingAssistantID, {
-               lastSettledTicketId: savedSettlement._id
-          });
-
+          // Update settlement status to indicate it's settled
           await SupervisorSettlement.updateOne(
                {
                     _id: new mongoose.Types.ObjectId(savedSettlement._id),
-                    settled: { $ne: 'true' }
+                    settled: { $ne: true }
                },
                {
-                    $set: {
-                         settled: 'true'
-                    }
-               });
+                    $set: { settled: true }
+               }
+          );
 
+          // Return success response
           return res.json({ message: 'Tickets settled successfully.', result: { settlementId: savedSettlement._id } });
      } catch (error) {
-          return res.status(500).json({ error: error.message });
+          console.error(error);
+          return res.status(500).json({ error: 'Internal server error.' });
      }
-}
+};
 
 export const getParkingAssistantsOld = async (req, res) => {
      const { supervisorID } = req.params;
