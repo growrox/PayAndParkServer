@@ -2,11 +2,15 @@ import mongoose, { Schema } from 'mongoose';
 
 // Define a schema for VehiclePass collection
 const VehiclePassSchema = new Schema({
-     vehicleNo: { type: String, required: true },
+     name: { type: String, required: true },
      phone: { type: String, required: true },
-     expireDate: { type: Date, required: true },
+     vehicleNo: { type: String, required: true },
+     vehicleType: { type: String, required: true },
+     vehicleModel: { type: String, required: true },
+     vehicleColor: { type: String, required: true },
      isActive: { type: Boolean, default: true },
-     name: { type: String, required: true }
+     passExpiryDate: { type: Date, required: true },
+     insuranceExpiryDate: { type: Date, required: true },
 }, { timestamps: true });
 
 // Create a model based on the schema

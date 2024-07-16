@@ -4,43 +4,57 @@ import { isEmpty } from "../utils/helperFunctions.js";
 // Example: Create a new vehicle pass
 export const createVehiclePass = async (req, res) => {
   try {
-    const { vehicleNo, expireDate, phone, name } = req.body;
+    const { vehicleNo, phone, name, vehicleType, vehicleModel, vehicleColor, passExpiryDate, insuranceExpiryDate } = req.body;
 
     if (isEmpty(vehicleNo))
       return res
         .status(202)
         .json({ message: "Vehical number is required please check." });
+
     const passAvailable = await VehiclePass.find({ vehicleNo, isActive: true });
     if (!isEmpty(passAvailable)) {
       return res.status(202).json({ message: "Pass already present." });
     }
 
-    // console.log(new Date(expireDate), "  --- ", new Date(), "   new Date(expireDate).getTime > ", new Date(expireDate).getTime() > new Date().getTime());
     if (
-      isEmpty(expireDate) ||
-      new Date(expireDate).getTime() < new Date().getTime()
+      isEmpty(passExpiryDate) ||
+      new Date(passExpiryDate).getTime() < new Date().getTime()
     )
       return res.status(202).json({
-        message:
-          "Expiry date is required, It's missing or have incorrect value please check.",
+        message: "Expiry date is required, It's missing or have incorrect value please check.",
       });
+
+    if (
+      isEmpty(insuranceExpiryDate) ||
+      new Date(insuranceExpiryDate).getTime() < new Date().getTime()
+    )
+      return res.status(202).json({
+        message: "Insurance expiry date is required, It's missing or have incorrect value please check.",
+      });
+
     if (isEmpty(phone) || phone.length != 10)
       return res.status(202).json({
         message:
           "Phone number is required. It's missing or have incorrect please check.",
       });
 
+
     const newPass = new VehiclePass({
       phone,
       vehicleNo,
-      expireDate: new Date(expireDate),
-      name
+      passExpiryDate: new Date(passExpiryDate),
+      name,
+      vehicleType,
+      vehicleModel,
+      vehicleColor
     });
     const savedPass = await newPass.save();
     const { _id } = savedPass;
     return res.status(201).json({
-      message: "Vehical pass created.",
-      result: { vehicleNo, expireDate, phone, _id, name },
+      message: "Vehical pass created successfully.",
+      result: {
+        vehicleNo, passExpiryDate, phone, _id, name, vehicleType, vehicleModel, vehicleColor
+      },
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -53,21 +67,12 @@ export const getAllVehiclePasses = async (req, res) => {
     // Default values for pagination
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const search = req.query.search || "";
 
     // Calculating the skipping of documents
     const skip = (page - 1) * limit;
 
     // Find the vehicle passes with pagination
-    const passes = await VehiclePass.find({
-      $or: [
-        { name: { $regex: search, $options: "i" } }, // Case-insensitive search for name
-        { phone: { $regex: search, $options: "i" } }, // Case-insensitive search for phone
-        { vehicleNo: { $regex: search, $options: "i" } }, // Case-insensitive search for vehicleNo
-      ],
-    })
-      .skip(skip)
-      .limit(limit);
+    const passes = await VehiclePass.find().skip(skip).limit(limit);
 
     // Get total count of documents to calculate total pages
     const totalCount = await VehiclePass.countDocuments();
@@ -95,7 +100,7 @@ export const getAllVehiclePasses = async (req, res) => {
   }
 };
 
-// Example: Get vehicle pass by phone or vehicalNo
+// Example: Get vehicle pass by name, phone or vehicalNo
 export const getVehiclePass = async (req, res) => {
   const { filter } = req.params;
   try {
@@ -133,7 +138,7 @@ export const getVehiclePass = async (req, res) => {
 };
 
 export const updateVehiclePass = async (req, res) => {
-  const { vehicleNo, expireDate, phone, name } = req.body;
+  const { vehicleNo, phone, name, vehicleType, vehicleModel, vehicleColor, passExpiryDate, insuranceExpiryDate } = req.body;
   const passId = req.params.passId;
   try {
     if (isEmpty(passId))
@@ -141,6 +146,7 @@ export const updateVehiclePass = async (req, res) => {
 
     // Check if the pass exists
     const existingPass = await VehiclePass.findById(passId);
+
     if (!existingPass) {
       return res.status(404).json({ error: "Vehicle pass not found" });
     }
@@ -149,7 +155,11 @@ export const updateVehiclePass = async (req, res) => {
     if (!isEmpty(phone)) updateObject.phone = phone;
     if (!isEmpty(name)) updateObject.name = name;
     if (!isEmpty(vehicleNo)) updateObject.vehicleNo = vehicleNo;
-    if (!isEmpty(expireDate)) updateObject.expireDate = new Date(expireDate);
+    if (!isEmpty(vehicleType)) updateObject.vehicleType = vehicleType;
+    if (!isEmpty(vehicleModel)) updateObject.vehicleModel = vehicleModel;
+    if (!isEmpty(vehicleColor)) updateObject.vehicleColor = vehicleColor;
+    if (!isEmpty(passExpiryDate)) updateObject.passExpiryDate = new Date(passExpiryDate);
+    if (!isEmpty(insuranceExpiryDate)) updateObject.insuranceExpiryDate = new Date(insuranceExpiryDate);
 
     // Update the pass
     const updatedPass = await VehiclePass.findByIdAndUpdate(existingPass._id, {
@@ -158,7 +168,7 @@ export const updateVehiclePass = async (req, res) => {
     const { _id } = updatedPass;
 
     return res.status(200).json({
-      message: "Pass updated successfully.",
+      message: "Vehical pass updated successfully.",
       result: { _id, ...updateObject },
     });
   } catch (error) {
