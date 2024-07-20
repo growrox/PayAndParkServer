@@ -46,7 +46,8 @@ export const createVehiclePass = async (req, res) => {
       name,
       vehicleType,
       vehicleModel,
-      vehicleColor
+      vehicleColor,
+      insuranceExpiryDate
     });
     const savedPass = await newPass.save();
     const { _id } = savedPass;
