@@ -282,7 +282,7 @@ export const getParkingAssistantsOld = async (req, res) => {
 
 export const getParkingAssistants = async (req, res) => {
      const { supervisorID } = req.params;
-     const { queryParam, shiftID } = req.query;
+     const { queryParam, shiftID, page = 1, pageSize = 10 } = req.query; // Extract query parameters including pagination
 
      try {
           // Find the supervisor by ID
@@ -320,7 +320,7 @@ export const getParkingAssistants = async (req, res) => {
                query.shiftId = shiftID;
           }
 
-          // Query users based on constructed query
+          // Query users based on constructed query with pagination
           let assistants = await User.find(query, {
                isOnline: 1,
                name: 1,
@@ -335,7 +335,9 @@ export const getParkingAssistants = async (req, res) => {
                .populate({
                     path: 'lastSettledTicketId',
                     select: 'updatedAt'
-               });
+               })
+               .skip((page - 1) * parseInt(pageSize))
+               .limit(parseInt(pageSize));
 
           // If no assistants match the query, return an empty array
           if (assistants.length === 0) {
@@ -389,7 +391,7 @@ export const getParkingAssistants = async (req, res) => {
           console.error("Error getting parking assistance ", error);
           return res.status(500).json({ error: 'Server Error' });
      }
-}
+};
 
 
 export const getAllSettlementTickets = async (req, res) => {
