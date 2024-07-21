@@ -157,7 +157,7 @@ export const getTickets = async (req, res) => {
 
           // Handle pagination and default limit
           const limit = page && page === 'home' ? 5 : parseInt(pageSize) || 20;  // 5 tickets for 'page=home', or custom limit from headers, defaulting to 20
-          const pageNumber = parseInt(req.query.pageNumber) || 1;
+          const pageNumber = parseInt(req.query.page) || 1;
           const skip = (pageNumber - 1) * limit;
 
           // Apply filters if provided
