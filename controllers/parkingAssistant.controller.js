@@ -149,14 +149,14 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
 // Controller function to fetch tickets
 export const getTickets = async (req, res) => {
      try {
-          let { page, userid, pageSize } = req.headers;
+          let { page, userid} = req.headers;
           let { searchQuery } = req.query;
           let filter = [];
 
           console.log(searchQuery, " Query --- ", req.query);
 
           // Handle pagination and default limit
-          const limit = page && page === 'home' ? 5 : parseInt(pageSize) || 20;  // 5 tickets for 'page=home', or custom limit from headers, defaulting to 20
+          const limit = page && page === 'home' ? 5 : parseInt(req.query.pageSize) || 20;  // 5 tickets for 'page=home', or custom limit from headers, defaulting to 20
           const pageNumber = parseInt(req.query.page) || 1;
           const skip = (pageNumber - 1) * limit;
 
