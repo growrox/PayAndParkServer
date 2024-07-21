@@ -135,21 +135,8 @@ export async function sendTicketConfirmation(ticketDetails) {
     "template_id": process.env.TICKET_CONFIRMATION_TEMPLATE_ID,
     "to": [toNumber],
     "text":
-      `M.B.M.C Pay&Park,Bhalavi Grp
-      DATE:- ${getDateTime(DateTime).date}
-      TIME :- ${getDateTime(DateTime).time} 
-      Dear ${Name} Your parking ticket has been successfully generated. 
-      Ticket Number: ${TicketNumber} 
-      Vehicle Number: ${VehicalNumber} 
-      Parking Assistant: ${ParkingAssistant} 
-      Duration: ${Duration + "hrs"} 
-      Base Amount : ${Amount - (ninePercent * 2)} 
-      CGST 9% : ${ninePercent} 
-      SGST 9% : ${ninePercent} 
-      RND OFF : ${Amount} 
-      GRAND TOTAL : ${Amount} 
-      Payment Mode: ${PaymentMode}. MBMC`,
-    // "text": "M.B.M.C Pay&Park 3, Bhalavi Grp DATE:- 07.07.24,TIME :- 2: 00pm Dear Hitesh Pal Your parking ticket has been successfully generated. Ticket Number: AB1235 Vehicle Number: MH04 GK 3445 Parking Assistant: Aditya Singh Duration: 2hrs Base Amount : 30 CGST 9%  : 9 SGST 9%   : 9 RND OFF : 38 GRAND TOTAL : 38Payment Mode: Online. MBMC",
+      `M.B.M.C Pay&Park,Bhalavi Grp \n DATE:- ${getDateTime(DateTime).date} \n TIME :- ${getDateTime(DateTime).time} \n Dear ${Name} Your parking ticket has been successfully generated. \n Ticket Number: ${TicketNumber} \n Vehicle Number: ${VehicalNumber} \n Parking Assistant: ${ParkingAssistant} \n Duration: ${Duration + "hrs"} \n Base Amount : ${Amount - (ninePercent * 2)} \n CGST 9% : ${ninePercent} \n SGST 9% : ${ninePercent} \n RND OFF : ${Amount} \n GRAND TOTAL : ${Amount} \n Payment Mode: ${PaymentMode}. MBMC`,
+    // "text": "M.B.M.C Pay&Park 3, Bhalavi Grp \n DATE:- 07.07.24,\n TIME :- 2: 00pm \n Dear Hitesh Pal Your parking ticket has been successfully generated. Ticket Number: AB1235 Vehicle Number: MH04 GK 3445 Parking Assistant: Aditya Singh Duration: 2hrs Base Amount : 30 CGST 9%  : 9 SGST 9%   : 9 RND OFF : 38 GRAND TOTAL : 38Payment Mode: Online. MBMC",
     "scheduletime": formatTime()
   };
 
@@ -163,6 +150,7 @@ export async function sendTicketConfirmation(ticketDetails) {
     },
     data: data
   };
+
 
   // Encode text parameter
   try {
@@ -234,3 +222,8 @@ export function scheduleCronAfterMinutes(endTime, minutesToAdd) {
   // Schedule the cron job
   return cronSchedule
 }
+
+
+
+// const text = "M.B.M.C Pay&Park 3, Bhalavi Grp \n DATE:- 07.07.24,\n TIME :- 2: 00pm \n Dear Hitesh Pal Your parking ticket has been successfully generated. Ticket Number: AB1235 Vehicle Number: MH04 GK 3445 Parking Assistant: Aditya Singh Duration: 2hrs Base Amount : 30 CGST 9%  : 9 SGST 9%   : 9 RND OFF : 38 GRAND TOTAL : 38Payment Mode: Online. MBMC"
+// console.log("MEssage ", text);

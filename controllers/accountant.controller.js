@@ -197,8 +197,6 @@ export const getSupervisors = async (req, res) => {
      }
 };
 
-
-
 export const getAllSettlementTickets = async (req, res) => {
      const { accountantID } = req.params;
      const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
@@ -333,6 +331,7 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
      }
 };
 
+
 export const getAccountantStats = async (req, res) => {
      const accountantID = req.params.accountantID;
 
@@ -342,8 +341,13 @@ export const getAccountantStats = async (req, res) => {
           const startOfDay = clientDate.startOf('day');
           const startOfTomorrow = startOfDay.clone().add(1, 'day');
 
+          console.log('Start of Today:', startOfDay.toISOString());
+          console.log('Start of Tomorrow:', startOfTomorrow.toISOString());
+
           const today = startOfDay.toISOString();
           const tomorrow = startOfTomorrow.toISOString();
+          console.log(today, "  today ");
+          console.log(tomorrow, "  tomorrow ");
 
           // Find AccountantSettlementTicket for today
           const todayAccountantSettlementTicket = await AccountantSettlementTicket.find({
@@ -354,19 +358,21 @@ export const getAccountantStats = async (req, res) => {
                }
           });
 
-          if (!todayAccountantSettlementTicket.length) {
+          console.log("todayAccountantSettlementTicket ", todayAccountantSettlementTicket);
+
+          if (!todayAccountantSettlementTicket) {
                return res.status(404).json({ error: 'No AccountantSettlementTicket found for today.' });
           }
-          console.log({todayAccountantSettlementTicket});
-          // Extract all settlement IDs
-          const settlementIds = todayAccountantSettlementTicket.map(ticket => ticket._id);
-          console.log({settlementIds});
-          // Aggregate stats from SupervisorSettlementTicket where settlementId matches any of the settlementIds
+
+          // Get _id of the today's AccountantSettlementTicket
+          const settlementId = todayAccountantSettlementTicket._id;
+
+          // Aggregate stats from SupervisorSettlementTicket where settlementId matches
           const statsPipeline = [
                {
                     $match: {
-                         settlementId: { $in: settlementIds },
-                         isSettled: true // Assuming isSettled is a boolean field
+                         settlementId: new mongoose.Types.ObjectId(settlementId),
+                         isSettled: false // Assuming isSettled is a boolean field
                     }
                },
                {
@@ -382,7 +388,7 @@ export const getAccountantStats = async (req, res) => {
           ];
 
           const supervisorStats = await SupervisorSettlementTicket.aggregate(statsPipeline);
-          console.log({supervisorStats});
+
           // Extracting values from the aggregation result
           const totalCollection = supervisorStats[0]?.totalCollection || 0;
           const totalCollectedAmount = supervisorStats[0]?.totalCollectedAmount || 0;
@@ -392,12 +398,12 @@ export const getAccountantStats = async (req, res) => {
 
           // Prepare response
           const response = {
-               totalCollection,
-               totalCollectedAmount,
-               totalFine,
-               totalReward,
-               cashCollected,
-               LastSettledTicketUpdatedAt: todayAccountantSettlementTicket[todayAccountantSettlementTicket.length - 1].updatedAt // Assuming updatedAt field provides the last settled time
+               TotalCollection: totalCollection,
+               TotalCollectedAmount: totalCollectedAmount,
+               TotalFine: totalFine,
+               TotalReward: totalReward,
+               CashCollected: cashCollected,
+               LastSettledTicketUpdatedAt: todayAccountantSettlementTicket.updatedAt // Assuming updatedAt field provides the last settled time
           };
 
           return res.status(200).json({ message: 'Here is the accountant stats.', result: response });
@@ -407,3 +413,5 @@ export const getAccountantStats = async (req, res) => {
           return res.status(500).json({ error: 'Error getting accountant stats from the server.' });
      }
 };
+
+
