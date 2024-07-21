@@ -136,19 +136,19 @@ export async function sendTicketConfirmation(ticketDetails) {
     "to": [toNumber],
     "text":
       `M.B.M.C Pay&Park,Bhalavi Grp
-     DATE:- ${getDateTime(DateTime).date}
-     TIME :- ${getDateTime(DateTime).time} 
-     Dear ${Name} Your parking ticket has been successfully generated. 
-     Ticket Number: ${TicketNumber} 
-     Vehicle Number: ${VehicalNumber} 
-     Parking Assistant: ${ParkingAssistant} 
-     Duration: ${Duration + "hrs"} 
-     Base Amount : ${Amount - (ninePercent * 2)} 
-     CGST 9% : ${ninePercent} 
-     SGST 9% : ${ninePercent} 
-     RND OFF : ${Amount} 
-     GRAND TOTAL : ${Amount} 
-     Payment Mode: ${PaymentMode}. MBMC`,
+      DATE:- ${getDateTime(DateTime).date}
+      TIME :- ${getDateTime(DateTime).time} 
+      Dear ${Name} Your parking ticket has been successfully generated. 
+      Ticket Number: ${TicketNumber} 
+      Vehicle Number: ${VehicalNumber} 
+      Parking Assistant: ${ParkingAssistant} 
+      Duration: ${Duration + "hrs"} 
+      Base Amount : ${Amount - (ninePercent * 2)} 
+      CGST 9% : ${ninePercent} 
+      SGST 9% : ${ninePercent} 
+      RND OFF : ${Amount} 
+      GRAND TOTAL : ${Amount} 
+      Payment Mode: ${PaymentMode}. MBMC`,
     // "text": "M.B.M.C Pay&Park 3, Bhalavi Grp DATE:- 07.07.24,TIME :- 2: 00pm Dear Hitesh Pal Your parking ticket has been successfully generated. Ticket Number: AB1235 Vehicle Number: MH04 GK 3445 Parking Assistant: Aditya Singh Duration: 2hrs Base Amount : 30 CGST 9%  : 9 SGST 9%   : 9 RND OFF : 38 GRAND TOTAL : 38Payment Mode: Online. MBMC",
     "scheduletime": formatTime()
   };
