@@ -267,6 +267,8 @@ export const validateOTP = async (req, res) => {
         name: newUser.name,
         role: newUser.role,
         userId: newUser._id,
+        code: newUser?.code,
+        supervisorCode: newUser?.supervisorCode
       });
     } else {
       if (!getOTPDetails?.attempts) {
@@ -279,8 +281,8 @@ export const validateOTP = async (req, res) => {
       }
       return res.status(300).json({
         message: `${getOTPDetails?.attempts
-            ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
-            : "Maximum attempts reached generate new OTP."
+          ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
+          : "Maximum attempts reached generate new OTP."
           }`,
         attempts: getOTPDetails?.attempts,
       });
