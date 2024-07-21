@@ -6,7 +6,7 @@ import AccountantSettlementTicket from '../models/accountantSettlementTicket.mod
 
 
 export const settleSupervisorTickets = async (req, res) => {
-     const { accountantID, totalCollectedAmount, expense } = req.body;
+     const { accountantID, totalCollectedAmount } = req.body;
      const { supervisorID } = req.params;
      console.log("accountantID ", accountantID);
      try {
@@ -55,17 +55,6 @@ export const settleSupervisorTickets = async (req, res) => {
           }
 
           const { TotalCollectedAmount, TotalFine, TotalReward } = ticketsToSettle;
-          console.log("Check amount difference ", totalCollectedAmount);
-          console.log("Check amount difference ", (TotalCollectedAmount - (TotalFine + TotalReward)));
-          console.log("Check amount difference ", expense);
-          console.log(Math.abs(totalCollectedAmount - (TotalCollectedAmount - (TotalFine + TotalReward))) != expense);
-
-          if (Math.abs(totalCollectedAmount - (TotalCollectedAmount - (TotalFine + TotalReward))) != expense) {
-               return res.status(404).json({
-                    error: "Please re-check the collected amount or change the expense.",
-                    amount: TotalCollectedAmount - (TotalFine + TotalReward)
-               });
-          }
 
 
           // Create a new settlement ticket
