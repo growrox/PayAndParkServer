@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { isEmpty } from '../utils/helperFunctions.js';
 import SupervisorSettlementTicket from '../models/settlementTicket.model.js';
 import AccountantSettlementTicket from '../models/accountantSettlementTicket.model.js';
-
+import moment from "moment-timezone";
 
 export const settleSupervisorTickets = async (req, res) => {
      const { accountantID, totalCollectedAmount } = req.body;
@@ -338,10 +338,18 @@ export const getAccountantStats = async (req, res) => {
      console.log("supervisorId ", supervisorId);
      try {
           // Get the start and end of today
-          const today = new Date();
-          today.setUTCHours(0, 0, 0, 0); // Start of today
-          const tomorrow = new Date(today);
-          tomorrow.setUTCDate(today.getUTCDate() + 1); // Start of tomorrow
+
+          const clientDate = moment.tz(new Date(), 'Asia/Kolkata');
+          const startOfDay = clientDate.startOf('day');
+          const startOfTomorrow = startOfDay.clone().add(1, 'day');
+
+          console.log('Start of Today:', startOfDay.format());
+          console.log('Start of Tomorrow:', startOfTomorrow.format());
+
+          const today = startOfDay.format();
+          const tomorrow = startOfTomorrow.format();
+          console.log(today, "  today ");
+          console.log(tomorrow, "  tomorrow ");
 
           const statsPipeline = [
                {
