@@ -210,49 +210,87 @@ export const getSupervisors = async (req, res) => {
 
 export const getAllSettlementTickets = async (req, res) => {
      const { accountantID } = req.params;
+     const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
+     console.log("pageSize  ", pageSize);
      try {
           console.log("supervisorID ", accountantID);
           if (isEmpty(accountantID)) {
-               return res.status(404).json({ error: 'Not supervisor id provided please check again.' });
-          }
-          else {
+               return res.status(404).json({ error: 'No supervisor id provided. Please check again.' });
+          } else {
+               const query = {
+                    accountant: new mongoose.Types.ObjectId(accountantID)
+               };
 
-               const pipeline = [
-                    // Stage 1: Match document by _id
-                    { $match: { accountant: new mongoose.Types.ObjectId(accountantID) } },
+               // Count total documents matching the query
+               const totalCount = await AccountantSettlementTicket.countDocuments(query);
+               const totalPages = Math.ceil(totalCount / pageSize);
 
-                    // Stage 2: Project to get the code field
-                    { $project: { totalCollection: 1, totalCollectedAmount: 1, totalFine: 1, totalReward: 1 } }
-               ];
+               // Find tickets based on the query, select specific fields, and apply pagination
+               const result = await AccountantSettlementTicket.find(query)
+                    .select('totalCollection totalCollectedAmount totalFine totalReward')
+                    .populate('supervisor', 'name code')
+                    .populate('accountant', 'name')
+                    .skip((page - 1) * pageSize)
+                    .limit(parseInt(pageSize))
+                    .exec();
 
-               // Execute the aggregation pipeline
-               const result = await AccountantSettlementTicket.find({ accountant: new mongoose.Types.ObjectId(accountantID) }).populate('supervisor', 'name code').populate('accountant', 'name');
-
-               console.log("Result ", result);
+               console.log("Result ", result.length);
                if (isEmpty(result)) {
-                    return res.status(200).json({ message: 'Here is the settlement ticket list.', result: [] });
-               }
-               else {
-                    return res.status(200).json({ message: 'Here is the settlement ticket list.', result: result });
+                    return res.status(200).json({ message: 'No settlement tickets found for this supervisor.', result: [] });
+               } else {
+                    // Pagination logic to determine next and previous pages
+                    let nextPage = null;
+                    let prevPage = null;
+
+                    if (page < totalPages) {
+                         nextPage = {
+                              page: parseInt(page) + 1,
+                              pageSize: parseInt(pageSize),
+                         };
+                    }
+
+                    if (page > 1) {
+                         prevPage = {
+                              page: parseInt(page) - 1,
+                              pageSize: parseInt(pageSize),
+                         };
+                    }
+
+                    // Prepare response object with tickets, pagination details, and totalCount
+                    const response = {
+                         tickets: result,
+                         pagination: {
+                              totalCount,
+                              totalPages,
+                              nextPage,
+                              prevPage,
+                         },
+                    };
+
+                    return res.status(200).json({ message: 'Here is the settlement ticket list.', result: response });
                }
           }
 
      } catch (error) {
-          console.error("Error gettig all ticket.");
+          console.error("Error getting all tickets.", error);
           return res.status(500).json({ error: error.message });
-
      }
-}
+};
 
 export const getAllSettlementTicketsBySupervisor = async (req, res) => {
      const { supervisorID } = req.params;
+     const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
+
      try {
           console.log("supervisorID ", supervisorID);
           if (isEmpty(supervisorID)) {
-               return res.status(404).json({ error: 'No supervisor id provided please check again.' });
+               return res.status(404).json({ error: 'No supervisor id provided. Please check again.' });
           }
+
+          // Check if supervisor exists
           const findSupervisor = await User.findOne({
-               _id: new mongoose.Types.ObjectId(supervisorID), role: "supervisor"
+               _id: new mongoose.Types.ObjectId(supervisorID),
+               role: "supervisor"
           });
 
           if (isEmpty(findSupervisor)) {
@@ -260,11 +298,15 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
           }
 
           const pipeline = [
-               // Stage 1: Match document by _id
-               { $match: { supervisor: new mongoose.Types.ObjectId(supervisorID), isSettled: { $ne: 'true' } } },
+               // Stage 1: Match documents by supervisorID and isSettled condition
+               { $match: { supervisor: new mongoose.Types.ObjectId(supervisorID), isSettled: { $ne: true } } },
 
-               // Stage 2: Project to get the code field
-               { $project: { totalCollection: 1, totalCollectedAmount: 1, isSettled: 1, totalFine: 1, totalReward: 1 } }
+               // Stage 2: Project to get desired fields
+               { $project: { totalCollection: 1, totalCollectedAmount: 1, isSettled: 1, totalFine: 1, totalReward: 1 } },
+
+               // Stage 3: Pagination
+               { $skip: (page - 1) * parseInt(pageSize) },
+               { $limit: parseInt(pageSize) }
           ];
 
           // Execute the aggregation pipeline
@@ -272,16 +314,31 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
 
           console.log("Result ", result);
 
+          // Count total documents matching the query (excluding pagination)
+          const totalCount = await SupervisorSettlementTicket.countDocuments({
+               supervisor: new mongoose.Types.ObjectId(supervisorID),
+               isSettled: { $ne: true }
+          });
 
-          return res.status(200).json({ message: 'Here is the list of tickets of supervisor.', result: isEmpty(result) ? [] : result });
+          // Calculate total pages based on pageSize
+          const totalPages = Math.ceil(totalCount / pageSize);
 
+          return res.status(200).json({
+               message: 'Here is the list of tickets of supervisor.',
+               result: isEmpty(result) ? [] : result,
+               pagination: {
+                    totalCount,
+                    totalPages,
+                    currentPage: page,
+                    pageSize: parseInt(pageSize)
+               }
+          });
 
      } catch (error) {
-          console.error("Error gettig all ticket.");
-          return res.status(500).json({ error: error.message });
-
+          console.error("Error getting all tickets.", error);
+          return res.status(500).json({ error: error.message })
      }
-}
+};
 
 export const getAccountantStats = async (req, res) => {
      const supervisorId = req.params.supervisorID; // Assuming supervisorId is passed in request params
