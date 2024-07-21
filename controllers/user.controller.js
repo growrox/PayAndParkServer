@@ -416,7 +416,7 @@ export const getUserStatus = async (req, res) => {
       isOnline: 1,
       role: 1,
       phone: 1,
-    }).populate('shiftId','name');
+    }).populate('shiftId');
     if (isEmpty(user)) {
       return res
         .status(404)
