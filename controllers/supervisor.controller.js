@@ -6,10 +6,17 @@ import { isEmpty } from '../utils/helperFunctions.js';
 
 
 export const settleParkingTickets = async (req, res) => {
-     const { supervisorID, CashComponent, totalCollection, totalCollectedAmount, TotalFine, TotalRewards } = req.body;
+     const { supervisorID, cashComponent, cashCollected, totalCollection, totalCollectedAmount, TotalFine, TotalRewards } = req.body;
      const { parkingAssistantID } = req.params;
      console.log("parkingAssistantID ", parkingAssistantID);
      try {
+          
+          if (isEmpty(cashComponent)) {
+               return res.status(400).json({
+                    error: 'Cash components are required.'
+               });
+          }
+          
           // Check if a settlement ticket was created today for this assistant
           const today = new Date();
           today.setHours(0, 0, 0, 0); // Set hours to start of day for comparison
@@ -20,26 +27,22 @@ export const settleParkingTickets = async (req, res) => {
           });
 
           if (existingTicketToday) {
-               return res.status(400).json({
-                    error: 'Tickets already settled for today.',
+               return res.status(200).json({
+                    message: 'Tickets already settled for today.',
                     result: { settlementId: existingTicketToday._id }
                });
           }
 
           // Proceed with the existing logic to settle tickets if no ticket was settled today
-          if (isEmpty(CashComponent)) {
-               return res.status(400).json({
-                    error: 'Cash components are required.'
-               });
-          }
 
           // Validate cash amount and total
-          const calculatedTotalCash = Object.keys(CashComponent).reduce((total, key) => key !== "Total" ? total + parseInt(key) * CashComponent[key] : total, 0);
-          if (CashComponent["Total"] !== calculatedTotalCash) {
+          const calculatedTotalCash = cashComponent.reduce((total, key) => total + +key.denomination * +key.count, 0)
+          // Object.keys(CashComponent).reduce((total, key) => key !== "Total" ? total + parseInt(key) * CashComponent[key] : total, 0);
+          if (cashCollected !== calculatedTotalCash) {
                return res.status(400).json({
                     error: "Please check cash amount and it's total.",
                     result: {
-                         expectedAmount: CashComponent["Total"],
+                         expectedAmount: cashComponent["Total"],
                          recivedAmount: calculatedTotalCash
                     }
                });
@@ -75,25 +78,31 @@ export const settleParkingTickets = async (req, res) => {
 
           // Execute aggregation to get unsettled tickets totals
           let ticketsToUpdate = await ParkingTicket.aggregate(pipeline);
-          ticketsToUpdate = ticketsToUpdate ? ticketsToUpdate[0] : [];
+         
+          ticketsToUpdate = isEmpty(ticketsToUpdate) ? {
+               TotalAmount: 0, TotalCash: 0, TotalOnline: 0
+          } : ticketsToUpdate[0]
 
+          console.log("tickets To Update ", ticketsToUpdate);
+          
+          console.log("totalCollectedAmount ", totalCollectedAmount, "ticketsToUpdate.TotalCash - (TotalFine + TotalRewards) ", ticketsToUpdate.TotalCash, (TotalFine + TotalRewards));
 
+          if (cashCollected != ticketsToUpdate.TotalCash ) {
+               return res.status(404).json({
+                    error: 'Cash collected amount is not same as cash amount.',
+                    result: {
+                         recivedAmount: cashCollected,
+                         expectedAmount: ticketsToUpdate.TotalCash
+                    }
+               });
+          }
+          
           if (totalCollectedAmount != (ticketsToUpdate.TotalCash - (TotalFine + TotalRewards))) {
                return res.status(404).json({
                     error: 'Collected amount is not same as cash amount after giving reward and fine.',
                     result: {
                          recivedAmount: totalCollectedAmount,
                          expectedAmount: ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)
-                    }
-               });
-          }
-
-          if ((ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) <= 0 && calculatedTotalCash != 0) {
-               return res.status(404).json({
-                    error: "Please check cash collection amount it should be zero.",
-                    result: {
-                         recivedCashAmount: calculatedTotalCash,
-                         expectedCashAmount: ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)
                     }
                });
           }
@@ -118,12 +127,6 @@ export const settleParkingTickets = async (req, res) => {
                });
           }
 
-          // Handle case where no unsettled tickets are found
-          if (isEmpty(ticketsToUpdate)) {
-               const lastUpdated = await ParkingTicket.findOne({ parkingAssistant: new mongoose.Types.ObjectId(parkingAssistantID), status: 'settled' }, { updatedAt: 1 }).sort({ updatedAt: -1 });
-               return res.status(404).json({ error: 'No non-settled tickets found for the provided assistant ID.', result: { lastSettled: (new Date(lastUpdated.updatedAt)) } });
-          }
-
           // Create a new settlement ticket
           const settlementTicket = new SupervisorSettlement({
                supervisor: new mongoose.Types.ObjectId(supervisorID),
@@ -132,9 +135,10 @@ export const settleParkingTickets = async (req, res) => {
                totalCollectedAmount,
                totalFine: TotalFine,
                totalReward: TotalRewards,
-               cashCollected: [], // Placeholder for actual logic
+               cashComponent, // Placeholder for actual logic
+               cashCollected,
                accountantId: parkingAssistantID, // Placeholder, adjust as needed
-               isSettled: false // Will be set to true after updating tickets
+               isSettled: false, // Will be set to true after updating tickets
           });
 
           // Save the new settlement ticket
@@ -441,6 +445,7 @@ export const getSupervisorStats = async (req, res) => {
                          totalCollection: { $sum: '$totalCollection' },
                          totalCollectedAmount: { $sum: '$totalCollectedAmount' },
                          totalFine: { $sum: '$totalFine' },
+                         cashCollected: { $sum: '$cashCollected' },
                          totalReward: { $sum: '$totalReward' },
                          totalTicketsCount: { $sum: 1 } // Counting the number of tickets
                     }
@@ -466,6 +471,7 @@ export const getSupervisorStats = async (req, res) => {
                          TotalFine: 0,
                          TotalReward: 0,
                          TotalTicketsCount: 0,
+                         cashCollected: 0,
                          LastSettledTicketUpdatedAt: null
                     }
                });
@@ -476,6 +482,7 @@ export const getSupervisorStats = async (req, res) => {
                TotalCollectedAmount: stats[0]?.totalCollectedAmount || 0,
                TotalFine: stats[0]?.totalFine || 0,
                TotalReward: stats[0]?.totalReward || 0,
+               cashCollected: stats[0]?.cashCollected || 0,
                TotalTicketsCount: stats[0]?.totalTicketsCount || 0,
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket?.updatedAt : null
           };

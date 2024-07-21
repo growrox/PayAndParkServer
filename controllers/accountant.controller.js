@@ -6,7 +6,7 @@ import AccountantSettlementTicket from '../models/accountantSettlementTicket.mod
 
 
 export const settleSupervisorTickets = async (req, res) => {
-     const { accountantID, totalCollectedAmount, remark, expense } = req.body;
+     const { accountantID, totalCollectedAmount, expense } = req.body;
      const { supervisorID } = req.params;
      console.log("accountantID ", accountantID);
      try {
@@ -23,7 +23,7 @@ export const settleSupervisorTickets = async (req, res) => {
                return res.status(404).json({ error: 'Accountaint not found please check the id.' });
           }
 
-         
+
 
           const pipeline = [
                // Match documents where phoneNumber matches and status is not settled
@@ -72,11 +72,7 @@ export const settleSupervisorTickets = async (req, res) => {
           const settlementTicket = new AccountantSettlementTicket({
                supervisor: new mongoose.Types.ObjectId(supervisorID),
                accountant: new mongoose.Types.ObjectId(accountantID),
-               totalCollectedAmount,
-               expenseDetail: {
-                    description: remark,
-                    amount: expense
-               }
+               totalCollectedAmount
           });
 
           // Save the new settlement ticket
@@ -119,45 +115,82 @@ export const settleSupervisorTickets = async (req, res) => {
 
 export const getSupervisors = async (req, res) => {
      try {
-          const supervisorsList = await User.find({ role: "supervisor" }, { name: 1, phone: 1 })
+          // Step 1: Get list of supervisors
+          const supervisorsList = await User.find({ role: "supervisor" }, { name: 1, phone: 1 });
 
-          console.log("Result ", supervisorsList);
-          if (isEmpty(supervisorsList)) {
+          if (supervisorsList.length === 0) {
                return res.status(404).json({ error: 'No Supervisor found.' });
           }
-          else {
-               return res.status(200).json({ error: 'Here is the supervisor list.', result: supervisorsList });
-          }
+
+          // Step 2: Iterate through supervisors and fetch aggregated data from SupervisorSettlementTicket
+          const supervisorsWithStats = await Promise.all(supervisorsList.map(async (supervisor) => {
+               const supervisorId = supervisor._id;
+
+               // Aggregate pipeline to sum up totals for each supervisor
+               const statsPipeline = [
+                    {
+                         $match: {
+                              supervisor: supervisorId,
+                              isSettled: false
+                         }
+                    },
+                    {
+                         $group: {
+                              _id: null,
+                              totalFine: { $sum: '$totalFine' },
+                              cashCollected: { $sum: '$cashCollected' },
+                              totalReward: { $sum: '$totalReward' },
+                              totalCollectedAmount: { $sum: '$totalCollectedAmount' },
+                         }
+                    }
+               ];
+
+               const supervisorStats = await SupervisorSettlementTicket.aggregate(statsPipeline);
+
+               return {
+                    supervisor: {
+                         _id: supervisor._id,
+                         name: supervisor.name,
+                         phone: supervisor.phone,
+                         totalFine: supervisorStats.length > 0 ? supervisorStats[0].totalFine : 0,
+                         cashCollected: supervisorStats.length > 0 ? supervisorStats[0].cashCollected : 0,
+                         totalReward: supervisorStats.length > 0 ? supervisorStats[0].totalReward : 0,
+                         totalCollectedAmount: supervisorStats.length > 0 ? supervisorStats[0].totalCollectedAmount : 0,
+                    }
+               };
+          }));
+
+          return res.status(200).json({ message: 'Here is the supervisor list with stats.', result: supervisorsWithStats });
 
      } catch (error) {
-          console.error("Error getting the parking assistants.", error);
+          console.error("Error getting the supervisors with stats.", error);
           return res.status(500).json({ error: error.message });
      }
-}
+};
 
 export const getAllSettlementTickets = async (req, res) => {
-     const { supervisorID } = req.params;
+     const { accountantID } = req.params;
      try {
-          console.log("supervisorID ", supervisorID);
-          if (isEmpty(supervisorID)) {
+          console.log("supervisorID ", accountantID);
+          if (isEmpty(accountantID)) {
                return res.status(404).json({ error: 'Not supervisor id provided please check again.' });
           }
           else {
 
                const pipeline = [
                     // Stage 1: Match document by _id
-                    { $match: { supervisor: new mongoose.Types.ObjectId(supervisorID), isSettled: { $ne: 'true' } } },
+                    { $match: { accountant: new mongoose.Types.ObjectId(accountantID) } },
 
                     // Stage 2: Project to get the code field
-                    { $project: { totalCollection: 1, totalCollectedAmount: 1, isSettled: 1, totalFine: 1, totalReward: 1 } }
+                    { $project: { totalCollection: 1, totalCollectedAmount: 1, totalFine: 1, totalReward: 1 } }
                ];
 
                // Execute the aggregation pipeline
-               const result = await SupervisorSettlementTicket.aggregate(pipeline).exec();
+               const result = await AccountantSettlementTicket.find({ accountant: new mongoose.Types.ObjectId(accountantID) }).populate('supervisor', 'name code').populate('accountant', 'name');
 
                console.log("Result ", result);
                if (isEmpty(result)) {
-                    return res.status(404).json({ error: 'No tickets found.' });
+                    return res.status(200).json({ message: 'Here is the settlement ticket list.', result: [] });
                }
                else {
                     return res.status(200).json({ message: 'Here is the settlement ticket list.', result: result });
@@ -170,15 +203,65 @@ export const getAllSettlementTickets = async (req, res) => {
 
      }
 }
+
+export const getAllSettlementTicketsBySupervisor = async (req, res) => {
+     const { supervisorID } = req.params;
+     try {
+          console.log("supervisorID ", supervisorID);
+          if (isEmpty(supervisorID)) {
+               return res.status(404).json({ error: 'No supervisor id provided please check again.' });
+          }
+          const findSupervisor = await User.findOne({
+               _id: new mongoose.Types.ObjectId(supervisorID), role: "supervisor"
+          });
+
+          if (isEmpty(findSupervisor)) {
+               return res.status(404).json({ error: 'Supervisor not found.' });
+          }
+
+          const pipeline = [
+               // Stage 1: Match document by _id
+               { $match: { supervisor: new mongoose.Types.ObjectId(supervisorID), isSettled: { $ne: 'true' } } },
+
+               // Stage 2: Project to get the code field
+               { $project: { totalCollection: 1, totalCollectedAmount: 1, isSettled: 1, totalFine: 1, totalReward: 1 } }
+          ];
+
+          // Execute the aggregation pipeline
+          const result = await SupervisorSettlementTicket.aggregate(pipeline).exec();
+
+          console.log("Result ", result);
+
+
+          return res.status(200).json({ message: 'Here is the list of tickets of supervisor.', result: isEmpty(result) ? [] : result });
+
+
+     } catch (error) {
+          console.error("Error gettig all ticket.");
+          return res.status(500).json({ error: error.message });
+
+     }
+}
+
 export const getAccountantStats = async (req, res) => {
      const supervisorId = req.params.supervisorID; // Assuming supervisorId is passed in request params
      console.log("supervisorId ", supervisorId);
      try {
+          // Get the start and end of today
+          const today = new Date();
+          today.setUTCHours(0, 0, 0, 0); // Start of today
+          const tomorrow = new Date(today);
+          tomorrow.setUTCDate(today.getUTCDate() + 1); // Start of tomorrow
+
           const statsPipeline = [
                {
                     $match: {
                          supervisor: new mongoose.Types.ObjectId(supervisorId),
-                         isSettled: false
+                         isSettled: false,
+                         createdAt: {
+                              $gte: today,
+                              $lt: tomorrow
+                         }
                     }
                },
                {
@@ -203,23 +286,22 @@ export const getAccountantStats = async (req, res) => {
 
           console.log("stats  ", stats);
 
-          if (!stats || stats.length === 0) {
-               return res.status(404).json({ error: 'No unseteled tickets found for the supervisor.' });
-          }
-
           const supervisorStats = {
-               TotalCollection: stats[0].totalCollection || 0,
-               TotalCollectedAmount: stats[0].totalCollectedAmount || 0,
-               TotalFine: stats[0].totalFine || 0,
-               TotalReward: stats[0].totalReward || 0,
-               TotalTicketsCount: stats[0].totalTicketsCount || 0,
+               TotalCollection: stats[0]?.totalCollection || 0,
+               TotalCollectedAmount: stats[0]?.totalCollectedAmount || 0,
+               TotalFine: stats[0]?.totalFine || 0,
+               TotalReward: stats[0]?.totalReward || 0,
+               TotalTicketsCount: stats[0]?.totalTicketsCount || 0,
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
           };
 
-          return res.status(200).json({ message: "Here is the supervisor stats.", result: supervisorStats });
+          return res.status(200).json({
+               message: "Here is the accountant stats.",
+               result: supervisorStats
+          });
      } catch (error) {
           console.error("Error getting the supervisor stats.", error);
           return res.status(500).json({ error: error.message });
      }
-
 }
+
