@@ -114,15 +114,36 @@ export const settleSupervisorTickets = async (req, res) => {
 }
 
 export const getSupervisors = async (req, res) => {
-     try {
-          // Step 1: Get list of supervisors
-          const supervisorsList = await User.find({ role: "supervisor" }, { name: 1, phone: 1 });
+     const { searchQuery, page = 1, pageSize = 10 } = req.query; // Extract search query, page, and pageSize from query params
 
-          if (supervisorsList.length === 0) {
+     try {
+          // Step 1: Prepare the match condition for supervisors
+          const matchCondition = {
+               role: "supervisor"
+          };
+
+          // If search query is provided, add regex conditions to match name, phone, or code
+          if (searchQuery) {
+               matchCondition.$or = [
+                    { name: { $regex: searchQuery, $options: 'i' } },
+                    { phone: { $regex: searchQuery, $options: 'i' } },
+                    { code: { $regex: searchQuery, $options: 'i' } }
+               ];
+          }
+
+          // Step 2: Count total supervisors matching the match condition
+          const totalCount = await User.countDocuments(matchCondition);
+
+          if (totalCount === 0) {
                return res.status(404).json({ error: 'No Supervisor found.' });
           }
 
-          // Step 2: Iterate through supervisors and fetch aggregated data from SupervisorSettlementTicket
+          // Step 3: Get list of supervisors matching the match condition with pagination
+          const supervisorsList = await User.find(matchCondition, { name: 1, phone: 1, code: 1 })
+               .skip((page - 1) * parseInt(pageSize))
+               .limit(parseInt(pageSize));
+
+          // Step 4: Iterate through supervisors and fetch aggregated data from SupervisorSettlementTicket
           const supervisorsWithStats = await Promise.all(supervisorsList.map(async (supervisor) => {
                const supervisorId = supervisor._id;
 
@@ -148,25 +169,38 @@ export const getSupervisors = async (req, res) => {
                const supervisorStats = await SupervisorSettlementTicket.aggregate(statsPipeline);
 
                return {
-                    supervisor: {
-                         _id: supervisor._id,
-                         name: supervisor.name,
-                         phone: supervisor.phone,
-                         totalFine: supervisorStats.length > 0 ? supervisorStats[0].totalFine : 0,
-                         cashCollected: supervisorStats.length > 0 ? supervisorStats[0].cashCollected : 0,
-                         totalReward: supervisorStats.length > 0 ? supervisorStats[0].totalReward : 0,
-                         totalCollectedAmount: supervisorStats.length > 0 ? supervisorStats[0].totalCollectedAmount : 0,
-                    }
+                    _id: supervisor._id,
+                    name: supervisor.name,
+                    phone: supervisor.phone,
+                    code: supervisor.code,
+                    totalFine: supervisorStats.length > 0 ? supervisorStats[0].totalFine : 0,
+                    cashCollected: supervisorStats.length > 0 ? supervisorStats[0].cashCollected : 0,
+                    totalReward: supervisorStats.length > 0 ? supervisorStats[0].totalReward : 0,
+                    totalCollectedAmount: supervisorStats.length > 0 ? supervisorStats[0].totalCollectedAmount : 0,
                };
           }));
 
-          return res.status(200).json({ message: 'Here is the supervisor list with stats.', result: supervisorsWithStats });
+          // Step 5: Calculate total pages based on pageSize
+          const totalPages = Math.ceil(totalCount / parseInt(pageSize));
+
+          return res.status(200).json({
+               message: 'Here is the supervisor list with stats.',
+               result: supervisorsWithStats,
+               pagination: {
+                    totalCount,
+                    totalPages,
+                    currentPage: parseInt(page),
+                    pageSize: parseInt(pageSize)
+               }
+          });
 
      } catch (error) {
           console.error("Error getting the supervisors with stats.", error);
           return res.status(500).json({ error: error.message });
      }
 };
+
+
 
 export const getAllSettlementTickets = async (req, res) => {
      const { accountantID } = req.params;
