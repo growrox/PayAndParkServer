@@ -341,13 +341,8 @@ export const getAccountantStats = async (req, res) => {
           const startOfDay = clientDate.startOf('day');
           const startOfTomorrow = startOfDay.clone().add(1, 'day');
 
-          console.log('Start of Today:', startOfDay.toISOString());
-          console.log('Start of Tomorrow:', startOfTomorrow.toISOString());
-
           const today = startOfDay.toISOString();
           const tomorrow = startOfTomorrow.toISOString();
-          console.log(today, "  today ");
-          console.log(tomorrow, "  tomorrow ");
 
           // Find AccountantSettlementTicket for today
           const todayAccountantSettlementTicket = await AccountantSettlementTicket.find({
@@ -358,21 +353,17 @@ export const getAccountantStats = async (req, res) => {
                }
           });
 
-          console.log("todayAccountantSettlementTicket ", todayAccountantSettlementTicket);
-
-          if (!todayAccountantSettlementTicket) {
+          if (!todayAccountantSettlementTicket.length) {
                return res.status(404).json({ error: 'No AccountantSettlementTicket found for today.' });
           }
-
-          // Get _id of the today's AccountantSettlementTicket
-          const settlementId = todayAccountantSettlementTicket._id;
-
-          // Aggregate stats from SupervisorSettlementTicket where settlementId matches
+          // Extract all settlement IDs
+          const settlementIds = todayAccountantSettlementTicket.map(ticket => ticket._id);
+          // Aggregate stats from SupervisorSettlementTicket where settlementId matches any of the settlementIds
           const statsPipeline = [
                {
                     $match: {
-                         settlementId: new mongoose.Types.ObjectId(settlementId),
-                         isSettled: false // Assuming isSettled is a boolean field
+                         settlementId: { $in: settlementIds },
+                         isSettled: true // Assuming isSettled is a boolean field
                     }
                },
                {
@@ -388,7 +379,6 @@ export const getAccountantStats = async (req, res) => {
           ];
 
           const supervisorStats = await SupervisorSettlementTicket.aggregate(statsPipeline);
-
           // Extracting values from the aggregation result
           const totalCollection = supervisorStats[0]?.totalCollection || 0;
           const totalCollectedAmount = supervisorStats[0]?.totalCollectedAmount || 0;
@@ -398,12 +388,12 @@ export const getAccountantStats = async (req, res) => {
 
           // Prepare response
           const response = {
-               TotalCollection: totalCollection,
-               TotalCollectedAmount: totalCollectedAmount,
-               TotalFine: totalFine,
-               TotalReward: totalReward,
-               CashCollected: cashCollected,
-               LastSettledTicketUpdatedAt: todayAccountantSettlementTicket.updatedAt // Assuming updatedAt field provides the last settled time
+               totalCollection,
+               totalCollectedAmount,
+               totalFine,
+               totalReward,
+               cashCollected,
+               LastSettledTicketUpdatedAt: todayAccountantSettlementTicket[todayAccountantSettlementTicket.length - 1].updatedAt // Assuming updatedAt field provides the last settled time
           };
 
           return res.status(200).json({ message: 'Here is the accountant stats.', result: response });
