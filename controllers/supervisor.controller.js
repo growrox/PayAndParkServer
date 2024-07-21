@@ -87,15 +87,6 @@ export const settleParkingTickets = async (req, res) => {
 
           console.log("totalCollectedAmount ", totalCollectedAmount, "ticketsToUpdate.TotalCash - (TotalFine + TotalRewards) ", ticketsToUpdate.TotalCash, (TotalFine + TotalRewards));
 
-          if (cashCollected != ticketsToUpdate.TotalCash) {
-               return res.status(404).json({
-                    error: 'Cash collected amount is not same as cash amount.',
-                    result: {
-                         recivedAmount: cashCollected,
-                         expectedAmount: ticketsToUpdate.TotalCash
-                    }
-               });
-          }
 
           if (totalCollectedAmount != (ticketsToUpdate.TotalCash - (TotalFine + TotalRewards))) {
                return res.status(404).json({
@@ -341,7 +332,7 @@ export const getParkingAssistants = async (req, res) => {
 
           // If no assistants match the query, return an empty array
           if (assistants.length === 0) {
-               return res.json({ message: 'No assistants found', result: {assistants: [], pagination: { totalCount: 0, totalPages: 0, currentPage: parseInt(page), pageSize: parseInt(pageSize) } } });
+               return res.json({ message: 'No assistants found', result: { assistants: [], pagination: { totalCount: 0, totalPages: 0, currentPage: parseInt(page), pageSize: parseInt(pageSize) } } });
           }
 
           // Iterate through assistants and fetch amountToCollect for each
