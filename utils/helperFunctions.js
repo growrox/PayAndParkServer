@@ -134,7 +134,21 @@ export async function sendTicketConfirmation(ticketDetails) {
     "pe_id": process.env.TICKET_CONFIRMATION_PE_ID,
     "template_id": process.env.TICKET_CONFIRMATION_TEMPLATE_ID,
     "to": [toNumber],
-    "text": `M.B.M.C Pay&Park, Bhalavi Grp DATE:- ${getDateTime(DateTime).date} ,TIME :- ${getDateTime(DateTime).time} Dear ${Name} Your parking ticket has been successfully generated. Ticket Number: ${TicketNumber} Vehicle Number: ${VehicalNumber} Parking Assistant: ${ParkingAssistant} Duration: ${Duration + "hrs"} Base Amount : ${Amount - (ninePercent * 2)} CGST 9% : ${ninePercent} SGST 9% : ${ninePercent} RND OFF : ${Amount} GRAND TOTAL : ${Amount} Payment Mode: ${PaymentMode}. MBMC`,
+    "text":
+      `M.B.M.C Pay&Park,Bhalavi Grp
+     DATE:- ${getDateTime(DateTime).date}
+     TIME :- ${getDateTime(DateTime).time} 
+     Dear ${Name} Your parking ticket has been successfully generated. 
+     Ticket Number: ${TicketNumber} 
+     Vehicle Number: ${VehicalNumber} 
+     Parking Assistant: ${ParkingAssistant} 
+     Duration: ${Duration + "hrs"} 
+     Base Amount : ${Amount - (ninePercent * 2)} 
+     CGST 9% : ${ninePercent} 
+     SGST 9% : ${ninePercent} 
+     RND OFF : ${Amount} 
+     GRAND TOTAL : ${Amount} 
+     Payment Mode: ${PaymentMode}. MBMC`,
     // "text": "M.B.M.C Pay&Park 3, Bhalavi Grp DATE:- 07.07.24,TIME :- 2: 00pm Dear Hitesh Pal Your parking ticket has been successfully generated. Ticket Number: AB1235 Vehicle Number: MH04 GK 3445 Parking Assistant: Aditya Singh Duration: 2hrs Base Amount : 30 CGST 9%  : 9 SGST 9%   : 9 RND OFF : 38 GRAND TOTAL : 38Payment Mode: Online. MBMC",
     "scheduletime": formatTime()
   };
@@ -185,7 +199,6 @@ function getDateTime(dateTime, timeZone = 'Asia/Kolkata') {
   // Convert the input dateTime to a moment object with the specified time zone
   const date = moment.tz(dateTime, timeZone); // 'true' preserves the local time
 
-  console.log("moment date ", date);
   // Get date components
   const day = date.date().toString().padStart(2, '0');
   const month = (date.month() + 1).toString().padStart(2, '0'); // Month is zero-indexed
@@ -207,11 +220,6 @@ function getDateTime(dateTime, timeZone = 'Asia/Kolkata') {
   return { date: formattedDate, time: formattedTime };
 }
 
-console.log(
-  "Time ",
-  getDateTime("2024-07-14T21:06:23.000Z"),
-  getDateTime("2024-07-15T02:36:23+05:30")
-);
 
 export function scheduleCronAfterMinutes(endTime, minutesToAdd) {
   // Parse endTime using moment.js to ensure correct time parsing
