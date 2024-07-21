@@ -168,6 +168,11 @@ export const getSupervisors = async (req, res) => {
 
                const supervisorStats = await SupervisorSettlementTicket.aggregate(statsPipeline);
 
+               // Find the last settlement date for the supervisor
+               const lastSettlement = await AccountantSettlementTicket.findOne({ supervisor: supervisorId })
+                    .sort({ createdAt: -1 }) // Sort by createdAt in descending order to get the latest settlement
+                    .select('createdAt');
+
                return {
                     _id: supervisor._id,
                     name: supervisor.name,
@@ -177,6 +182,7 @@ export const getSupervisors = async (req, res) => {
                     cashCollected: supervisorStats.length > 0 ? supervisorStats[0].cashCollected : 0,
                     totalReward: supervisorStats.length > 0 ? supervisorStats[0].totalReward : 0,
                     totalCollectedAmount: supervisorStats.length > 0 ? supervisorStats[0].totalCollectedAmount : 0,
+                    lastSettledDate: lastSettlement ? lastSettlement.createdAt : null, // Date of the last settlement
                };
           }));
 
