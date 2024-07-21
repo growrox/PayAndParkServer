@@ -10,13 +10,13 @@ export const settleParkingTickets = async (req, res) => {
      const { parkingAssistantID } = req.params;
      console.log("parkingAssistantID ", parkingAssistantID);
      try {
-          
+
           if (isEmpty(cashComponent)) {
                return res.status(400).json({
                     error: 'Cash components are required.'
                });
           }
-          
+
           // Check if a settlement ticket was created today for this assistant
           const today = new Date();
           today.setHours(0, 0, 0, 0); // Set hours to start of day for comparison
@@ -78,16 +78,16 @@ export const settleParkingTickets = async (req, res) => {
 
           // Execute aggregation to get unsettled tickets totals
           let ticketsToUpdate = await ParkingTicket.aggregate(pipeline);
-         
+
           ticketsToUpdate = isEmpty(ticketsToUpdate) ? {
                TotalAmount: 0, TotalCash: 0, TotalOnline: 0
           } : ticketsToUpdate[0]
 
           console.log("tickets To Update ", ticketsToUpdate);
-          
+
           console.log("totalCollectedAmount ", totalCollectedAmount, "ticketsToUpdate.TotalCash - (TotalFine + TotalRewards) ", ticketsToUpdate.TotalCash, (TotalFine + TotalRewards));
 
-          if (cashCollected != ticketsToUpdate.TotalCash ) {
+          if (cashCollected != ticketsToUpdate.TotalCash) {
                return res.status(404).json({
                     error: 'Cash collected amount is not same as cash amount.',
                     result: {
@@ -96,7 +96,7 @@ export const settleParkingTickets = async (req, res) => {
                     }
                });
           }
-          
+
           if (totalCollectedAmount != (ticketsToUpdate.TotalCash - (TotalFine + TotalRewards))) {
                return res.status(404).json({
                     error: 'Collected amount is not same as cash amount after giving reward and fine.',
@@ -341,7 +341,7 @@ export const getParkingAssistants = async (req, res) => {
 
           // If no assistants match the query, return an empty array
           if (assistants.length === 0) {
-               return res.json({ message: 'No assistants found', result: [] });
+               return res.json({ message: 'No assistants found', result: [], pagination: { totalCount: 0, totalPages: 0, currentPage: parseInt(page), pageSize: parseInt(pageSize) } });
           }
 
           // Iterate through assistants and fetch amountToCollect for each
@@ -386,7 +386,13 @@ export const getParkingAssistants = async (req, res) => {
                };
           }));
 
-          return res.json({ message: 'Here is all your parking assistant list', result: assistants });
+          // Count total assistants matching the query
+          const totalCount = await User.countDocuments(query);
+
+          // Calculate total pages based on pageSize
+          const totalPages = Math.ceil(totalCount / parseInt(pageSize));
+
+          return res.json({ message: 'Here is all your parking assistant list', result: { assistants, pagination: { totalCount, totalPages, currentPage: parseInt(page), pageSize: parseInt(pageSize) } } });
      } catch (error) {
           console.error("Error getting parking assistance ", error);
           return res.status(500).json({ error: 'Server Error' });
