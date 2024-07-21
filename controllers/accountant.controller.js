@@ -191,12 +191,14 @@ export const getSupervisors = async (req, res) => {
 
           return res.status(200).json({
                message: 'Here is the supervisor list with stats.',
-               result: supervisorsWithStats,
-               pagination: {
-                    totalCount,
-                    totalPages,
-                    currentPage: parseInt(page),
-                    pageSize: parseInt(pageSize)
+               result: {
+                    supervisors: supervisorsWithStats,
+                    pagination: {
+                         totalCount,
+                         totalPages,
+                         currentPage: parseInt(page),
+                         pageSize: parseInt(pageSize)
+                    }
                }
           });
 
@@ -325,12 +327,14 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
 
           return res.status(200).json({
                message: 'Here is the list of tickets of supervisor.',
-               result: isEmpty(result) ? [] : result,
-               pagination: {
-                    totalCount,
-                    totalPages,
-                    currentPage: page,
-                    pageSize: parseInt(pageSize)
+               result: {
+                    tickets: isEmpty(result) ? [] : result,
+                    pagination: {
+                         totalCount,
+                         totalPages,
+                         currentPage: page,
+                         pageSize: parseInt(pageSize)
+                    }
                }
           });
 

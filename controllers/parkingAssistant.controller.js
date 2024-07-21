@@ -211,7 +211,7 @@ export const getTickets = async (req, res) => {
           const totalCount = await ParkingTicket.find({ parkingAssistant: new mongoose.Types.ObjectId(userid) }).countDocuments();
 
           if (tickets.length === 0) {
-               return res.status(200).json({ message: 'No tickets found', data: [], pagination: { total: 0, limit, pageNumber } });
+               return res.status(200).json({ message: 'No tickets found', result: { data: [], pagination: { total: 0, limit, pageNumber } } });
           }
 
           let responseObj = {

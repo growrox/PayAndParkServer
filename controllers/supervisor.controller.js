@@ -341,7 +341,7 @@ export const getParkingAssistants = async (req, res) => {
 
           // If no assistants match the query, return an empty array
           if (assistants.length === 0) {
-               return res.json({ message: 'No assistants found', result: [], pagination: { totalCount: 0, totalPages: 0, currentPage: parseInt(page), pageSize: parseInt(pageSize) } });
+               return res.json({ message: 'No assistants found', result: {assistants: [], pagination: { totalCount: 0, totalPages: 0, currentPage: parseInt(page), pageSize: parseInt(pageSize) } } });
           }
 
           // Iterate through assistants and fetch amountToCollect for each
