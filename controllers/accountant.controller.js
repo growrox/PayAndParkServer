@@ -392,11 +392,11 @@ export const getAccountantStats = async (req, res) => {
 
           // Prepare response
           const response = {
-               TotalCollection: totalCollection,
-               TotalCollectedAmount: totalCollectedAmount,
-               TotalFine: totalFine,
-               TotalReward: totalReward,
-               CashCollected: cashCollected,
+               totalCollection,
+               totalCollectedAmount,
+               totalFine,
+               totalReward,
+               cashCollected,
                LastSettledTicketUpdatedAt: todayAccountantSettlementTicket[todayAccountantSettlementTicket.length - 1].updatedAt // Assuming updatedAt field provides the last settled time
           };
 
