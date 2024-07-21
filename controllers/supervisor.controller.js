@@ -1,8 +1,8 @@
 import User from '../models/user.model.js'; // Import the ParkingAssistant model
 import ParkingTicket from '../models/parkingTicket.model.js';
-import SupervisorSettlement from "../models/settlementTicket.model.js"
 import mongoose from 'mongoose';
 import { isEmpty } from '../utils/helperFunctions.js';
+import SupervisorSettlementTicket from '../models/settlementTicket.model.js';
 
 
 export const settleParkingTickets = async (req, res) => {
@@ -21,7 +21,7 @@ export const settleParkingTickets = async (req, res) => {
           const today = new Date();
           today.setHours(0, 0, 0, 0); // Set hours to start of day for comparison
 
-          const existingTicketToday = await SupervisorSettlement.findOne({
+          const existingTicketToday = await SupervisorSettlementTicket.findOne({
                parkingAssistant: parkingAssistantID,
                createdAt: { $gte: today }
           });
@@ -119,7 +119,7 @@ export const settleParkingTickets = async (req, res) => {
           }
 
           // Create a new settlement ticket
-          const settlementTicket = new SupervisorSettlement({
+          const settlementTicket = new SupervisorSettlementTicket({
                supervisor: new mongoose.Types.ObjectId(supervisorID),
                parkingAssistant: new mongoose.Types.ObjectId(parkingAssistantID),
                totalCollection,
@@ -154,7 +154,7 @@ export const settleParkingTickets = async (req, res) => {
           await User.findByIdAndUpdate(parkingAssistantID, { lastSettledTicketId: savedSettlement._id });
 
           // Update settlement status to indicate it's settled
-          await SupervisorSettlement.updateOne(
+          await SupervisorSettlementTicket.updateOne(
                {
                     _id: new mongoose.Types.ObjectId(savedSettlement._id),
                     settled: { $ne: true }
@@ -391,41 +391,79 @@ export const getParkingAssistants = async (req, res) => {
 };
 
 
+// export const getAllSettlementTickets = async (req, res) => {
+// const { supervisorID } = req.params;
+// const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
 export const getAllSettlementTickets = async (req, res) => {
      const { supervisorID } = req.params;
+     const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
+     console.log("pageSize  ", pageSize);
      try {
           console.log("supervisorID ", supervisorID);
           if (isEmpty(supervisorID)) {
-               return res.status(404).json({ error: 'Not supervisor id provided please check again.' });
+               return res.status(404).json({ error: 'No supervisor id provided. Please check again.' });
           }
           else {
+               const query = {
+                    supervisor: new mongoose.Types.ObjectId(supervisorID)
+               };
 
-               const pipeline = [
-                    // Stage 1: Match document by _id
-                    { $match: { supervisor: new mongoose.Types.ObjectId(supervisorID), isSettled: { $ne: 'true' } } },
+               // Count total documents matching the query
+               const totalCount = await SupervisorSettlementTicket.countDocuments(query);
+               const totalPages = Math.ceil(totalCount / pageSize);
 
-                    // Stage 2: Project to get the code field
-                    { $project: { totalCollection: 1, totalCollectedAmount: 1, isSettled: 1, totalFine: 1, totalReward: 1 } }
-               ];
+               // Find tickets based on the query, select specific fields, and apply pagination
+               const result = await SupervisorSettlementTicket.find(query)
+                    .select('totalCollection totalCollectedAmount totalFine totalReward cashCollected')
+                    .populate('supervisor', 'name code')
+                    .populate('parkingAssistant', 'name supervisorCode')
+                    .populate('accountantId', 'name')
+                    .skip((page - 1) * pageSize)
+                    .limit(parseInt(pageSize))
+                    .exec();
 
-               // Execute the aggregation pipeline
-               const result = await SupervisorSettlement.aggregate(pipeline).exec();
-
-               console.log("Result ", result);
+               console.log("Result ", result.length);
                if (isEmpty(result)) {
-                    return res.status(404).json({ error: 'No tickets found.' });
-               }
-               else {
+                    return res.status(200).json({ message: 'No settlement tickets found for this supervisor.', result: [] });
+               } else {
+                    // Pagination logic to determine next and previous pages
+                    let nextPage = null;
+                    let prevPage = null;
 
-                    return res.status(200).json({ error: 'Here is the settlement ticket list.', result: result });
+                    if (page < totalPages) {
+                         nextPage = {
+                              page: parseInt(page) + 1,
+                              pageSize: parseInt(pageSize),
+                         };
+                    }
+
+                    if (page > 1) {
+                         prevPage = {
+                              page: parseInt(page) - 1,
+                              pageSize: parseInt(pageSize),
+                         };
+                    }
+
+                    // Prepare response object with tickets, pagination details, and totalCount
+                    const response = {
+                         tickets: result,
+                         pagination: {
+                              totalCount,
+                              totalPages,
+                              nextPage,
+                              prevPage,
+                         },
+                    };
+
+                    return res.status(200).json({ message: 'Here is the settlement ticket list.', result: response });
                }
           }
 
      } catch (error) {
-          console.error("Error gettig all ticket.");
-          return res.stats(500).json({ error: "Error on the server geting tickets" })
+          console.error("Error getting all tickets.", error);
+          return res.status(500).json({ error: error.message });
      }
-}
+};
 
 export const getSupervisorStats = async (req, res) => {
      const supervisorId = req.params.supervisorID; // Assuming supervisorId is passed in request params
@@ -452,8 +490,8 @@ export const getSupervisorStats = async (req, res) => {
           ];
 
           const [stats, lastSettledTicket] = await Promise.all([
-               SupervisorSettlement.aggregate(statsPipeline),
-               SupervisorSettlement.findOne({ supervisor: supervisorId, isSettled: true })
+               SupervisorSettlementTicket.aggregate(statsPipeline),
+               SupervisorSettlementTicket.findOne({ supervisor: supervisorId, isSettled: true })
                     .sort({ updatedAt: -1 })
                     .select('updatedAt')
                     .lean()

@@ -206,7 +206,7 @@ export const getAllSettlementTickets = async (req, res) => {
      try {
           console.log("supervisorID ", accountantID);
           if (isEmpty(accountantID)) {
-               return res.status(404).json({ error: 'No supervisor id provided. Please check again.' });
+               return res.status(404).json({ error: 'No accountant id provided. Please check again.' });
           } else {
                const query = {
                     accountant: new mongoose.Types.ObjectId(accountantID)
