@@ -405,3 +405,83 @@ export const getAccountantStats = async (req, res) => {
 };
 
 
+export const getAccountantStatsBetweenTwoDates = async (req, res) => {
+     const accountantID = req.params.accountantID;
+     const { startDate, endDate } = req.query;
+     try {
+          // Get the start and end of today in client's timezone (Asia/Kolkata)
+          const clientStartDate = moment.tz(new Date(startDate), 'Asia/Kolkata');
+          const clientEndDate = moment.tz(new Date(endDate), 'Asia/Kolkata');
+          const startOfDay = clientStartDate.startOf('day');
+          const endOfDay = clientEndDate.startOf('day');
+          console.log("today ", startOfDay);
+          console.log("tomorrow ", endOfDay);
+
+          const today = startOfDay.toISOString();
+          const tomorrow = endOfDay.toISOString();
+          // Find AccountantSettlementTicket for today
+          const todayAccountantSettlementTicket = await AccountantSettlementTicket.find({
+               accountant: new mongoose.Types.ObjectId(accountantID),
+               createdAt: {
+                    $gte: today,
+                    $lte: tomorrow
+               }
+          });
+
+          if (!todayAccountantSettlementTicket.length) {
+               return res.status(200).json({ message: 'No stats found between provided dates.', result: [] });
+          }
+
+          console.log("todayAccountantSettlementTicket  ", todayAccountantSettlementTicket.length);
+          // Extract all settlement IDs
+          const settlementIds = todayAccountantSettlementTicket.map(ticket => ticket._id);
+          // console.log("settlementIds ", settlementIds);
+          // Aggregate stats from SupervisorSettlementTicket where settlementId matches any of the settlementIds
+          const statsPipeline = [
+               {
+                    $match: {
+                         settlementId: { $in: settlementIds },
+                         // isSettled: true // Assuming isSettled is a boolean field
+                    }
+               },
+               {
+                    $group: {
+                         _id: null,
+                         totalCollection: { $sum: '$totalCollection' },
+                         totalCollectedAmount: { $sum: '$totalCollectedAmount' },
+                         totalFine: { $sum: '$totalFine' },
+                         totalReward: { $sum: '$totalReward' },
+                         cashCollected: { $sum: '$cashCollected' }
+                    }
+               }
+          ];
+
+          const supervisorStats = await SupervisorSettlementTicket.aggregate(statsPipeline);
+
+          console.log("supervisorStats ", supervisorStats);
+
+          // Extracting values from the aggregation result
+          const totalCollection = supervisorStats[0]?.totalCollection || 0;
+          const totalCollectedAmount = supervisorStats[0]?.totalCollectedAmount || 0;
+          const totalFine = supervisorStats[0]?.totalFine || 0;
+          const totalReward = supervisorStats[0]?.totalReward || 0;
+          const cashCollected = supervisorStats[0]?.cashCollected || 0;
+
+          // Prepare response
+          const response = {
+               totalCollection,
+               totalCollectedAmount,
+               totalFine,
+               totalReward,
+               cashCollected,
+               LastSettledTicketUpdatedAt: todayAccountantSettlementTicket[todayAccountantSettlementTicket.length - 1].updatedAt // Assuming updatedAt field provides the last settled time
+          };
+
+          return res.status(200).json({ message: 'Here is the accountant stats.', result: response });
+
+     } catch (error) {
+          console.error('Error getting the accountant stats.', error);
+          return res.status(500).json({ error: 'Error getting accountant stats from the server.' });
+     }
+};
+
