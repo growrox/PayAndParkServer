@@ -1,196 +1,279 @@
-import Attendance from '../models/attendance.model.js';
-import Shift from '../models/shift.model.js';
-import User from '../models/user.model.js';
-import { isEmpty } from '../utils/helperFunctions.js';
-import mongoose from 'mongoose';
+import Attendance from "../models/attendance.model.js";
+import Shift from "../models/shift.model.js";
+import User from "../models/user.model.js";
+import { isEmpty } from "../utils/helperFunctions.js";
+import mongoose from "mongoose";
 
 // Clock-In
 export const clockIn = async (req, res) => {
-     const { userId } = req.params;
-     console.log("userId: ", userId);
-     try {
-          // Check if user exists
-          const user = await User.findById(userId);
-          if (!user) {
-               return res.status(404).json({ error: "User not found" });
-          }
+  const { userId } = req.params;
+  console.log("userId: ", userId);
+  try {
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-          // Get current date
-          const currentDate = new Date();
+    // Get current date
+    const currentDate = new Date();
 
-          // Check if user has already clocked out for today's shift
-          const existingAttendanceToday = await Attendance.findOne({
-               userId,
-               shiftId: user.shiftId,
-               clockOutTime: { $gte: new Date(currentDate.setHours(0, 0, 0, 0)) } // Check if clocked out today
-          });
-          if (existingAttendanceToday) {
-               return res.status(400).json({ error: "User has already clocked out for today's shift" });
-          }
+    // Check if user has already clocked out for today's shift
+    const existingAttendanceToday = await Attendance.findOne({
+      userId,
+      shiftId: user.shiftId,
+      clockOutTime: { $gte: new Date(currentDate.setHours(0, 0, 0, 0)) }, // Check if clocked out today
+    });
+    if (existingAttendanceToday) {
+      return res
+        .status(400)
+        .json({ error: "User has already clocked out for today's shift" });
+    }
 
-          // Check if user is already clocked in for the shift
-          const existingClockIn = await Attendance.findOne({
-               userId,
-               shiftId: user.shiftId,
-               clockOutTime: { $exists: false } // Check if clockOutTime does not exist (user is still clocked in)
-          });
-          if (existingClockIn) {
-               return res.status(400).json({ error: "User is already clocked in for the shift" });
-          }
+    // Check if user is already clocked in for the shift
+    const existingClockIn = await Attendance.findOne({
+      userId,
+      shiftId: user.shiftId,
+      clockOutTime: { $exists: false }, // Check if clockOutTime does not exist (user is still clocked in)
+    });
+    if (existingClockIn) {
+      return res
+        .status(400)
+        .json({ error: "User is already clocked in for the shift" });
+    }
 
-          // Get shift details
-          const shift = await Shift.findById(user.shiftId);
-          if (!shift) {
-               return res.status(404).json({ error: "Shift not found" });
-          }
+    // Get shift details
+    const shift = await Shift.findById(user.shiftId);
+    if (!shift) {
+      return res.status(404).json({ error: "Shift not found" });
+    }
 
-          // Parse shift start and end times from Shift collection in HH:MM AM/PM format
-          const { shiftStartTime, shiftEndTime } = parseTime(shift.startTime, shift.endTime);
+    // Parse shift start and end times from Shift collection in HH:MM AM/PM format
+    const { shiftStartTime, shiftEndTime } = parseTime(
+      shift.startTime,
+      shift.endTime
+    );
 
-          console.log("shiftStartTime ", shiftStartTime.toLocaleString());
-          console.log("shiftEndTime ", shiftEndTime.toLocaleString());
+    console.log("shiftStartTime ", shiftStartTime.toLocaleString());
+    console.log("shiftEndTime ", shiftEndTime.toLocaleString());
 
-          // Check if current time is within shift start and end times
-          const clockInTime = new Date();
-          const shiftStartDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), shiftStartTime.getHours(), shiftStartTime.getMinutes());
-          const shiftEndDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), shiftEndTime.getHours(), shiftEndTime.getMinutes());
+    // Check if current time is within shift start and end times
+    const clockInTime = new Date();
+    const shiftStartDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      shiftStartTime.getHours(),
+      shiftStartTime.getMinutes()
+    );
+    const shiftEndDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      shiftEndTime.getHours(),
+      shiftEndTime.getMinutes()
+    );
 
-          console.log("shiftStartDate ", shiftStartDate);
-          console.log("shiftEndDate ", shiftEndDate);
+    console.log("shiftStartDate ", shiftStartDate);
+    console.log("shiftEndDate ", shiftEndDate);
 
+    if (clockInTime < shiftStartDate || clockInTime > shiftEndDate) {
+      return res
+        .status(400)
+        .json({ error: "You can only clock in during your shift hours" });
+    }
 
-          if (clockInTime < shiftStartDate || clockInTime > shiftEndDate) {
-               return res.status(400).json({ error: "You can only clock in during your shift hours" });
-          }
+    // Check if user is late more than 45 minutes from shift start time
+    const lateThreshold = new Date(shiftStartDate.getTime() + 45 * 60000); // 45 minutes in milliseconds
+    const isLateToday = clockInTime > lateThreshold;
+    await User.findByIdAndUpdate(userId, { isOnline: true });
 
-          // Check if user is late more than 45 minutes from shift start time
-          const lateThreshold = new Date(shiftStartDate.getTime() + 45 * 60000); // 45 minutes in milliseconds
-          const isLateToday = clockInTime > lateThreshold;
-          await User.findByIdAndUpdate(userId, { isOnline: true });
-
-          // Create attendance record
-          const attendance = await Attendance.create({ userId, shiftId: user.shiftId, clockInTime, isLateToday });
-          return res.status(200).json({ message: "Clocke-In successfully. Hope you are doing well." });
-
-     } catch (error) {
-          console.error("Error: ", error);
-          return res.status(500).json({ error: error.message });
-     }
+    // Create attendance record
+    const attendance = await Attendance.create({
+      userId,
+      shiftId: user.shiftId,
+      clockInTime,
+      isLateToday,
+    });
+    return res
+      .status(200)
+      .json({ message: "Clocke-In successfully. Hope you are doing well." });
+  } catch (error) {
+    console.error("Error: ", error);
+    return res.status(500).json({ error: error.message });
+  }
 };
 
 // Clock-out
 export const clockOut = async (req, res) => {
-     const { userId } = req.params;
+  const { userId } = req.params;
 
-     try {
-          // Check if user exists
-          const user = await User.findById(userId);
-          if (!user) {
-               return res.status(404).json({ error: "User not found." });
-          }
+  try {
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
 
-          // Check if user has clocked in for the shift
-          const attendance = await Attendance.findOne({ userId, shiftId: user.shiftId, clockOutTime: { $exists: false } });
-          if (!attendance) {
-               return res.status(400).json({ error: "User has not clocked in for this shift" });
-          }
+    // Check if user has clocked in for the shift
+    const attendance = await Attendance.findOne({
+      userId,
+      shiftId: user.shiftId,
+      clockOutTime: { $exists: false },
+    });
+    if (!attendance) {
+      return res
+        .status(400)
+        .json({ error: "User has not clocked in for this shift" });
+    }
 
-          // Update attendance record with clockOutTime and remark
-          const updatedAttendance = await Attendance.findOneAndUpdate(
-               { userId, shiftId: user.shiftId },
-               { clockOutTime: new Date() },
-               { new: true }
-          );
+    // Update attendance record with clockOutTime and remark
+    const updatedAttendance = await Attendance.findOneAndUpdate(
+      { userId, shiftId: user.shiftId },
+      { clockOutTime: new Date() },
+      { new: true }
+    );
 
-          if (!updatedAttendance) {
-               return res.status(404).json({ error: "Attendance record not found" });
-          }
-          await User.findByIdAndUpdate(userId, { isOnline: false });
+    if (!updatedAttendance) {
+      return res.status(404).json({ error: "Attendance record not found" });
+    }
+    await User.findByIdAndUpdate(userId, { isOnline: false });
 
-          return res.status(200).json({ message: "Clocke-out successfully. See you tomorrow." });
-
-     } catch (error) {
-          return res.status(500).json({ error: error.message });
-     }
+    return res
+      .status(200)
+      .json({ message: "Clocke-out successfully. See you tomorrow." });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 };
 
 // Update Attendance
 export const updateAttendance = async (req, res) => {
-     const { attendanceId } = req.params;
-     const { isLateToday } = req.body;
+  const { attendanceId } = req.params;
+  const { isLateToday } = req.body;
 
-     console.log("attendanceId ", attendanceId);
-     try {
-          const attendanceAvailable = await Attendance.findById(attendanceId);
+  console.log("attendanceId ", attendanceId);
+  try {
+    const attendanceAvailable = await Attendance.findById(attendanceId);
 
-          if (isEmpty(attendanceAvailable)) {
-               return res.status(404).json({ error: "No attendance available." });
-          }
+    if (isEmpty(attendanceAvailable)) {
+      return res.status(404).json({ error: "No attendance available." });
+    }
 
-          if (attendanceAvailable.isLateToday == isLateToday) {
-               return res.status(202).json({ message: "The status is already same as requested to update." });
-          }
+    if (attendanceAvailable.isLateToday == isLateToday) {
+      return res
+        .status(202)
+        .json({
+          message: "The status is already same as requested to update.",
+        });
+    }
 
-          const updatedDEtails = await Attendance.findByIdAndUpdate(attendanceId, { isLateToday });
+    const updatedDEtails = await Attendance.findByIdAndUpdate(attendanceId, {
+      isLateToday,
+    });
 
-          return res.status(200).json({ message: "Attedance updated successfully." });
-     }
-     catch (error) {
-          return res.status(500).json({ error: error.message });
-     }
+    return res.status(200).json({ message: "Attedance updated successfully." });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 };
 
 function parseTime(startTime, endTime) {
-     const [startHourMinute, startPeriod] = startTime.split(' ');
-     const [endHourMinute, endPeriod] = endTime.split(' ');
+  const [startHourMinute, startPeriod] = startTime.split(" ");
+  const [endHourMinute, endPeriod] = endTime.split(" ");
 
-     const [startHours, startMinutes] = startHourMinute.split(':');
-     let parsedStartHours = parseInt(startHours);
+  const [startHours, startMinutes] = startHourMinute.split(":");
+  let parsedStartHours = parseInt(startHours);
 
-     const [endHours, endMinutes] = endHourMinute.split(':');
-     let parsedEndHours = parseInt(endHours);
+  const [endHours, endMinutes] = endHourMinute.split(":");
+  let parsedEndHours = parseInt(endHours);
 
-     // Adjust start hours for PM times
-     if (startPeriod === 'PM' && parsedStartHours !== 12) {
-          parsedStartHours += 12;
-     } else if (startPeriod === 'AM' && parsedStartHours === 12) {
-          parsedStartHours = 0;
-     }
+  // Adjust start hours for PM times
+  if (startPeriod === "PM" && parsedStartHours !== 12) {
+    parsedStartHours += 12;
+  } else if (startPeriod === "AM" && parsedStartHours === 12) {
+    parsedStartHours = 0;
+  }
 
-     // Adjust end hours for PM times
-     if (endPeriod === 'PM' && parsedEndHours !== 12) {
-          parsedEndHours += 12;
-     } else if (endPeriod === 'AM' && parsedEndHours === 12) {
-          parsedEndHours = 0;
-     }
+  // Adjust end hours for PM times
+  if (endPeriod === "PM" && parsedEndHours !== 12) {
+    parsedEndHours += 12;
+  } else if (endPeriod === "AM" && parsedEndHours === 12) {
+    parsedEndHours = 0;
+  }
 
-     // Get current date
-     const currentDate = new Date();
+  // Get current date
+  const currentDate = new Date();
 
-     // Create Date object for start time
-     const shiftStartTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), parsedStartHours, parseInt(startMinutes));
+  // Create Date object for start time
+  const shiftStartTime = new Date(
+    currentDate.getFullYear(),
+    currentDate.getMonth(),
+    currentDate.getDate(),
+    parsedStartHours,
+    parseInt(startMinutes)
+  );
 
-     // Create Date object for end time
-     let shiftEndTime;
-     if (parsedEndHours < parsedStartHours || (parsedEndHours === parsedStartHours && parseInt(endMinutes) < parseInt(startMinutes))) {
-          // End time is on the next day
-          shiftEndTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1, parsedEndHours, parseInt(endMinutes));
-     } else {
-          // End time is on the same day
-          shiftEndTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), parsedEndHours, parseInt(endMinutes));
-     }
+  // Create Date object for end time
+  let shiftEndTime;
+  if (
+    parsedEndHours < parsedStartHours ||
+    (parsedEndHours === parsedStartHours &&
+      parseInt(endMinutes) < parseInt(startMinutes))
+  ) {
+    // End time is on the next day
+    shiftEndTime = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate() + 1,
+      parsedEndHours,
+      parseInt(endMinutes)
+    );
+  } else {
+    // End time is on the same day
+    shiftEndTime = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      parsedEndHours,
+      parseInt(endMinutes)
+    );
+  }
 
-     return { shiftStartTime, shiftEndTime };
+  return { shiftStartTime, shiftEndTime };
 }
-
 
 export async function AutoClockOutUser(shiftId) {
-     try {
-          const allShifts = await Attendance.updateMany({ shiftId: new mongoose.Types.ObjectId(shiftId) }, { clockOutTime: new Date() });
-          const allUsers = await User.updateMany({ shiftId: new mongoose.Types.ObjectId(shiftId) }, { isOnline: false });
-          return true
-     } catch (error) {
-          console.log("Error clocking out the users. ", error);
-          return false
-     }
+  try {
+    const allShifts = await Attendance.updateMany(
+      { shiftId: new mongoose.Types.ObjectId(shiftId) },
+      { clockOutTime: new Date() }
+    );
+    const allUsers = await User.updateMany(
+      { shiftId: new mongoose.Types.ObjectId(shiftId) },
+      { isOnline: false }
+    );
+    return true;
+  } catch (error) {
+    console.log("Error clocking out the users. ", error);
+    return false;
+  }
 }
+
+export const getAttendanceByMonth = async (req, res) => {
+  const { userId, year, month } = req.query;
+  try {
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, Number(month) + 1, 0);
+    const attendance = await Attendance.find({
+      userId,
+      clockInTime: { $gte: startDate, $lte: endDate },
+    })
+      .populate("shiftId")
+      .exec();
+
+    res.status(200).json({ result: attendance });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error });
+  }
+};

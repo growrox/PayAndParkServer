@@ -27,7 +27,7 @@ export const ROUTES = {
     CLOCK_IN: '/attendance/clock-in/:userId',
     CLOCK_OUT: '/attendance/clock-out/:userId',
     UPDATE_ATTENDANCE: '/attendance/update/:attendanceId',
-
+    GET_ATTENDANCE: '/get-monthly-attendance',
   },
   IMAGE: {
     GET: "/images/:folderName/:imageName"
