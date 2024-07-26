@@ -298,9 +298,9 @@ export const getUsers = async (req, res) => {
   const { page = 1, pageSize = 10, filter, role } = req.query;
   const query = {};
 
+  // Apply general filter to multiple fields if filter is not empty
   const orConditions = [];
 
-  // Apply general filter to multiple fields if filter is not empty
   if (!isEmpty(filter)) {
     orConditions.push(
       { name: { $regex: filter.trim(), $options: "i" } },
@@ -311,14 +311,21 @@ export const getUsers = async (req, res) => {
   }
 
   // Apply a specific role filter if role is not empty
-  if (!isEmpty(role)) {
-    orConditions.push({ role: { $regex: role.trim(), $options: "i" } });
+  const roleCondition = !isEmpty(role) ? { role: { $regex: role.trim(), $options: "i" } } : null;
+
+  // Construct the query with $and if both filter and role are provided
+  if (orConditions.length > 0 || roleCondition) {
+    query.$and = [];
+
+    if (orConditions.length > 0) {
+      query.$and.push({ $or: orConditions });
+    }
+
+    if (roleCondition) {
+      query.$and.push(roleCondition);
+    }
   }
 
-  // Only add $or to query if there are conditions to include
-  if (orConditions.length > 0) {
-    query.$or = orConditions;
-  }
   try {
     // Count total documents matching the query
     const totalCount = await User.countDocuments(query);
@@ -334,8 +341,6 @@ export const getUsers = async (req, res) => {
         error: "You have exceeded the available search results. Please check page.",
       });
     }
-
-    // Calculate total pages based on pageSize
 
     // Find users based on the query, select specific fields, and apply pagination
     const users = await User.find(query)
