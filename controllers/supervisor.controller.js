@@ -394,7 +394,159 @@ export const getParkingAssistants = async (req, res) => {
 // export const getAllSettlementTickets = async (req, res) => {
 // const { supervisorID } = req.params;
 // const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
+
 export const getAllSettlementTickets = async (req, res) => {
+     const { supervisorID } = req.params;
+     const { page = 1, pageSize = 10, startDate, endDate, searchQuery } = req.query;
+
+     console.log("pageSize  ", pageSize);
+     try {
+          console.log("supervisorID ", supervisorID);
+          if (isEmpty(supervisorID)) {
+               return res.status(404).json({ error: 'No supervisor id provided. Please check again.' });
+          }
+
+          const query = {
+               supervisor: new mongoose.Types.ObjectId(supervisorID)
+          };
+
+          // Date filter logic
+          if (startDate || endDate) {
+               const dateRange = {};
+               if (startDate) {
+                    dateRange.$gte = new Date(startDate);
+               }
+               if (endDate) {
+                    const end = new Date(new Date(endDate).setHours(0o0, 0o0, 0o0));
+                    console.log("End ", end);
+                    dateRange.$lte = end;
+               }
+               query.createdAt = dateRange;
+          }
+
+          // Aggregate to filter by accountant name and parking assistant name
+          const pipeline = [
+               { $match: query },
+               {
+                    $lookup: {
+                         from: 'users', // Collection name
+                         localField: 'accountantId', // Field in the tickets collection
+                         foreignField: '_id', // Field in the accountants collection
+                         as: 'accountantDetails'
+                    }
+               },
+               { $unwind: { path: '$accountantDetails', preserveNullAndEmptyArrays: true } },
+               {
+                    $lookup: {
+                         from: 'users', // Collection name
+                         localField: 'parkingAssistant', // Field in the tickets collection
+                         foreignField: '_id', // Field in the accountants collection
+                         as: 'parkingAssistantDetails'
+                    }
+               },
+
+               { $unwind: { path: '$parkingAssistantDetails', preserveNullAndEmptyArrays: true } },
+
+               {
+                    $project: {
+                         _id: 1,
+                         totalCollection: 1,
+                         totalCollectedAmount: 1,
+                         totalFine: 1,
+                         totalReward: 1,
+                         createdAt: 1,
+                         accountantName: { $ifNull: ['$accountantDetails.name', 'Unknown'] },
+                         parkingAssistantName: { $ifNull: ['$parkingAssistantDetails.name', 'Unknown'] },
+                         // Add other fields as needed
+                    }
+               },
+               ...(searchQuery ? [{
+                    $match: {
+                         $or: [
+                              { 'accountantName': { $regex: searchQuery, $options: 'i' } },
+                              { 'parkingAssistantName': { $regex: searchQuery, $options: 'i' } }
+                         ]
+                    }
+               }] : [])
+          ];
+          console.log('pipeline ', pipeline);
+
+          // Calculate totals for totalCollectedAmount and totalFine
+          const totals = await SupervisorSettlementTicket.aggregate([
+               // { $match: query },
+               ...pipeline,
+               {
+                    $group: {
+                         _id: null,
+                         totalCollection: { $sum: '$totalCollection' },
+                         totalCollectedAmount: { $sum: '$totalCollectedAmount' },
+                         totalFine: { $sum: '$totalFine' },
+                         totalReward: { $sum: '$totalReward' },
+
+                    }
+               }
+          ]);
+
+          // Count total documents matching the query
+          const totalCount = await SupervisorSettlementTicket.aggregate([
+               ...pipeline,
+               { $count: 'totalCount' }
+          ]);
+
+          const totalPages = Math.ceil((totalCount.length > 0 ? totalCount[0].totalCount : 0) / pageSize);
+
+          // Find tickets based on the query, select specific fields, and apply pagination
+          const result = await SupervisorSettlementTicket.aggregate([
+               ...pipeline,
+               { $sort: { createdAt: -1 } },
+               { $skip: (page - 1) * pageSize },
+               { $limit: parseInt(pageSize) }
+          ]);
+
+          console.log("Result ", result.length);
+          if (isEmpty(result)) {
+               return res.status(200).json({ message: 'No settlement tickets found for this supervisor.', result: [] });
+          } else {
+               // Pagination logic to determine next and previous pages
+               let nextPage = null;
+               let prevPage = null;
+
+               if (page < totalPages) {
+                    nextPage = {
+                         page: parseInt(page) + 1,
+                         pageSize: parseInt(pageSize),
+                    };
+               }
+
+               if (page > 1) {
+                    prevPage = {
+                         page: parseInt(page) - 1,
+                         pageSize: parseInt(pageSize),
+                    };
+               }
+
+               // Prepare response object with tickets, pagination details, and totalCount
+               const response = {
+                    tickets: result,
+                    pagination: {
+                         totalCount: totalCount.length > 0 ? totalCount[0].totalCount : 0,
+                         totalPages,
+                         nextPage,
+                         prevPage,
+                    },
+                    stats: totals.length > 0 ? totals[0] : { totalCollection: 0, totalCollectedAmount: 0, totalFine: 0, totalReward: 0 },
+               };
+
+               return res.status(200).json({ message: 'Here is the settlement ticket list.', result: response });
+          }
+
+     } catch (error) {
+          console.error("Error getting all tickets.", error);
+          return res.status(500).json({ error: error.message });
+     }
+};
+
+export const getAllSettlementTicketsOld = async (req, res) => {
      const { supervisorID } = req.params;
      const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
      console.log("pageSize  ", pageSize);
@@ -414,7 +566,7 @@ export const getAllSettlementTickets = async (req, res) => {
 
                // Find tickets based on the query, select specific fields, and apply pagination
                const result = await SupervisorSettlementTicket.find(query)
-                    .select('totalCollection totalCollectedAmount totalFine totalReward cashCollected')
+                    .select('totalCollection totalCollectedAmount totalFine totalReward cashCollected createdAt')
                     .populate('supervisor', 'name code')
                     .populate('parkingAssistant', 'name supervisorCode')
                     .populate('accountantId', 'name')

@@ -198,9 +198,9 @@ export const getSupervisors = async (req, res) => {
      }
 };
 
-export const getAllSettlementTickets = async (req, res) => {
+export const getAllSettlementTicketsOld = async (req, res) => {
      const { accountantID } = req.params;
-     const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
+     const { page = 1, pageSize = 10, startDate, endDate, searchQuery } = req.query; // Extract page and pageSize from query params
      console.log("pageSize  ", pageSize);
      try {
           console.log("supervisorID ", accountantID);
@@ -211,13 +211,27 @@ export const getAllSettlementTickets = async (req, res) => {
                     accountant: new mongoose.Types.ObjectId(accountantID)
                };
 
+               if (startDate || endDate) {
+                    const dateRange = {};
+                    if (startDate) {
+                         dateRange.$gte = new Date(startDate);
+                    }
+                    if (endDate) {
+                         const end = new Date(new Date(endDate).setHours(0o0, 0o0, 0o0));
+                         console.log("End ", end);
+                         dateRange.$lte = end;
+                    }
+                    query.createdAt = dateRange;
+               }
+
                // Count total documents matching the query
-               const totalCount = await AccountantSettlementTicket.countDocuments(query);
-               const totalPages = Math.ceil(totalCount / pageSize);
+               const totalCount = await AccountantSettlementTicket.find(query, { _id: 0, totalCollectedAmount: 1 });
+               console.log("totalCount ", totalCount);
+               const totalPages = Math.ceil(totalCount.length / pageSize);
 
                // Find tickets based on the query, select specific fields, and apply pagination
                const result = await AccountantSettlementTicket.find(query)
-                    .select('totalCollection totalCollectedAmount totalFine totalReward')
+                    .select('totalCollectedAmount createdAt')
                     .populate('supervisor', 'name code')
                     .populate('accountant', 'name')
                     .sort({ createdAt: -1 })
@@ -251,11 +265,12 @@ export const getAllSettlementTickets = async (req, res) => {
                     const response = {
                          tickets: result,
                          pagination: {
-                              totalCount,
+                              totalCount: totalCount.length,
                               totalPages,
                               nextPage,
                               prevPage,
                          },
+                         stats: { totalCollectedAmount: totalCount.reduce((total, current) => total + current.totalCollectedAmount, 0) }
                     };
 
                     return res.status(200).json({ message: 'Here is the settlement ticket list.', result: response });
@@ -267,6 +282,137 @@ export const getAllSettlementTickets = async (req, res) => {
           return res.status(500).json({ error: error.message });
      }
 };
+
+export const getAllSettlementTickets = async (req, res) => {
+     const { accountantID } = req.params;
+     const { page = 1, pageSize = 10, startDate, endDate, searchQuery } = req.query; // Extract page, pageSize, and searchQuery from query params
+     console.log("pageSize  ", pageSize);
+
+     try {
+          console.log("accountantID ", accountantID);
+          if (isEmpty(accountantID)) {
+               return res.status(404).json({ error: 'No accountant id provided. Please check again.' });
+          }
+
+          const query = {
+               accountant: new mongoose.Types.ObjectId(accountantID)
+          };
+
+          // Date filter logic
+          if (startDate || endDate) {
+               const dateRange = {};
+               if (startDate) {
+                    dateRange.$gte = new Date(startDate);
+               }
+               if (endDate) {
+                    const end = new Date(new Date(endDate).setHours(23, 59, 59, 999));
+                    dateRange.$lte = end;
+               }
+               query.createdAt = dateRange;
+          }
+
+          // Aggregate pipeline
+          const pipeline = [
+               { $match: query },
+               {
+                    $lookup: {
+                         from: 'users', // Collection name
+                         localField: 'supervisor', // Field in the tickets collection
+                         foreignField: '_id', // Field in the users collection
+                         as: 'supervisorDetails'
+                    }
+               },
+               { $unwind: { path: '$supervisorDetails', preserveNullAndEmptyArrays: true } },
+               {
+                    $lookup: {
+                         from: 'users', // Collection name
+                         localField: 'accountant', // Field in the tickets collection
+                         foreignField: '_id', // Field in the users collection
+                         as: 'accountantDetails'
+                    }
+               },
+               { $unwind: { path: '$accountantDetails', preserveNullAndEmptyArrays: true } },
+               {
+                    $project: {
+                         _id: 1,
+                         totalCollectedAmount: 1,
+                         createdAt: 1,
+                         supervisorName: { $ifNull: ['$supervisorDetails.name', 'Unknown'] },
+                         supervisorPhone: { $ifNull: ['$supervisorDetails.phone', 'Unknown'] },
+                         accountantName: { $ifNull: ['$accountantDetails.name', 'Unknown'] },
+                    }
+               },
+               ...(searchQuery ? [{
+                    $match: {
+                         $or: [
+                              { 'supervisorName': { $regex: searchQuery, $options: 'i' } },
+                              { 'supervisorPhone': { $regex: searchQuery, $options: 'i' } }
+                         ]
+                    }
+               }] : []),
+               { $sort: { createdAt: -1 } },
+               { $skip: (page - 1) * pageSize },
+               { $limit: parseInt(pageSize) }
+          ];
+          console.log('pipeline ', pipeline);
+
+          // Aggregate to count total documents matching the query
+          const totalCount = await AccountantSettlementTicket.aggregate([
+               ...pipeline,
+               { $count: 'totalCount' }
+          ]);
+
+          const totalPages = Math.ceil((totalCount.length > 0 ? totalCount[0].totalCount : 0) / pageSize);
+
+          // Aggregate to get the tickets based on the query
+          const result = await AccountantSettlementTicket.aggregate(pipeline);
+
+          console.log("Result ", result.length);
+          if (isEmpty(result)) {
+               return res.status(200).json({ message: 'No settlement tickets found for this accountant.', result: [] });
+          } else {
+               // Calculate the total collected amount
+               const totalCollectedAmount = result.reduce((total, current) => total + current.totalCollectedAmount, 0);
+
+               // Pagination logic to determine next and previous pages
+               let nextPage = null;
+               let prevPage = null;
+
+               if (page < totalPages) {
+                    nextPage = {
+                         page: parseInt(page) + 1,
+                         pageSize: parseInt(pageSize),
+                    };
+               }
+
+               if (page > 1) {
+                    prevPage = {
+                         page: parseInt(page) - 1,
+                         pageSize: parseInt(pageSize),
+                    };
+               }
+
+               // Prepare response object with tickets, pagination details, and totalCount
+               const response = {
+                    tickets: result,
+                    pagination: {
+                         totalCount: totalCount.length > 0 ? totalCount[0].totalCount : 0,
+                         totalPages,
+                         nextPage,
+                         prevPage,
+                    },
+                    stats: { totalCollectedAmount }
+               };
+
+               return res.status(200).json({ message: 'Here is the settlement ticket list.', result: response });
+          }
+
+     } catch (error) {
+          console.error("Error getting all tickets.", error);
+          return res.status(500).json({ error: error.message });
+     }
+};
+
 
 export const getAllSettlementTicketsBySupervisor = async (req, res) => {
      const { supervisorID } = req.params;
