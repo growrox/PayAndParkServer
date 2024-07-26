@@ -230,6 +230,7 @@ export const getParkingTickets = async (req, res) => {
 
     // Fetch parking tickets based on pagination
     const tickets = await ParkingTicket.find()
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parsedPageSize)
       .exec();
@@ -289,7 +290,7 @@ export const getTicketsByAssistantId = async (req, res) => {
       phoneNumber: phoneNumber,
       paymentMode: { $ne: "Cash" }, // Payment mode is not 'Cash'
       status: { $ne: "settled" }, // Status is not 'settled'
-    });
+    }).sort({ createdAt: -1 });
 
     // Calculate total count of tickets
     const totalCount = tickets.length;
@@ -381,7 +382,7 @@ export const getParkingTicketByQuery = async (req, res) => {
   }
 
   try {
-    const ticket = await ParkingTicket.findOne(query);
+    const ticket = await ParkingTicket.findOne(query).sort({ createdAt: -1 });
     // .populate('parkingAssistant', 'name') // Populate parkingAssistant with 'name' field
     // .populate('supervisor', 'name'); // Populate supervisor with 'name' field
 
@@ -513,6 +514,7 @@ export const getAllTickets = async (req, res) => {
     }
     const parkingTickets = await ParkingTicket.find(query)
       .populate("parkingAssistant supervisor")
+      .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .exec();

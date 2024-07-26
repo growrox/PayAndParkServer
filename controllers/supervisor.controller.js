@@ -418,6 +418,7 @@ export const getAllSettlementTickets = async (req, res) => {
                     .populate('supervisor', 'name code')
                     .populate('parkingAssistant', 'name supervisorCode')
                     .populate('accountantId', 'name')
+                    .sort({ createdAt: -1 })
                     .skip((page - 1) * pageSize)
                     .limit(parseInt(pageSize))
                     .exec();
@@ -534,7 +535,7 @@ export const getSupervisorStats = async (req, res) => {
 
 export const getAllSuperVisors = async (req, resp) => {
      try {
-          const allSupervisors = await User.find({ role: "supervisor" }, { _id: 1, code: 1, name: 1 })
+          const allSupervisors = await User.find({ role: "supervisor" }, { _id: 1, code: 1, name: 1 }).sort({ createdAt: -1 })
           return resp.status(200).json({ message: "All supervisors list.", result: allSupervisors });
      } catch (error) {
           console.error("Error getting the supervisor stats.", error);

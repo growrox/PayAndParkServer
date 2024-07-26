@@ -15,7 +15,8 @@ export const createParkingAssistant = async (req, res) => {
      }
 };
 
-// Get all parking assistants
+// Get all parking assistants 
+// Not in use currently
 export const getAllParkingAssistants = async (req, res) => {
      try {
           const assistants = await ParkingAssistant.find();
@@ -42,7 +43,7 @@ export const getParkingAssistantById = async (req, res) => {
 // Update a parking assistant by ID
 export const updateParkingAssistant = async (req, res) => {
      try {
-          const { name, supervisorCode, phone, email, address } = req.body;
+          const { name, supervisorCode, phone } = req.body;
           const updatedAssistant = await ParkingAssistant.findByIdAndUpdate(
                req.params.id,
                { name, supervisorCode, phone },

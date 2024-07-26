@@ -73,7 +73,7 @@ export const getAllVehiclePasses = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Find the vehicle passes with pagination
-    const passes = await VehiclePass.find().skip(skip).limit(limit);
+    const passes = await VehiclePass.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
 
     // Get total count of documents to calculate total pages
     const totalCount = await VehiclePass.countDocuments();

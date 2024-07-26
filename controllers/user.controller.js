@@ -346,6 +346,7 @@ export const getUsers = async (req, res) => {
     const users = await User.find(query)
       .select("name code phone role supervisorCode shiftId isOnline")
       .populate("shiftId")
+      .sort({ createdAt: -1 })
       .skip((page - 1) * pageSize)
       .limit(parseInt(pageSize))
       .exec();

@@ -129,6 +129,7 @@ export const getSupervisors = async (req, res) => {
 
           // Step 3: Get list of supervisors matching the match condition with pagination
           const supervisorsList = await User.find(matchCondition, { name: 1, phone: 1, code: 1 })
+               .sort({ createdAt: -1 })
                .skip((page - 1) * parseInt(pageSize))
                .limit(parseInt(pageSize));
 
@@ -219,6 +220,7 @@ export const getAllSettlementTickets = async (req, res) => {
                     .select('totalCollection totalCollectedAmount totalFine totalReward')
                     .populate('supervisor', 'name code')
                     .populate('accountant', 'name')
+                    .sort({ createdAt: -1 })
                     .skip((page - 1) * pageSize)
                     .limit(parseInt(pageSize))
                     .exec();
@@ -292,7 +294,7 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
 
                // Stage 2: Project to get desired fields
                { $project: { totalCollection: 1, totalCollectedAmount: 1, isSettled: 1, totalFine: 1, totalReward: 1 } },
-
+               { $sort: { createdAt: -1 } },
                // Stage 3: Pagination
                { $skip: (page - 1) * parseInt(pageSize) },
                { $limit: parseInt(pageSize) }
