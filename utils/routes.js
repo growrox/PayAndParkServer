@@ -11,7 +11,7 @@ export const ROUTES = {
     CREATE: "/create-vehicle-type/:folderName",
     GET_DETAIL: "/get-vehicle-type/:id",
     GET_ALL: "/get-all-vehicle-type",
-    UPDATE: "/update-vehicle-type/:id",
+    UPDATE: "/update-vehicle-type/:id/:folderName",
     DELETE: "/delete-vehicle-type/:id",
   },
   ASSISTANT: {

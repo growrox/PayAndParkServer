@@ -83,10 +83,8 @@ export const updateVehicleType = async (req, res) => {
     const { name } = req.body;
     const hourlyPrices = JSON.parse(req.body.hourlyPrices); // Parse hourlyPrices from JSON string to array of objects
 
-    const newImage = req.file ? `/images/${req.file.filename}` : null; // New image path if uploaded
-
+    const newImage = req.file ? `images/vehicle-type/${req.file.filename}` : null; // New image path if uploaded
     const vehicleType = await VehicleType.findById(req.params.id);
-
     if (!vehicleType) {
       return res.status(404).json({ error: "Vehicle type not found" });
     }
@@ -126,15 +124,14 @@ export const deleteVehicleType = async (req, res) => {
     if (vehicleType.image) {
       const imagePath = path.join(__dirname, "../", vehicleType.image);
       fs.unlink(imagePath, (err) => {
-        console.log(`Failed to delete old image: ${err.message}`);
-        // if (err) throw new Error(`Failed to delete old image: ${err.message}`);
+        console.log(`Failed to delete old image: ${err}`);
       });
     }
 
     // Delete the vehicle type from the database
     await VehicleType.findByIdAndDelete(req.params.id);
 
-    res.json({ message: "Vehicle type deleted" });
+    return res.json({ message: "Vehicle type deleted" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
