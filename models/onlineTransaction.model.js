@@ -7,7 +7,7 @@ const transactionSchema = new mongoose.Schema({
      razorpay_signature: { type: String },
      order_id: { type: String },
      amount: { type: String }
-});
+}, { timestamps: true, versionKey: false });
 
 const Transaction = mongoose.model('Transaction', transactionSchema);
 

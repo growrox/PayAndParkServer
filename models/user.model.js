@@ -15,7 +15,7 @@ const userSchema = new Schema({
   isActivated: { type: Boolean, default: true },
   shiftId: { type: Schema.Types.ObjectId, ref: 'Shift' },
   lastSettledTicketId: { type: Schema.Types.ObjectId, ref: 'SupervisorSettlementTicket' }
-});
+}, { timestamps: true, versionKey: false });
 
 const User = model("User", userSchema);
 

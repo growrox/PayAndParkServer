@@ -6,7 +6,7 @@ const attendanceSchema = new mongoose.Schema({
      clockInTime: { type: Date, required: true },
      clockOutTime: { type: Date },
      isLateToday: { type: Boolean, default: false }
-},);
+}, { timestamps: true, versionKey: false });
 
 const Attendance = mongoose.model('Attendance', attendanceSchema);
 

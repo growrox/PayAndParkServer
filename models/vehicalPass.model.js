@@ -11,7 +11,7 @@ const VehiclePassSchema = new Schema({
      isActive: { type: Boolean, default: true },
      passExpiryDate: { type: Date, required: true },
      insuranceExpiryDate: { type: Date, required: true },
-}, { timestamps: true });
+}, { timestamps: true, versionKey: false });
 
 // Create a model based on the schema
 const VehiclePass = mongoose.model('VehiclePass', VehiclePassSchema);

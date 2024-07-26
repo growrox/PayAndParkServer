@@ -18,7 +18,7 @@ const supervisorSettlementSchema = new Schema({
      accountantId: { type: Schema.Types.ObjectId, ref: 'User'},
      settlementId: { type: Schema.Types.ObjectId, ref: 'AccountantSettlement' },
      isSettled: { type: Boolean, default: false }
-}, { timestamps: true });
+}, { timestamps: true, versionKey: false });
 
 const SupervisorSettlementTicket = model('SupervisorSettlementTicket', supervisorSettlementSchema);
 
