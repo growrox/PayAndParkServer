@@ -11,7 +11,7 @@ export const settleSupervisorTickets = async (req, res) => {
      const { accountantID, totalCollectedAmount } = req.body;
      const { supervisorID } = req.params;
      console.log("accountantID ", accountantID);
-     const language = getLanguage(req,responses);
+     const language = getLanguage(req, responses);
      try {
           // Fetch non-settled parking tickets with paymentMode as Cash and matching parkingAssistantID
 
@@ -215,7 +215,7 @@ export const getAllSettlementTickets = async (req, res) => {
      try {
           console.log("accountantID ", accountantID);
           if (isEmpty(accountantID)) {
-               return res.status(404).json({ error: responses.errors[language].noAccountantId  });
+               return res.status(404).json({ error: responses.errors[language].noAccountantId });
           }
 
           const query = {
@@ -226,14 +226,16 @@ export const getAllSettlementTickets = async (req, res) => {
           if (startDate || endDate) {
                const dateRange = {};
                if (startDate) {
-                    dateRange.$gte = moment.tz(new Date(startDate), 'Asia/Kolkata').startOf('day').clone().utc();
+                    const LocalStartDate = moment.tz(new Date(startDate), 'Asia/Kolkata').startOf('day').clone().utc();
+                    dateRange.$gte = new Date(LocalStartDate);
                }
                if (endDate) {
-                    const end = moment.tz(new Date(startDate), 'Asia/Kolkata').endOf('day').clone().utc();
+                    const LocalEndDate = moment.tz(new Date(startDate), 'Asia/Kolkata').endOf('day').clone().utc();
+                    const end = new Date(LocalEndDate)
                     dateRange.$lte = end;
                }
                query.createdAt = dateRange;
-               console.log("createdAt filter date ",query.createdAt)
+               console.log("createdAt filter date ", query.createdAt)
           }
           // Aggregate pipeline
           const pipeline = [
