@@ -224,7 +224,7 @@ export function scheduleCronAfterMinutes(endTime, minutesToAdd) {
 }
 
 export function getLanguage(req) {
-  const lang = req.headers['accept-language'] || 'en';
+  const lang = req.headers['client-language'] || 'en';
   return responses.message[lang] ? lang : 'en';
 };
 
