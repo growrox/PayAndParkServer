@@ -54,11 +54,8 @@ export const settleSupervisorTickets = async (req, res) => {
 
           if (isEmpty(ticketsToSettle)) {
                const lastUpdated = await SupervisorSettlementTicket.findOne({ supervisor: new mongoose.Types.ObjectId(supervisorID), 'isSettled': true }, { updatedAt: 1 }).sort({ updatedAt: -1 })
-               return res.status(200).json({ message: responses.errors[language].noNonSettledTickets, lastSettled: (new Date(lastUpdated.updatedAt)) });
+               return res.status(200).json({ message: responses.errors[language].noNonSettledTickets, lastSettled: isEmpty(lastUpdated) ? null : new Date(lastUpdated.updatedAt) });
           }
-
-          const { TotalCollectedAmount, TotalFine, TotalReward } = ticketsToSettle;
-
 
           // Create a new settlement ticket
           const settlementTicket = new AccountantSettlementTicket({
