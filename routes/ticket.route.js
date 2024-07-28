@@ -20,9 +20,11 @@ import path from "path";
 
 import checkParkingAssistant from "../middlewares/checkParkingAssistant.js";
 import { getTickets } from "../controllers/parkingAssistant.controller.js";
+import { ROUTES } from "../utils/routes.js";
 
 const router = express.Router();
 
+const { PARKING_TICKETS: { GET_QUERY_TICKET, GET_TICKET_FOR_ASSISTANT, DELETE_PAYMENT_ORDER, GET_VEHICAL_TYPE_DETAILS, DELETE_TICEKT_IMAGE, UPDATE_TICKET_BY_ID, DELTE_TICEKT_BY_ID, GET_LOCATION, PAYMENT_STATUS, GET_TOCKET, GET_ALL_TICKETS, GENERATE_ORDER, CREATE_TICKET, UPLOAD_VEHICAL_IMAGE } } = ROUTES
 
 const storage = multer.diskStorage({
   destination: 'images/tickets',
@@ -47,37 +49,33 @@ const upload = multer({
 });
 
 router.post(
-  "/parking-tickets/uploadParkingTicket",
+  UPLOAD_VEHICAL_IMAGE,
   checkParkingAssistant,
   upload.single("image"),
   uploadTicketImage
 );
 
 router.post(
-  "/parking-tickets/:folderName",
+  CREATE_TICKET,
   checkParkingAssistant,
   createParkingTicket
 );
 
-router.post(
-  "/ticket/generate-order",
-  checkParkingAssistant,
-  generatePaymentForTicket
-);
-router.get("/admin/parking-tickets", getAllTickets);
-router.post("/ticket/payment-status", updatePaymentStatusOnline);
-router.get("/parking-tickets", getParkingTickets);
-router.get("/parking-ticket/location", getTicketLocation);
-router.get("/parking-tickets/:query", getParkingTicketByQuery);
-router.get("/parking-tickets/unsettled/:assistantId", getTicketsByAssistantId);
-router.delete("/ticket/order/:id", deletePaymentOrderById);
-router.get("/ticket/detail/:id", getVehicleTypeDetail);
+router.post(GENERATE_ORDER, checkParkingAssistant, generatePaymentForTicket);
+router.get(GET_ALL_TICKETS, getAllTickets);
+router.post(PAYMENT_STATUS, updatePaymentStatusOnline);
+router.get(GET_TOCKET, getParkingTickets);
+router.get(GET_LOCATION, getTicketLocation);
+router.get(GET_QUERY_TICKET, getParkingTicketByQuery);
+router.get(GET_TICKET_FOR_ASSISTANT, getTicketsByAssistantId);
+router.delete(DELETE_PAYMENT_ORDER, deletePaymentOrderById);
+router.get(GET_VEHICAL_TYPE_DETAILS, getVehicleTypeDetail);
 // router.get('/parking-tickets/stats/:assistantId', getTicketsByAssistantId);
 
-router.delete('/parking-tickets/:filename', deleteTicketImage);
+router.delete(DELETE_TICEKT_IMAGE, deleteTicketImage);
 
 // Bellow two routes will not be used yet.
-router.put("/parking-tickets/:id", updateParkingTicketById);
-router.delete("/parking-tickets/:id", deleteParkingTicketById);
+router.put(UPDATE_TICKET_BY_ID, updateParkingTicketById);
+router.delete(DELTE_TICEKT_BY_ID, deleteParkingTicketById);
 
 export default router;
