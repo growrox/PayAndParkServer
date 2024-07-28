@@ -9,73 +9,56 @@ import {
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import Otp from "../models/otp.model.js";
+import { responses } from "../utils/Translate/user.response.js";
+import { getLanguage } from "../utils/helperFunctions.js";
 
 // Create a new user
 export const createUser = async (req, res) => {
-  const { name, phone, role, password, supervisorCode } = req.body; // Include password in the body for web clients
-  const source = req.headers["x-client-source"]; // Client specifies source via headers
+  const { name, phone, role, password, supervisorCode } = req.body;
+  const source = req.headers["x-client-source"];
+  const language = getLanguage(req); // Fallback to English if language is not set
 
   try {
-    // Check if user with the same phone number already exists
-    if (isEmpty(name))
-      return res.status(404).json({ error: "Name is a required field." });
-    if (isEmpty(phone))
-      return res
-        .status(404)
-        .json({ error: "Phone number is a required field." });
+    if (isEmpty(name)) {
+      return res.status(400).json({ error: responses.errors[language].nameRequired });
+    }
+    if (isEmpty(phone)) {
+      return res.status(400).json({ error: responses.errors[language].phoneRequired });
+    }
 
-    let newUser;
     const existingUser = await User.findOne({ phone: phone });
     if (existingUser) {
       console.log("User Already Present ", existingUser);
-      return res
-        .status(400)
-        .json({ error: "User already available. Please Login." });
+      return res.status(400).json({ error: responses.errors[language].userAlreadyExists });
     }
 
+    let newUser;
+
     if (source === "app") {
-      try {
-        if (isEmpty(supervisorCode))
-          return res
-            .status(404)
-            .json({ error: "supervisorCode is required field." });
-
-        const FindSupervisor = await User.findOne({ code: supervisorCode });
-
-        if (isEmpty(FindSupervisor))
-          return res
-            .status(404)
-            .json({ error: "Please check supervisor code." });
-
-        // Validate OTP for now
-        newUser = new User({
-          name,
-          phone,
-          supervisorCode,
-          role: "assistant",
-          isActivated: false,
-        });
-
-        await newUser.save();
-        console.log("newUser ---- ", newUser);
-
-        // const token = jwt.sign(
-        //      { userId: newUser._id, role: newUser.role, source: "app" },
-        //      process.env.JWT_SECRET, // Your JWT secret key
-        //      { expiresIn: '24h' } // Token expiration time
-        // );
-        const otpSent = await generateOTP(newUser._id, phone);
-        console.log("otpSent ", otpSent);
-
-        return res
-          .status(200)
-          .json({ message: "Please verify otp to activate the account." });
-      } catch (error) {
-        console.error("Error creating the user account.", error);
-        return res
-          .status(403)
-          .json({ error: "Error creating the user account." });
+      if (isEmpty(supervisorCode)) {
+        return res.status(400).json({ error: responses.errors[language].supervisorCodeRequired });
       }
+
+      const FindSupervisor = await User.findOne({ code: supervisorCode });
+      if (isEmpty(FindSupervisor)) {
+        return res.status(404).json({ error: responses.errors[language].invalidSupervisorCode });
+      }
+
+      newUser = new User({
+        name,
+        phone,
+        supervisorCode,
+        role: "assistant",
+        isActivated: false,
+      });
+
+      await newUser.save();
+      console.log("newUser ---- ", newUser);
+
+      const otpSent = await generateOTP(newUser._id, phone);
+      console.log("otpSent ", otpSent);
+
+      return res.status(200).json({ message: responses.messages[language].verifyOtp });
     } else if (source === "web") {
       if (role === "accountant") {
         newUser = new User({
@@ -84,7 +67,7 @@ export const createUser = async (req, res) => {
           role,
         });
       } else if (role === "supervisor") {
-        const newUserCode = generateCode(6); // Assume generateCode function exists
+        const newUserCode = generateCode(6);
 
         newUser = new User({
           name,
@@ -93,7 +76,7 @@ export const createUser = async (req, res) => {
           code: newUserCode,
         });
       } else if (role === "superadmin") {
-        const hashedPassword = await bcrypt.hash(password, 10); // Hash password for web clients
+        const hashedPassword = await bcrypt.hash(password, 10);
         newUser = new User({
           name,
           phone,
@@ -101,121 +84,117 @@ export const createUser = async (req, res) => {
           password: hashedPassword,
         });
       } else {
-        return res.status(404).json({ error: "Invalid role type given." });
+        return res.status(400).json({ error: responses.errors[language].invalidRole });
       }
+
+      await newUser.save();
+      const token = jwt.sign(
+        { userId: newUser._id, role: newUser.role, source: "web" },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.SECURE_COOKIE === 'true',
+        sameSite: process.env.SAME_SITE,
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      return res.status(201).json({
+        message: responses.messages[language].accountCreated,
+        result: { name: newUser.name, phone: newUser.phone },
+      });
     } else {
-      return res.status(400).json({ error: "Invalid client source." });
+      return res.status(400).json({ error: responses.errors[language].invalidClientSource });
     }
-
-    await newUser.save();
-    // Generate JWT token
-    const token = jwt.sign(
-      {
-        userId: newUser._id,
-        role: "superadmin",
-        source: "web",
-      },
-      process.env.JWT_SECRET, // Your JWT secret key
-      { expiresIn: "24h" } // Token expiration time
-    );
-
-    // Conditionally handle the response based on the source
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.SECURE_COOKIE, // Set to true if using HTTPS, required for 'SameSite=None'
-      sameSite: process.env.SAME_SITE,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    });
-    return res.status(201).json({
-      message: "Account Created.",
-      result: { name: newUser.name, phone: newUser.phone },
-    });
   } catch (err) {
     console.error("Error creating user:", err);
     if (err.code === 11000) {
       return res.status(400).json({
-        error: "User already exists with given details.",
+        error: responses.errors[language].userAlreadyExists,
         code: err.code,
       });
     }
-    return res.status(500).json({ error: err.message, code: err.code });
+    return res.status(500).json({ error: responses.errors[language].internalServerError, code: err.code });
   }
 };
 
+
 export const loginUser = async (req, res) => {
   const { phone, password } = req.body;
-  const source = req.headers["x-client-source"]; // Expecting 'web' or 'app'
-  // console.log("source ---", source);
+  const source = req.headers["x-client-source"];
+  const language = getLanguage(req) // Fallback to English if language is not set
 
   try {
     if (source === "app") {
       try {
-        const newUser = await User.findOne({ phone: phone });
-        console.log("new User ", newUser);
-        if (isEmpty(newUser) || newUser?.role == "superadmin") {
-          return res
-            .status(404)
-            .json({ error: "User not found. Please register." });
+        const user = await User.findOne({ phone: phone });
+        console.log("Found User ", user);
+
+        if (isEmpty(user) || user?.role === "superadmin") {
+          return res.status(404).json({ error: responses.errors[language].userNotFound });
         }
 
-        const generateOTp = await generateOTP(newUser._id, phone); // UserID, Phone
-        console.log("generateOTp ", generateOTp);
+        const otpResult = await generateOTP(user._id, phone);
+        console.log("OTP Result ", otpResult);
 
-        if ((generateCode.status = "success")) {
+        if (otpResult.status === "success") {
           return res.json({
-            message: "OTP is sent to your registered number please verify.",
-            OTP: generateOTp.OTP,
+            message: responses.messages[language].otpSent,
+            OTP: otpResult.OTP,
           });
         } else {
-          return res.status(500).json({ error: "Error generating the OTP." });
+          return res.status(500).json({ error: responses.errors[language].otpGenerationError });
         }
       } catch (error) {
-        return res.status(500).json({ error: "Error generating the OTP." });
+        console.error("Error generating OTP:", error);
+        return res.status(500).json({ error: responses.errors[language].otpGenerationError });
       }
     } else if (source === "web") {
       const user = await User.findOne({ phone: phone });
+
       if (!user) {
-        return res.status(404).json({ error: "User not found." });
+        return res.status(404).json({ error: responses.errors[language].userNotFound });
       }
+
       if (!password) {
-        return res.status(401).json({ error: "Invalid Password" });
+        return res.status(401).json({ error: responses.errors[language].passwordRequired });
       }
-      console.log({ password, userPassword: user.password, user });
+
       if (user.role !== "superadmin") {
-        return res.status(401).json({ error: "Invalid Role" });
+        return res.status(401).json({ error: responses.errors[language].invalidRole });
       }
+
       const passwordMatch = await bcrypt.compare(password, user.password);
       if (!passwordMatch) {
-        return res.status(401).json({ error: "Invalid credentials." });
+        return res.status(401).json({ error: responses.errors[language].invalidCredentials });
       }
 
       const token = jwt.sign(
-        {
-          role: "superadmin",
-          userId: user._id,
-          source: "web",
-        },
+        { role: "superadmin", userId: user._id, source: "web" },
         process.env.JWT_SECRET,
-        {
-          expiresIn: "24h",
-        }
+        { expiresIn: "24h" }
       );
+
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.SECURE_COOKIE, // Set to true if using HTTPS, required for 'SameSite=None'
+        secure: process.env.SECURE_COOKIE === 'true',
         sameSite: process.env.SAME_SITE,
-        maxAge: 86400000, // 24 hours
+        maxAge: 24 * 60 * 60 * 1000,
       });
-      user.password = undefined;
-      return res.json({ result: user, message: "Login successful." });
+
+      user.password = undefined; // Remove password from response
+      return res.json({ result: user, message: responses.messages[language].loginSuccessful });
     } else {
-      return res.status(400).json({ error: "Invalid client source." });
+      return res.status(400).json({ error: responses.errors[language].invalidClientSource });
     }
   } catch (err) {
     console.error("Error during login:", err);
-    return res
-      .status(500)
-      .json({ message: "Internal server error.", error: err.message });
+    return res.status(500).json({
+      message: responses.messages[language].internalServerError,
+      error: err.message,
+    });
   }
 };
 
@@ -297,6 +276,7 @@ export const validateOTP = async (req, res) => {
 export const getUsers = async (req, res) => {
   const { page = 1, pageSize = 10, filter, role } = req.query;
   const query = {};
+  const language = getLanguage(req)
 
   // Apply general filter to multiple fields if filter is not empty
   const orConditions = [];
@@ -333,12 +313,12 @@ export const getUsers = async (req, res) => {
 
     // Return 404 if no users found
     if (totalCount === 0) {
-      return res.status(404).json({ error: "No users found." });
+      return res.status(404).json({ error: responses.errors[language].noUsersFound });
     }
 
     if (page > totalPages) {
       return res.status(400).json({
-        error: "You have exceeded the available search results. Please check page.",
+        error: responses.errors[language].pageExceeded
       });
     }
 
@@ -381,19 +361,22 @@ export const getUsers = async (req, res) => {
     };
 
     // Return successful response with status 200
-    return res
-      .status(200)
-      .json({ message: "Here is users list", result: response });
+    return res.status(200).json({
+      message: responses.messages[language].usersList,
+      result: response
+    });
   } catch (err) {
     // Handle errors and return status 500 with error message
     return res.status(500).json({ error: err.message });
   }
 };
 
+
 // Get a single user by ID
 export const getUserById = async (req, res) => {
   const { phone } = req.params;
   console.log("Phone ", phone);
+  const language = getLanguage(req)
   try {
     const user = await User.findOne(
       { phone },
@@ -407,17 +390,27 @@ export const getUserById = async (req, res) => {
       }
     );
     if (isEmpty(user)) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({
+        error: responses.errors[language].noUsersFound
+      });
     }
-    return res.status(200).json({ message: "User found", result: user });
+    return res.status(200).json({
+      message: responses.messages[language].userFound,
+      result: user
+    });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      error: responses.errors[language].internalServerError,
+      details: err.message
+    });
   }
 };
+
 
 // GEt user status
 export const getUserStatus = async (req, res) => {
   const UserId = req.headers.userid;
+  const language = getLanguage(req)
   try {
     const user = await User.findById(UserId, {
       name: 1,
@@ -425,31 +418,38 @@ export const getUserStatus = async (req, res) => {
       role: 1,
       phone: 1,
     }).populate('shiftId');
+
     if (isEmpty(user)) {
-      return res
-        .status(404)
-        .json({ error: "User not found please check the userId" });
+      return res.status(404).json({
+        error: responses.errors[language].noUsersFound
+      });
     }
-    return res
-      .status(200)
-      .json({ message: "Here is the user details", result: user });
+
+    return res.status(200).json({
+      message: responses.messages[language].userDetailsFetched,
+      result: user
+    });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      error: responses.errors[language].internalServerError,
+      details: err.message
+    });
   }
 };
+
 
 // Update a user
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  console.log("Id ", id);
-  console.log("Data ", req.body);
   const { name, supervisorCode, shiftId } = req.body;
-
+  const language = getLanguage(req);
   try {
     const userAvailable = await User.findById(id);
 
     if (isEmpty(userAvailable)) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({
+        error: responses.errors[language].noUsersFound
+      });
     }
 
     let updateDetails = {};
@@ -463,14 +463,20 @@ export const updateUser = async (req, res) => {
       updateDetails.shiftId = shiftId;
     }
 
-    console.log("updateDetails ", updateDetails);
-    const updatedUser = await User.findByIdAndUpdate(id, updateDetails);
+    const updatedUser = await User.findByIdAndUpdate(id, updateDetails, { new: true });
 
-    return res.json({ message: "User updated successfully.", result: updateDetails });
+    return res.status(200).json({
+      message: responses.messages[language ].userUpdatedSuccessfully,
+      result: updatedUser
+    });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      error: responses.errors[language].internalServerError,
+      details: err.message
+    });
   }
 };
+
 
 // --------------- For now thsese two routes are not being used.
 

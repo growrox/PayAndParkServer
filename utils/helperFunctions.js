@@ -223,7 +223,10 @@ export function scheduleCronAfterMinutes(endTime, minutesToAdd) {
   return cronSchedule
 }
 
-
+export function getLanguage(req) {
+  const lang = req.headers['accept-language'] || 'en';
+  return responses.message[lang] ? lang : 'en';
+};
 
 // const text = "M.B.M.C Pay&Park 3, Bhalavi Grp \n DATE:- 07.07.24,\n TIME :- 2: 00pm \n Dear Hitesh Pal Your parking ticket has been successfully generated. Ticket Number: AB1235 Vehicle Number: MH04 GK 3445 Parking Assistant: Aditya Singh Duration: 2hrs Base Amount : 30 CGST 9%  : 9 SGST 9%   : 9 RND OFF : 38 GRAND TOTAL : 38Payment Mode: Online. MBMC"
 // console.log("MEssage ", text);

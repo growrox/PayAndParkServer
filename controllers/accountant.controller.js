@@ -4,23 +4,26 @@ import { isEmpty } from '../utils/helperFunctions.js';
 import SupervisorSettlementTicket from '../models/settlementTicket.model.js';
 import AccountantSettlementTicket from '../models/accountantSettlementTicket.model.js';
 import moment from "moment-timezone";
+import { responses } from '../utils/Translate/accountant.response.js';
 
 export const settleSupervisorTickets = async (req, res) => {
      const { accountantID, totalCollectedAmount } = req.body;
      const { supervisorID } = req.params;
      console.log("accountantID ", accountantID);
+     const lang = req.headers['client-language'] || 'en';
+     const language = responses.message[lang] ? lang : 'en';
      try {
           // Fetch non-settled parking tickets with paymentMode as Cash and matching parkingAssistantID
 
           const findSupervisor = await User.findById(supervisorID);
           if (isEmpty(findSupervisor)) {
-               return res.status(404).json({ error: 'Supervisor not found please check the id.' });
+               return res.status(404).json({ error: responses.error[language].supervisorNotFound });
           }
 
 
           const findAccountant = await User.findById(accountantID);
           if (isEmpty(findAccountant)) {
-               return res.status(404).json({ error: 'Accountaint not found please check the id.' });
+               return res.status(404).json({ error: responses.error[language].accountantNotFound });
           }
 
 
@@ -51,7 +54,7 @@ export const settleSupervisorTickets = async (req, res) => {
 
           if (isEmpty(ticketsToSettle)) {
                const lastUpdated = await SupervisorSettlementTicket.findOne({ supervisor: new mongoose.Types.ObjectId(supervisorID), 'isSettled': true }, { updatedAt: 1 }).sort({ updatedAt: -1 })
-               return res.status(200).json({ message: 'No non-settled tickets found for the provided assistant ID.', lastSettled: (new Date(lastUpdated.updatedAt)) });
+               return res.status(200).json({ message: responses.error[language].noNonSettledTickets, lastSettled: (new Date(lastUpdated.updatedAt)) });
           }
 
           const { TotalCollectedAmount, TotalFine, TotalReward } = ticketsToSettle;
@@ -95,7 +98,7 @@ export const settleSupervisorTickets = async (req, res) => {
                     }
                });
 
-          return res.json({ message: 'Supervisor tickets settled successfully.', result: { settlementId: savedSettlement._id } });
+          return res.json({ message: responses.message[language].ticketsSettledSuccess, result: { settlementId: savedSettlement._id } });
      } catch (error) {
           console.error("Error settling the supervisor tickets.", error);
           return res.status(500).json({ error: error.message });
@@ -104,6 +107,10 @@ export const settleSupervisorTickets = async (req, res) => {
 
 export const getSupervisors = async (req, res) => {
      const { searchQuery, page = 1, pageSize = 10 } = req.query; // Extract search query, page, and pageSize from query params
+
+     // Determine language from headers, default to 'en'
+     const lang = req.headers['accept-language'] || 'en';
+     const language = responses.message[lang] ? lang : 'en';
 
      try {
           // Step 1: Prepare the match condition for supervisors
@@ -124,7 +131,7 @@ export const getSupervisors = async (req, res) => {
           const totalCount = await User.countDocuments(matchCondition);
 
           if (totalCount === 0) {
-               return res.status(404).json({ error: 'No Supervisor found.' });
+               return res.status(404).json({ error: responses.error[language].noSupervisorFound });
           }
 
           // Step 3: Get list of supervisors matching the match condition with pagination
@@ -180,7 +187,7 @@ export const getSupervisors = async (req, res) => {
           const totalPages = Math.ceil(totalCount / parseInt(pageSize));
 
           return res.status(200).json({
-               message: 'Here is the supervisor list with stats.',
+               message: responses.message[language].supervisorListWithStats,
                result: {
                     supervisors: supervisorsWithStats,
                     pagination: {
@@ -198,100 +205,17 @@ export const getSupervisors = async (req, res) => {
      }
 };
 
-export const getAllSettlementTicketsOld = async (req, res) => {
-     const { accountantID } = req.params;
-     const { page = 1, pageSize = 10, startDate, endDate, searchQuery } = req.query; // Extract page and pageSize from query params
-     console.log("pageSize  ", pageSize);
-     try {
-          console.log("supervisorID ", accountantID);
-          if (isEmpty(accountantID)) {
-               return res.status(404).json({ error: 'No accountant id provided. Please check again.' });
-          } else {
-               const query = {
-                    accountant: new mongoose.Types.ObjectId(accountantID)
-               };
-
-               if (startDate || endDate) {
-                    const dateRange = {};
-                    if (startDate) {
-                         dateRange.$gte = new Date(startDate);
-                    }
-                    if (endDate) {
-                         const end = new Date(new Date(endDate).setHours(0o0, 0o0, 0o0));
-                         console.log("End ", end);
-                         dateRange.$lte = end;
-                    }
-                    query.createdAt = dateRange;
-               }
-
-               // Count total documents matching the query
-               const totalCount = await AccountantSettlementTicket.find(query, { _id: 0, totalCollectedAmount: 1 });
-               console.log("totalCount ", totalCount);
-               const totalPages = Math.ceil(totalCount.length / pageSize);
-
-               // Find tickets based on the query, select specific fields, and apply pagination
-               const result = await AccountantSettlementTicket.find(query)
-                    .select('totalCollectedAmount createdAt')
-                    .populate('supervisor', 'name code')
-                    .populate('accountant', 'name')
-                    .sort({ createdAt: -1 })
-                    .skip((page - 1) * pageSize)
-                    .limit(parseInt(pageSize))
-                    .exec();
-
-               console.log("Result ", result.length);
-               if (isEmpty(result)) {
-                    return res.status(200).json({ message: 'No settlement tickets found for this supervisor.', result: [] });
-               } else {
-                    // Pagination logic to determine next and previous pages
-                    let nextPage = null;
-                    let prevPage = null;
-
-                    if (page < totalPages) {
-                         nextPage = {
-                              page: parseInt(page) + 1,
-                              pageSize: parseInt(pageSize),
-                         };
-                    }
-
-                    if (page > 1) {
-                         prevPage = {
-                              page: parseInt(page) - 1,
-                              pageSize: parseInt(pageSize),
-                         };
-                    }
-
-                    // Prepare response object with tickets, pagination details, and totalCount
-                    const response = {
-                         tickets: result,
-                         pagination: {
-                              totalCount: totalCount.length,
-                              totalPages,
-                              nextPage,
-                              prevPage,
-                         },
-                         stats: { totalCollectedAmount: totalCount.reduce((total, current) => total + current.totalCollectedAmount, 0) }
-                    };
-
-                    return res.status(200).json({ message: 'Here is the settlement ticket list.', result: response });
-               }
-          }
-
-     } catch (error) {
-          console.error("Error getting all tickets.", error);
-          return res.status(500).json({ error: error.message });
-     }
-};
 
 export const getAllSettlementTickets = async (req, res) => {
      const { accountantID } = req.params;
      const { page = 1, pageSize = 10, startDate, endDate, searchQuery } = req.query; // Extract page, pageSize, and searchQuery from query params
      console.log("pageSize  ", pageSize);
-
+     const lang = req.headers['client-language'] || 'en';
+     const language = responses.message[lang] ? lang : 'en';
      try {
           console.log("accountantID ", accountantID);
           if (isEmpty(accountantID)) {
-               return res.status(404).json({ error: 'No accountant id provided. Please check again.' });
+               return res.status(404).json({ error: responses.error[language].noAccountantId  });
           }
 
           const query = {
@@ -369,7 +293,7 @@ export const getAllSettlementTickets = async (req, res) => {
 
           console.log("Result ", result.length);
           if (isEmpty(result)) {
-               return res.status(200).json({ message: 'No settlement tickets found for this accountant.', result: [] });
+               return res.status(200).json({ message: responses.error[language].noNonSettledTickets, result: [] });
           } else {
                // Calculate the total collected amount
                const totalCollectedAmount = result.reduce((total, current) => total + current.totalCollectedAmount, 0);
@@ -404,7 +328,7 @@ export const getAllSettlementTickets = async (req, res) => {
                     stats: { totalCollectedAmount }
                };
 
-               return res.status(200).json({ message: 'Here is the settlement ticket list.', result: response });
+               return res.status(200).json({ message: responses.message[language].settlementTicketList, result: response });
           }
 
      } catch (error) {
@@ -418,10 +342,14 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
      const { supervisorID } = req.params;
      const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
 
+     // Determine language from headers, default to 'en'
+     const lang = req.headers['accept-language'] || 'en';
+     const language = responses.message[lang] ? lang : 'en';
+
      try {
           console.log("supervisorID ", supervisorID);
-          if (isEmpty(supervisorID)) {
-               return res.status(404).json({ error: 'No supervisor id provided. Please check again.' });
+          if (!supervisorID) {
+               return res.status(404).json({ error: responses.error[language].noSupervisorIdProvided });
           }
 
           // Check if supervisor exists
@@ -430,8 +358,8 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
                role: "supervisor"
           });
 
-          if (isEmpty(findSupervisor)) {
-               return res.status(404).json({ error: 'Supervisor not found.' });
+          if (!findSupervisor) {
+               return res.status(404).json({ error: responses.error[language].supervisorNotFound });
           }
 
           const pipeline = [
@@ -461,13 +389,13 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
           const totalPages = Math.ceil(totalCount / pageSize);
 
           return res.status(200).json({
-               message: 'Here is the list of tickets of supervisor.',
+               message: responses.message[language].listOfTickets,
                result: {
-                    tickets: isEmpty(result) ? [] : result,
+                    tickets: result.length === 0 ? [] : result,
                     pagination: {
                          totalCount,
                          totalPages,
-                         currentPage: page,
+                         currentPage: parseInt(page),
                          pageSize: parseInt(pageSize)
                     }
                }
@@ -475,13 +403,17 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
 
      } catch (error) {
           console.error("Error getting all tickets.", error);
-          return res.status(500).json({ error: error.message })
+          return res.status(500).json({ error: error.message });
      }
 };
 
 
 export const getAccountantStats = async (req, res) => {
      const accountantID = req.params.accountantID;
+
+     // Determine language from headers, default to 'en'
+     const lang = req.headers['accept-language'] || 'en';
+     const language = responses.message[lang] ? lang : 'en';
 
      try {
           // Get the start and end of today in client's timezone (Asia/Kolkata)
@@ -502,10 +434,12 @@ export const getAccountantStats = async (req, res) => {
           });
 
           if (!todayAccountantSettlementTicket.length) {
-               return res.status(404).json({ error: 'No AccountantSettlementTicket found for today.' });
+               return res.status(404).json({ error: responses.error[language].noAccountantSettlementTicketFound });
           }
+
           // Extract all settlement IDs
           const settlementIds = todayAccountantSettlementTicket.map(ticket => ticket._id);
+
           // Aggregate stats from SupervisorSettlementTicket where settlementId matches any of the settlementIds
           const statsPipeline = [
                {
@@ -527,6 +461,7 @@ export const getAccountantStats = async (req, res) => {
           ];
 
           const supervisorStats = await SupervisorSettlementTicket.aggregate(statsPipeline);
+
           // Extracting values from the aggregation result
           const totalCollection = supervisorStats[0]?.totalCollection || 0;
           const totalCollectedAmount = supervisorStats[0]?.totalCollectedAmount || 0;
@@ -544,52 +479,61 @@ export const getAccountantStats = async (req, res) => {
                LastSettledTicketUpdatedAt: todayAccountantSettlementTicket[todayAccountantSettlementTicket.length - 1].updatedAt // Assuming updatedAt field provides the last settled time
           };
 
-          return res.status(200).json({ message: 'Here is the accountant stats.', result: response });
+          return res.status(200).json({
+               message: responses.message[language].accountantStats,
+               result: response
+          });
 
      } catch (error) {
           console.error('Error getting the accountant stats.', error);
-          return res.status(500).json({ error: 'Error getting accountant stats from the server.' });
+          return res.status(500).json({ error: responses.error[language].serverError });
      }
 };
+
 
 
 export const getAccountantStatsBetweenTwoDates = async (req, res) => {
      const accountantID = req.params.accountantID;
      const { startDate, endDate } = req.query;
+
+     // Determine language from headers, default to 'en'
+     const lang = req.headers['accept-language'] || 'en';
+     const language = responses.message[lang] ? lang : 'en';
+
      try {
-          // Get the start and end of today in client's timezone (Asia/Kolkata)
+          // Get the start and end dates in client's timezone (Asia/Kolkata)
           const clientStartDate = moment.tz(new Date(startDate), 'Asia/Kolkata');
           const clientEndDate = moment.tz(new Date(endDate), 'Asia/Kolkata');
           const startOfDay = clientStartDate.startOf('day');
-          const endOfDay = clientEndDate.startOf('day');
-          console.log("today ", startOfDay);
-          console.log("tomorrow ", endOfDay);
+          const endOfDay = clientEndDate.endOf('day');
 
-          const today = startOfDay.toISOString();
-          const tomorrow = endOfDay.toISOString();
-          // Find AccountantSettlementTicket for today
-          const todayAccountantSettlementTicket = await AccountantSettlementTicket.find({
+          const startOfDayISO = startOfDay.toISOString();
+          const endOfDayISO = endOfDay.toISOString();
+
+          // Find AccountantSettlementTicket within the date range
+          const accountantSettlementTickets = await AccountantSettlementTicket.find({
                accountant: new mongoose.Types.ObjectId(accountantID),
                createdAt: {
-                    $gte: today,
-                    $lte: tomorrow
+                    $gte: startOfDayISO,
+                    $lte: endOfDayISO
                }
           });
 
-          if (!todayAccountantSettlementTicket.length) {
-               return res.status(200).json({ message: 'No stats found between provided dates.', result: [] });
+          if (!accountantSettlementTickets.length) {
+               return res.status(200).json({
+                    message: responses.message[language].noStatsFound,
+                    result: []
+               });
           }
 
-          console.log("todayAccountantSettlementTicket  ", todayAccountantSettlementTicket.length);
           // Extract all settlement IDs
-          const settlementIds = todayAccountantSettlementTicket.map(ticket => ticket._id);
-          // console.log("settlementIds ", settlementIds);
+          const settlementIds = accountantSettlementTickets.map(ticket => ticket._id);
+
           // Aggregate stats from SupervisorSettlementTicket where settlementId matches any of the settlementIds
           const statsPipeline = [
                {
                     $match: {
-                         settlementId: { $in: settlementIds },
-                         // isSettled: true // Assuming isSettled is a boolean field
+                         settlementId: { $in: settlementIds }
                     }
                },
                {
@@ -606,9 +550,7 @@ export const getAccountantStatsBetweenTwoDates = async (req, res) => {
 
           const supervisorStats = await SupervisorSettlementTicket.aggregate(statsPipeline);
 
-          console.log("supervisorStats ", supervisorStats);
-
-          // Extracting values from the aggregation result
+          // Extract values from the aggregation result
           const totalCollection = supervisorStats[0]?.totalCollection || 0;
           const totalCollectedAmount = supervisorStats[0]?.totalCollectedAmount || 0;
           const totalFine = supervisorStats[0]?.totalFine || 0;
@@ -622,14 +564,17 @@ export const getAccountantStatsBetweenTwoDates = async (req, res) => {
                totalFine,
                totalReward,
                cashCollected,
-               LastSettledTicketUpdatedAt: todayAccountantSettlementTicket[todayAccountantSettlementTicket.length - 1].updatedAt // Assuming updatedAt field provides the last settled time
+               LastSettledTicketUpdatedAt: accountantSettlementTickets[accountantSettlementTickets.length - 1].updatedAt // Assuming updatedAt field provides the last settled time
           };
 
-          return res.status(200).json({ message: 'Here is the accountant stats.', result: response });
+          return res.status(200).json({
+               message: responses.message[language].accountantStats,
+               result: response
+          });
 
      } catch (error) {
           console.error('Error getting the accountant stats.', error);
-          return res.status(500).json({ error: 'Error getting accountant stats from the server.' });
+          return res.status(500).json({ error: responses.error[language].serverError });
      }
 };
 

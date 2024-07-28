@@ -3,17 +3,18 @@ import ParkingTicket from '../models/parkingTicket.model.js';
 import mongoose from 'mongoose';
 import { isEmpty } from '../utils/helperFunctions.js';
 import SupervisorSettlementTicket from '../models/settlementTicket.model.js';
-
+import { responses } from '../utils/Translate/supervisor.response.js';
+import { getLanguage } from '../utils/helperFunctions.js';
 
 export const settleParkingTickets = async (req, res) => {
+     const language = getLanguage(req); // Get user's language preference
      const { supervisorID, cashComponent, cashCollected, totalCollection, totalCollectedAmount, TotalFine, TotalRewards } = req.body;
      const { parkingAssistantID } = req.params;
-     console.log("parkingAssistantID ", parkingAssistantID);
-     try {
 
+     try {
           if (isEmpty(cashComponent)) {
                return res.status(400).json({
-                    error: 'Cash components are required.'
+                    error: responses.errors[language].cashComponentsRequired
                });
           }
 
@@ -28,38 +29,35 @@ export const settleParkingTickets = async (req, res) => {
 
           if (existingTicketToday) {
                return res.status(200).json({
-                    message: 'Tickets already settled for today.',
+                    message: responses.messages[language].ticketsAlreadySettled,
                     result: { settlementId: existingTicketToday._id }
                });
           }
 
-          // Proceed with the existing logic to settle tickets if no ticket was settled today
-
           // Validate cash amount and total
-          const calculatedTotalCash = cashComponent.reduce((total, key) => total + +key.denomination * +key.count, 0)
-          // Object.keys(CashComponent).reduce((total, key) => key !== "Total" ? total + parseInt(key) * CashComponent[key] : total, 0);
+          const calculatedTotalCash = cashComponent.reduce((total, key) => total + +key.denomination * +key.count, 0);
           if (cashCollected !== calculatedTotalCash) {
                return res.status(400).json({
-                    error: "Please check cash amount and it's total.",
+                    error: responses.errors[language].cashAmountMismatch,
                     result: {
                          expectedAmount: cashComponent["Total"],
-                         recivedAmount: calculatedTotalCash
+                         receivedAmount: calculatedTotalCash
                     }
                });
           }
 
           // Check eligibility for rewards based on total collection and fines
           if ((totalCollection - TotalFine) < 2000 && TotalRewards > 0) {
-               return res.status(400).json({ error: 'Not eligible for rewards.' });
+               return res.status(400).json({ error: responses.errors[language].notEligibleForRewards });
           }
           if ((totalCollection - TotalFine) >= 2000 && TotalRewards !== 200) {
-               return res.status(400).json({ error: 'Please check reward amount.' });
+               return res.status(400).json({ error: responses.errors[language].incorrectRewardAmount });
           }
 
           // Find the parking assistant
           const findAssistant = await User.findById(parkingAssistantID);
           if (isEmpty(findAssistant)) {
-               return res.status(404).json({ error: 'Assistant not found. Please check the ID.' });
+               return res.status(404).json({ error: responses.errors[language].assistantNotFound });
           }
 
           // Aggregate pipeline to calculate totals for unsettled tickets
@@ -78,21 +76,15 @@ export const settleParkingTickets = async (req, res) => {
 
           // Execute aggregation to get unsettled tickets totals
           let ticketsToUpdate = await ParkingTicket.aggregate(pipeline);
-
           ticketsToUpdate = isEmpty(ticketsToUpdate) ? {
                TotalAmount: 0, TotalCash: 0, TotalOnline: 0
-          } : ticketsToUpdate[0]
-
-          console.log("tickets To Update ", ticketsToUpdate);
-
-          console.log("totalCollectedAmount ", totalCollectedAmount, "ticketsToUpdate.TotalCash - (TotalFine + TotalRewards) ", ticketsToUpdate.TotalCash, (TotalFine + TotalRewards));
-
+          } : ticketsToUpdate[0];
 
           if (totalCollectedAmount != (ticketsToUpdate.TotalCash - (TotalFine + TotalRewards))) {
                return res.status(404).json({
-                    error: 'Collected amount is not same as cash amount after giving reward and fine.',
+                    error: responses.errors[language].collectedAmountMismatch,
                     result: {
-                         recivedAmount: totalCollectedAmount,
+                         receivedAmount: totalCollectedAmount,
                          expectedAmount: ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)
                     }
                });
@@ -100,9 +92,9 @@ export const settleParkingTickets = async (req, res) => {
 
           if ((ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) > 0 && (ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) > calculatedTotalCash) {
                return res.status(404).json({
-                    error: "Please check cash collection amount it's less then expected.",
+                    error: responses.errors[language].cashCollectionLessThanExpected,
                     result: {
-                         recivedCashAmount: calculatedTotalCash,
+                         receivedCashAmount: calculatedTotalCash,
                          expectedCashAmount: ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)
                     }
                });
@@ -110,9 +102,9 @@ export const settleParkingTickets = async (req, res) => {
 
           if ((ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) > 0 && (ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)) < calculatedTotalCash) {
                return res.status(404).json({
-                    error: "Please check cash collection amount it's greater then expected.",
+                    error: responses.errors[language].cashCollectionMoreThanExpected,
                     result: {
-                         recivedCashAmount: calculatedTotalCash,
+                         receivedCashAmount: calculatedTotalCash,
                          expectedCashAmount: ticketsToUpdate.TotalCash - (TotalFine + TotalRewards)
                     }
                });
@@ -165,12 +157,16 @@ export const settleParkingTickets = async (req, res) => {
           );
 
           // Return success response
-          return res.json({ message: 'Tickets settled successfully.', result: { settlementId: savedSettlement._id } });
+          return res.json({
+               message: responses.messages[language].ticketsSettledSuccessfully,
+               result: { settlementId: savedSettlement._id }
+          });
      } catch (error) {
           console.error(error);
-          return res.status(500).json({ error: 'Internal server error.' });
+          return res.status(500).json({ error: responses.errors[language].internalServerError });
      }
 };
+
 
 export const getParkingAssistantsOld = async (req, res) => {
      const { supervisorID } = req.params;
@@ -274,12 +270,13 @@ export const getParkingAssistantsOld = async (req, res) => {
 export const getParkingAssistants = async (req, res) => {
      const { supervisorID } = req.params;
      const { queryParam, shiftID, page = 1, pageSize = 10 } = req.query; // Extract query parameters including pagination
+     const language = getLanguage(req); // Fallback to English if language is not set
 
      try {
           // Find the supervisor by ID
           const supervisor = await User.findById(supervisorID);
           if (!supervisor) {
-               return res.status(404).json({ error: 'Supervisor not found' });
+               return res.status(404).json({ error: responses.errors[language].supervisorNotFound });
           }
 
           // Construct the base query to find assistants by supervisor code
@@ -332,7 +329,18 @@ export const getParkingAssistants = async (req, res) => {
 
           // If no assistants match the query, return an empty array
           if (assistants.length === 0) {
-               return res.json({ message: 'No assistants found', result: { assistants: [], pagination: { totalCount: 0, totalPages: 0, currentPage: parseInt(page), pageSize: parseInt(pageSize) } } });
+               return res.json({
+                    message: responses.messages[language].noAssistantsFound,
+                    result: {
+                         assistants: [],
+                         pagination: {
+                              totalCount: 0,
+                              totalPages: 0,
+                              currentPage: parseInt(page),
+                              pageSize: parseInt(pageSize)
+                         }
+                    }
+               });
           }
 
           // Iterate through assistants and fetch amountToCollect for each
@@ -383,12 +391,24 @@ export const getParkingAssistants = async (req, res) => {
           // Calculate total pages based on pageSize
           const totalPages = Math.ceil(totalCount / parseInt(pageSize));
 
-          return res.json({ message: 'Here is all your parking assistant list', result: { assistants, pagination: { totalCount, totalPages, currentPage: parseInt(page), pageSize: parseInt(pageSize) } } });
+          return res.json({
+               message: responses.messages[language].assistantsFetchedSuccessfully,
+               result: {
+                    assistants,
+                    pagination: {
+                         totalCount,
+                         totalPages,
+                         currentPage: parseInt(page),
+                         pageSize: parseInt(pageSize)
+                    }
+               }
+          });
      } catch (error) {
-          console.error("Error getting parking assistance ", error);
-          return res.status(500).json({ error: 'Server Error' });
+          console.error("Error getting parking assistants ", error);
+          return res.status(500).json({ error: responses.errors[language].internalServerError });
      }
 };
+
 
 
 // export const getAllSettlementTickets = async (req, res) => {
@@ -398,12 +418,11 @@ export const getParkingAssistants = async (req, res) => {
 export const getAllSettlementTickets = async (req, res) => {
      const { supervisorID } = req.params;
      const { page = 1, pageSize = 10, startDate, endDate, searchQuery } = req.query;
+     const language = getLanguage(req); // Fallback to English if language is not set
 
-     console.log("pageSize  ", pageSize);
      try {
-          console.log("supervisorID ", supervisorID);
-          if (isEmpty(supervisorID)) {
-               return res.status(404).json({ error: 'No supervisor id provided. Please check again.' });
+          if (!supervisorID) {
+               return res.status(404).json({ error: responses.errors[language].supervisorIdNotFound });
           }
 
           const query = {
@@ -417,8 +436,7 @@ export const getAllSettlementTickets = async (req, res) => {
                     dateRange.$gte = new Date(startDate);
                }
                if (endDate) {
-                    const end = new Date(new Date(endDate).setHours(0o0, 0o0, 0o0));
-                    console.log("End ", end);
+                    const end = new Date(new Date(endDate).setHours(23, 59, 59, 999)); // End of the day
                     dateRange.$lte = end;
                }
                query.createdAt = dateRange;
@@ -429,24 +447,22 @@ export const getAllSettlementTickets = async (req, res) => {
                { $match: query },
                {
                     $lookup: {
-                         from: 'users', // Collection name
-                         localField: 'accountantId', // Field in the tickets collection
-                         foreignField: '_id', // Field in the accountants collection
+                         from: 'users',
+                         localField: 'accountantId',
+                         foreignField: '_id',
                          as: 'accountantDetails'
                     }
                },
                { $unwind: { path: '$accountantDetails', preserveNullAndEmptyArrays: true } },
                {
                     $lookup: {
-                         from: 'users', // Collection name
-                         localField: 'parkingAssistant', // Field in the tickets collection
-                         foreignField: '_id', // Field in the accountants collection
+                         from: 'users',
+                         localField: 'parkingAssistant',
+                         foreignField: '_id',
                          as: 'parkingAssistantDetails'
                     }
                },
-
                { $unwind: { path: '$parkingAssistantDetails', preserveNullAndEmptyArrays: true } },
-
                {
                     $project: {
                          _id: 1,
@@ -457,7 +473,6 @@ export const getAllSettlementTickets = async (req, res) => {
                          createdAt: 1,
                          accountantName: { $ifNull: ['$accountantDetails.name', 'Unknown'] },
                          parkingAssistantName: { $ifNull: ['$parkingAssistantDetails.name', 'Unknown'] },
-                         // Add other fields as needed
                     }
                },
                ...(searchQuery ? [{
@@ -469,11 +484,9 @@ export const getAllSettlementTickets = async (req, res) => {
                     }
                }] : [])
           ];
-          console.log('pipeline ', pipeline);
 
           // Calculate totals for totalCollectedAmount and totalFine
           const totals = await SupervisorSettlementTicket.aggregate([
-               // { $match: query },
                ...pipeline,
                {
                     $group: {
@@ -482,7 +495,6 @@ export const getAllSettlementTickets = async (req, res) => {
                          totalCollectedAmount: { $sum: '$totalCollectedAmount' },
                          totalFine: { $sum: '$totalFine' },
                          totalReward: { $sum: '$totalReward' },
-
                     }
                }
           ]);
@@ -503,48 +515,34 @@ export const getAllSettlementTickets = async (req, res) => {
                { $limit: parseInt(pageSize) }
           ]);
 
-          console.log("Result ", result.length);
-          if (isEmpty(result)) {
-               return res.status(200).json({ message: 'No settlement tickets found for this supervisor.', result: [] });
-          } else {
-               // Pagination logic to determine next and previous pages
-               let nextPage = null;
-               let prevPage = null;
-
-               if (page < totalPages) {
-                    nextPage = {
-                         page: parseInt(page) + 1,
-                         pageSize: parseInt(pageSize),
-                    };
-               }
-
-               if (page > 1) {
-                    prevPage = {
-                         page: parseInt(page) - 1,
-                         pageSize: parseInt(pageSize),
-                    };
-               }
-
-               // Prepare response object with tickets, pagination details, and totalCount
-               const response = {
-                    tickets: result,
-                    pagination: {
-                         totalCount: totalCount.length > 0 ? totalCount[0].totalCount : 0,
-                         totalPages,
-                         nextPage,
-                         prevPage,
-                    },
-                    stats: totals.length > 0 ? totals[0] : { totalCollection: 0, totalCollectedAmount: 0, totalFine: 0, totalReward: 0 },
-               };
-
-               return res.status(200).json({ message: 'Here is the settlement ticket list.', result: response });
+          if (result.length === 0) {
+               return res.status(200).json({ message: responses.messages[language].noSettlementTicketsFound, result: [] });
           }
+
+          // Pagination logic to determine next and previous pages
+          const nextPage = page < totalPages ? { page: parseInt(page) + 1, pageSize: parseInt(pageSize) } : null;
+          const prevPage = page > 1 ? { page: parseInt(page) - 1, pageSize: parseInt(pageSize) } : null;
+
+          // Prepare response object with tickets, pagination details, and totals
+          const response = {
+               tickets: result,
+               pagination: {
+                    totalCount: totalCount.length > 0 ? totalCount[0].totalCount : 0,
+                    totalPages,
+                    nextPage,
+                    prevPage,
+               },
+               stats: totals.length > 0 ? totals[0] : { totalCollection: 0, totalCollectedAmount: 0, totalFine: 0, totalReward: 0 },
+          };
+
+          return res.status(200).json({ message: responses.messages[language].settlementTicketsFetchedSuccessfully, result: response });
 
      } catch (error) {
           console.error("Error getting all tickets.", error);
-          return res.status(500).json({ error: error.message });
+          return res.status(500).json({ error: responses.errors[language].internalServerError });
      }
 };
+
 
 export const getAllSettlementTicketsOld = async (req, res) => {
      const { supervisorID } = req.params;
@@ -619,8 +617,9 @@ export const getAllSettlementTicketsOld = async (req, res) => {
 };
 
 export const getSupervisorStats = async (req, res) => {
-     const supervisorId = req.params.supervisorID; // Assuming supervisorId is passed in request params
-     console.log("supervisorId ", supervisorId);
+     const supervisorId = req.params.supervisorID;
+     const language = getLanguage(req); // Fallback to English if language is not set
+
      try {
           const statsPipeline = [
                {
@@ -650,11 +649,9 @@ export const getSupervisorStats = async (req, res) => {
                     .lean()
           ]);
 
-          console.log("stats  ", stats);
-
           if (!stats || stats.length === 0) {
                return res.status(200).json({
-                    message: 'No unseteled tickets found for the supervisor.',
+                    message: responses.messages[language].noUnsettledTicketsFound,
                     result: {
                          TotalCollection: 0,
                          TotalCollectedAmount: 0,
@@ -674,23 +671,33 @@ export const getSupervisorStats = async (req, res) => {
                TotalReward: stats[0]?.totalReward || 0,
                cashCollected: stats[0]?.cashCollected || 0,
                TotalTicketsCount: stats[0]?.totalTicketsCount || 0,
-               LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket?.updatedAt : null
+               LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
           };
 
-          return res.status(200).json({ message: "Here is supervisor stats.", result: supervisorStats });
+          return res.status(200).json({
+               message: responses.messages[language].supervisorStatsFetchedSuccessfully,
+               result: supervisorStats
+          });
      } catch (error) {
           console.error("Error getting the supervisor stats.", error);
-          return res.status(500).json({ error: error.message });
+          return res.status(500).json({ error: responses.errors[language].internalServerError });
      }
+};
 
-}
 
-export const getAllSuperVisors = async (req, resp) => {
+export const getAllSuperVisors = async (req, res) => {
+     const language = getLanguage(req); // Fallback to English if language is not set
+
      try {
-          const allSupervisors = await User.find({ role: "supervisor" }, { _id: 1, code: 1, name: 1 }).sort({ createdAt: -1 })
-          return resp.status(200).json({ message: "All supervisors list.", result: allSupervisors });
+          const allSupervisors = await User.find({ role: 'supervisor' }, { _id: 1, code: 1, name: 1 })
+               .sort({ createdAt: -1 });
+
+          return res.status(200).json({
+               message: responses.messages[language].allSupervisorsListFetchedSuccessfully,
+               result: allSupervisors
+          });
      } catch (error) {
-          console.error("Error getting the supervisor stats.", error);
-          return resp.status(500).json({ error: error.message });
+          console.error("Error getting all supervisors.", error);
+          return res.status(500).json({ error: responses.errors[language].internalServerError });
      }
-}
+};

@@ -12,6 +12,8 @@ import fs from "fs";
 import path from "path";
 // Controller to create a new parking ticket
 import NodeGeocoder from "node-geocoder";
+import { getLanguage } from "../utils/helperFunctions.js";
+import { responses } from "../utils/Translate/parkingTicket.response.js";
 
 export const createParkingTicket = async (req, res) => {
   try {
@@ -36,6 +38,8 @@ export const createParkingTicket = async (req, res) => {
 
     console.log("Body ", req.body);
     const { userId } = req.headers;
+    const language = getLanguage(req);
+
     // Check if there is an assistant with the provided phone number and role
 
     console.log("userid  ", userId);
@@ -49,9 +53,8 @@ export const createParkingTicket = async (req, res) => {
     });
 
     if (existingTicket) {
-      return res.status(400).json({
-        error:
-          "A ticket for this vehicle was already created within the last 30 minutes.",
+      return res.status(200).json({
+        message: responses.messages[language].ticketAlreadyAvailable,
       });
     }
 
@@ -80,7 +83,7 @@ export const createParkingTicket = async (req, res) => {
       if (paymentMode == "Online") {
         return res
           .status(200)
-          .json({ message: "OnlineTransactionId required in online payment" });
+          .json({ message: responses.messages[language].onlineTransaction });
       }
     } else {
       newTicket.onlineTransactionId = onlineTransactionId;
@@ -113,7 +116,7 @@ export const createParkingTicket = async (req, res) => {
 
     return res
       .status(200)
-      .json({ message: "Parking ticket created", result: savedTicket });
+      .json({ message: responses.messages[language].ticketCreated, result: savedTicket });
   } catch (error) {
     if (error.name === "ValidationError") {
       // Mongoose validation error
@@ -127,14 +130,18 @@ export const createParkingTicket = async (req, res) => {
 // controller to get ticket details
 export const getVehicleTypeDetail = async (req, res) => {
   try {
+    const language = getLanguage(req);
     const parkingTicket = await ParkingTicket.findById(req.params.id);
-    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${
-      parkingTicket.image
-    }`;
+    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${parkingTicket.image
+      }`;
     if (!parkingTicket)
-      return res.status(404).json({ error: "Parking ticket not found" });
+      return res.status(404).json({
+        error: responses.errors[language].ticketNotFound
+        // "Parking ticket not found"
+      });
     return res.json({
-      message: "All vehicals details list.",
+      message: responses.messages[language].vehicalList,
+      // "All vehicals details list.",
       result: parkingTicket,
     });
   } catch (error) {
@@ -145,6 +152,7 @@ export const getVehicleTypeDetail = async (req, res) => {
 // Confirm payment details if the payment is cussessful.
 export const updatePaymentStatusOnline = async (req, res) => {
   try {
+    const language = getLanguage(req);
     console.log("Update order status", req.body);
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body;
@@ -180,9 +188,12 @@ export const updatePaymentStatusOnline = async (req, res) => {
 
       return res
         .status(200)
-        .json({ message: "Payment completed successfully" });
+        .json({
+          message: responses.messages[language].onlinePaymentCompleted,
+          // "Payment completed successfully"
+        });
     } else {
-      return res.status(404).json({ error: "Signature does not match." });
+      return res.status(404).json({ error: responses.errors[language].wrongSignature });
     }
   } catch (error) {
     console.error("Error:", error);
@@ -193,6 +204,8 @@ export const updatePaymentStatusOnline = async (req, res) => {
 // Generate order to accept the paymetns
 export const generatePaymentForTicket = async (req, res) => {
   try {
+    const language = getLanguage(req);
+
     const { amount } = req.body;
     const orderPaymentDetails = await generatePayment(amount);
     if (orderPaymentDetails.success) {
@@ -202,14 +215,18 @@ export const generatePaymentForTicket = async (req, res) => {
       } = orderPaymentDetails;
       console.log(" amount, id ", amount, id);
       return res.status(200).json({
-        message: "Order generated for the ticket.",
+        message: responses.messages[language].orderGenerated,
+        // "Order generated for the ticket.",
         result: { id, amount, reference_id },
       });
     } else {
       console.error("Error message creating payment.", orderPaymentDetails);
       return res
         .status(500)
-        .json({ error: "Payment not generated please try again." });
+        .json({
+          error: responses.errors[language].paymentNotGenerated,
+          // "Payment not generated please try again."
+        });
     }
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -219,6 +236,8 @@ export const generatePaymentForTicket = async (req, res) => {
 // Controller to get all parking tickets with pagination
 export const getParkingTickets = async (req, res) => {
   try {
+    const language = getLanguage(req);
+
     const { page = 1, pageSize = 10 } = req.query;
 
     // Parse page and pageSize into integers
@@ -273,7 +292,11 @@ export const getParkingTickets = async (req, res) => {
     // Return successful response with status 200
     return res
       .status(200)
-      .json({ message: "Here is the parking tickets list", result: response });
+      .json({
+        message: responses.messages[language].ticketList,
+        // "Here is the parking tickets list",
+        result: response
+      });
   } catch (error) {
     // Handle errors and return status 500 with error message
     return res.status(500).json({ error: error.message });
@@ -283,6 +306,7 @@ export const getParkingTickets = async (req, res) => {
 // Controller to get all the non settle tickets
 export const getTicketsByAssistantId = async (req, res) => {
   const phoneNumber = req.params.assistantId;
+  const language = getLanguage(req);
 
   try {
     // Query to find all tickets where parkingAssistant's phoneNumber matches
@@ -302,7 +326,8 @@ export const getTicketsByAssistantId = async (req, res) => {
     });
 
     return res.json({
-      message: "here is the all parking tickets for you.",
+      message: responses.messages[language].ticketList,
+        // "here is the all parking tickets for you.",
       result: {
         totalCount,
         totalCost,
@@ -317,6 +342,7 @@ export const getTicketsByAssistantId = async (req, res) => {
 // Controller to get all the non settle tickets
 export const getTicketsStatsByAssistantId = async (req, res) => {
   const phoneNumber = req.params.assistantId;
+  const language = getLanguage(req);
 
   try {
     const pipeline = [
@@ -350,7 +376,8 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
 
     // Return the results
     res.json({
-      message: "Here is the ticket stats",
+      message:responses.messages[language].ticketList,
+        // "Here is the ticket stats",
       result:
         results.length > 0
           ? results[0]
@@ -364,6 +391,7 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
 // Controller to get a single parking ticket by PhoneNumer or VehicalNumber
 export const getParkingTicketByQuery = async (req, res) => {
   const param = req.params.query;
+  const language = getLanguage(req);
 
   console.log("Params ", param);
   // Regex patterns for validation
@@ -387,11 +415,15 @@ export const getParkingTicketByQuery = async (req, res) => {
     // .populate('supervisor', 'name'); // Populate supervisor with 'name' field
 
     if (isEmpty(ticket)) {
-      return res.status(404).json({ error: "Parking ticket not found" });
+      return res.status(404).json({
+        error: responses.errors[language].ticketNotFound,
+          // "Parking ticket not found"
+      });
     }
 
     return res.json({
-      message: "Here is all the matched results",
+      message: responses.messages[language].ticketList,
+        // "Here is all the matched results",
       result: ticket,
     });
   } catch (error) {
@@ -402,15 +434,24 @@ export const getParkingTicketByQuery = async (req, res) => {
 // Controller to update a parking ticket by ID
 export const updateParkingTicketById = async (req, res) => {
   try {
+    const language = getLanguage(req);
+
     const updatedTicket = await ParkingTicket.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
     );
     if (!updatedTicket) {
-      return res.status(404).json({ error: "Parking ticket not found" });
+      return res.status(404).json({
+        error: responses.errors[language].ticketNotFound,
+          // "Parking ticket not found"
+      });
     }
-    return res.json({ message: "Tickets updated.", result: updatedTicket });
+    return res.json({
+      message: responses.messages[language].ticketUpdated,
+        // "Tickets updated.",
+      result: updatedTicket
+    });
   } catch (error) {
     if (error.name === "ValidationError") {
       // Mongoose validation error
@@ -424,13 +465,23 @@ export const updateParkingTicketById = async (req, res) => {
 // Controller to delete a parking ticket by ID
 export const deletePaymentOrderById = async (req, res) => {
   try {
+    const language = getLanguage(req);
+
     const deletedTicket = await Transaction.findByIdAndDelete(req.params.id);
     if (!deletedTicket) {
       return res
         .status(404)
-        .json({ error: "Parking payment ticket not found" });
+        .json({
+          error: responses.errors[language].ticketNotFound,
+            // "Parking payment ticket not found"
+        });
     }
-    return res.json({ message: "Parking payment ticket deleted successfully" });
+    return res.json({
+      message: responses.messages[language].deleteTicekt,
+
+        // "Parking payment ticket deleted successfully"
+    });
+
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -439,11 +490,19 @@ export const deletePaymentOrderById = async (req, res) => {
 // Controller to delete a parking ticket by ID
 export const deleteParkingTicketById = async (req, res) => {
   try {
+    const language = getLanguage(req);
+
     const deletedTicket = await ParkingTicket.findByIdAndRemove(req.params.id);
     if (!deletedTicket) {
-      return res.status(404).json({ error: "Parking ticket not found" });
+      return res.status(404).json({
+          error: responses.errors[language].ticketNotFound,
+          // "Parking ticket not found"
+      });
     }
-    return res.json({ message: "Parking ticket deleted successfully" });
+    return res.json({
+      message: responses.messages[language].deleteTicket,
+        // "Parking ticket deleted successfully"
+    });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -452,6 +511,7 @@ export const deleteParkingTicketById = async (req, res) => {
 export const uploadTicketImage = async (req, res) => {
   try {
     const file = req.file;
+    const language = getLanguage(req);
 
     console.log("userid,  file", file);
 
@@ -473,6 +533,7 @@ export const uploadTicketImage = async (req, res) => {
 export const deleteTicketImage = async (req, res) => {
   const filename = req.params.filename;
   const imagePath = path.join(__dirname, "..", "images", "tickets", filename);
+  const language = getLanguage(req);
 
   try {
     const myPromise = new Promise((resolve, reject) => {
@@ -500,8 +561,11 @@ export const deleteTicketImage = async (req, res) => {
     res.status(500).json({ error: error });
   }
 };
+
 export const getAllTickets = async (req, res) => {
   try {
+    const language = getLanguage(req);
+
     const { search = "" } = req.query;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
@@ -532,8 +596,11 @@ export const getAllTickets = async (req, res) => {
     res.status(500).json({ message: err });
   }
 };
+
 export const getTicketLocation = async (req, res) => {
   try {
+    const language = getLanguage(req);
+
     const { lat, lon } = req.query;
 
     var options = {

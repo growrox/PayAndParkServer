@@ -2,103 +2,109 @@ import VehicleType from "../models/vehicleType.model.js"; // Assuming your model
 import path from "path";
 import { __dirname } from "../utils/helperFunctions.js";
 import fs from "fs";
+import { getLanguage } from "../utils/helperFunctions.js";
+import { responses } from "../utils/Translate/vehicalType.response.js";
 
 export const createVehicleType = async (req, res) => {
+  const language = getLanguage(req);
   try {
     const { name } = req.body;
-    const hourlyPrices = JSON.parse(req.body.hourlyPrices); // Parse hourlyPrices from JSON string to array of objects
+    const hourlyPrices = JSON.parse(req.body.hourlyPrices);
     const imageUrl = req.file
       ? `/images/${req.params.folderName}/${req.file.filename}`
-      : ""; // Generate the URL based on the saved path
-    // name.trim.
-    console.log({ imageUrl });
-    console.log({ name, imageUrl, hourlyPrices });
+      : "";
+
     const newVehicleType = new VehicleType({
       name,
       image: imageUrl,
       hourlyPrices,
     });
     await newVehicleType.save();
-    return res
-      .status(201)
-      .json({ message: "New vehical type created.", result: newVehicleType });
+    return res.status(201).json({
+      message: responses.messages[language ].vehicleTypeCreatedSuccessfully,
+      result: newVehicleType
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: responses.errors[language ].internalServerError });
   }
 };
 
 export const getAllVehicleType = async (req, res) => {
+  const language = getLanguage(req);
+
   try {
     const vehicleTypes = await VehicleType.find({});
-
-    // Construct the full URL for each image
     const vehicleTypesWithImageUrl = vehicleTypes.map((vehicleType) => ({
-      ...vehicleType._doc, // Spread the document to include all other fields
-      image: `${req.protocol}://${req.get("host")}/api/v1/${vehicleType.image}`, // Construct the full image URL
+      ...vehicleType._doc,
+      image: `${req.protocol}://${req.get("host")}/api/v1/${vehicleType.image}`,
     }));
 
-    return res.json({
-      message: "All vehicle types list.",
-      result: vehicleTypesWithImageUrl,
+    return res.status(200).json({
+      message: responses.messages[language ].allVehicleTypesList,
+      result: vehicleTypesWithImageUrl
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: responses.errors[language ].internalServerError });
   }
 };
 
 export const serveImage = (req, res) => {
+  const language = getLanguage(req);
+
   try {
     const { imageName, folderName } = req.params;
     const imagePath = path.join(__dirname, "../images/", folderName, imageName);
     return res.sendFile(imagePath, (err) => {
       if (err) {
-        res.status(404).json({ error: "Image not found" });
+        return res.status(404).json({ error: responses.errors[language ].imageNotFound });
       }
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).send({ error: error });
+    return res.status(500).json({ error: responses.errors[language].internalServerError });
   }
 };
 
 export const getVehicleTypeDetail = async (req, res) => {
+  const language = getLanguage(req);
+
   try {
     const vehicleType = await VehicleType.findById(req.params.id);
-    vehicleType.image = `${req.protocol}://${req.get("host")}/api/v1/${
-      vehicleType.image
-    }`;
-    if (!vehicleType)
-      return res.status(404).json({ error: "Vehicle type not found" });
-    return res.json({
-      message: "All vehicals details list.",
-      result: vehicleType,
+    if (!vehicleType) {
+      return res.status(404).json({ error: responses.errors[language ].vehicleTypeNotFound });
+    }
+
+    vehicleType.image = `${req.protocol}://${req.get("host")}/api/v1/${vehicleType.image}`;
+    return res.status(200).json({
+      message: responses.messages[language ].vehicleTypeDetail,
+      result: vehicleType
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: responses.errors[language ].internalServerError });
   }
 };
 
 export const updateVehicleType = async (req, res) => {
+  const language = getLanguage(req);
+
   try {
     const { name } = req.body;
-    const hourlyPrices = JSON.parse(req.body.hourlyPrices); // Parse hourlyPrices from JSON string to array of objects
+    const hourlyPrices = JSON.parse(req.body.hourlyPrices);
+    const newImage = req.file ? `images/vehicle-type/${req.file.filename}` : null;
 
-    const newImage = req.file ? `images/vehicle-type/${req.file.filename}` : null; // New image path if uploaded
     const vehicleType = await VehicleType.findById(req.params.id);
     if (!vehicleType) {
-      return res.status(404).json({ error: "Vehicle type not found" });
+      return res.status(404).json({ error: responses.errors[language ].vehicleTypeNotFound });
     }
 
-    // If there is a new image, remove the old image from the server
     if (newImage && vehicleType.image) {
       const oldImagePath = path.join(__dirname, "..", vehicleType.image);
       fs.unlink(oldImagePath, (err) => {
-        console.log(`Failed to delete old image: ${err}`);
-        // if (err) throw new Error(`Failed to delete old image: ${err.message}`);
+        if (err) {
+          console.log(`Failed to delete old image: ${err}`);
+        }
       });
     }
 
-    // Update vehicle type fields
     vehicleType.name = name;
     vehicleType.hourlyPrices = hourlyPrices;
     if (newImage) {
@@ -106,33 +112,36 @@ export const updateVehicleType = async (req, res) => {
     }
 
     await vehicleType.save();
-    return res.json({ message: "Vehicle type updated.", result: vehicleType });
+    return res.status(200).json({
+      message: responses.messages[language ].vehicleTypeUpdatedSuccessfully,
+      result: vehicleType
+    });
   } catch (error) {
-    res.status(500).json({ error: error });
+    return res.status(500).json({ error: responses.errors[language ].internalServerError });
   }
 };
 
 export const deleteVehicleType = async (req, res) => {
+  const language = getLanguage(req);
+
   try {
-    console.log({ id: req.params.id });
     const vehicleType = await VehicleType.findById(req.params.id);
     if (!vehicleType) {
-      return res.status(404).json({ error: "Vehicle type not found" });
+      return res.status(404).json({ error: responses.errors[language ].vehicleTypeNotFound });
     }
 
-    // Remove the associated image file
     if (vehicleType.image) {
       const imagePath = path.join(__dirname, "../", vehicleType.image);
       fs.unlink(imagePath, (err) => {
-        console.log(`Failed to delete old image: ${err}`);
+        if (err) {
+          console.log(`Failed to delete image: ${err}`);
+        }
       });
     }
 
-    // Delete the vehicle type from the database
     await VehicleType.findByIdAndDelete(req.params.id);
-
-    return res.json({ message: "Vehicle type deleted" });
+    return res.status(200).json({ message: responses.messages[language ].vehicleTypeDeletedSuccessfully });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: responses.errors[language ].internalServerError });
   }
 };
