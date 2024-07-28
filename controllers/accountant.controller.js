@@ -226,15 +226,15 @@ export const getAllSettlementTickets = async (req, res) => {
           if (startDate || endDate) {
                const dateRange = {};
                if (startDate) {
-                    dateRange.$gte = new Date(startDate);
+                    dateRange.$gte = moment.tz(new Date(startDate), 'Asia/Kolkata').startOf('day').clone().utc();
                }
                if (endDate) {
-                    const end = new Date(new Date(endDate).setHours(23, 59, 59, 999));
+                    const end = moment.tz(new Date(startDate), 'Asia/Kolkata').endOf('day').clone().utc();
                     dateRange.$lte = end;
                }
                query.createdAt = dateRange;
+               console.log("createdAt filter date ",query.createdAt)
           }
-
           // Aggregate pipeline
           const pipeline = [
                { $match: query },
