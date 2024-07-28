@@ -16,7 +16,7 @@ import { getLanguage } from "../utils/helperFunctions.js";
 export const createUser = async (req, res) => {
   const { name, phone, role, password, supervisorCode } = req.body;
   const source = req.headers["x-client-source"];
-  const language = getLanguage(req); // Fallback to English if language is not set
+  const language = getLanguage(req,responses); // Fallback to English if language is not set
 
   try {
     if (isEmpty(name)) {
@@ -124,7 +124,7 @@ export const createUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   const { phone, password } = req.body;
   const source = req.headers["x-client-source"];
-  const language = getLanguage(req) // Fallback to English if language is not set
+  const language = getLanguage(req,responses); // Fallback to English if language is not set
 
   try {
     if (source === "app") {
@@ -276,7 +276,7 @@ export const validateOTP = async (req, res) => {
 export const getUsers = async (req, res) => {
   const { page = 1, pageSize = 10, filter, role } = req.query;
   const query = {};
-  const language = getLanguage(req)
+  const language = getLanguage(req,responses);
 
   // Apply general filter to multiple fields if filter is not empty
   const orConditions = [];
@@ -376,7 +376,7 @@ export const getUsers = async (req, res) => {
 export const getUserById = async (req, res) => {
   const { phone } = req.params;
   console.log("Phone ", phone);
-  const language = getLanguage(req)
+  const language = getLanguage(req,responses);
   try {
     const user = await User.findOne(
       { phone },
@@ -410,7 +410,7 @@ export const getUserById = async (req, res) => {
 // GEt user status
 export const getUserStatus = async (req, res) => {
   const UserId = req.headers.userid;
-  const language = getLanguage(req)
+  const language = getLanguage(req,responses);
   try {
     const user = await User.findById(UserId, {
       name: 1,
@@ -442,7 +442,7 @@ export const getUserStatus = async (req, res) => {
 export const updateUser = async (req, res) => {
   const { id } = req.params;
   const { name, supervisorCode, shiftId } = req.body;
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
   try {
     const userAvailable = await User.findById(id);
 

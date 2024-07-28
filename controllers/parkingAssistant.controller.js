@@ -6,7 +6,7 @@ import { responses } from '../utils/Translate/assistant.response.js';
 
 // Create a new parking assistant
 export const createParkingAssistant = async (req, res) => {
-     const language = getLanguage(req);
+     const language = getLanguage(req,responses);
      try {
           const { name, supervisorCode, phone, email, address } = req.body;
           const newAssistant = new ParkingAssistant({ name, supervisorCode, phone, email, address });
@@ -19,7 +19,7 @@ export const createParkingAssistant = async (req, res) => {
 
 // Get all parking assistants
 export const getAllParkingAssistants = async (req, res) => {
-     const language = getLanguage(req);
+     const language = getLanguage(req,responses);
      try {
           const assistants = await ParkingAssistant.find();
           return res.json({ message: responses.messages[language].dataFetched, result: assistants });
@@ -30,7 +30,7 @@ export const getAllParkingAssistants = async (req, res) => {
 
 // Get a single parking assistant by ID
 export const getParkingAssistantById = async (req, res) => {
-     const language = getLanguage(req);
+     const language = getLanguage(req,responses);
      try {
           const assistant = await ParkingAssistant.findById(req.params.id);
           if (!assistant) {
@@ -44,7 +44,7 @@ export const getParkingAssistantById = async (req, res) => {
 
 // Update a parking assistant by ID
 export const updateParkingAssistant = async (req, res) => {
-     const language = getLanguage(req);
+     const language = getLanguage(req,responses);
      try {
           const { name, supervisorCode, phone } = req.body;
           const updatedAssistant = await ParkingAssistant.findByIdAndUpdate(
@@ -63,7 +63,7 @@ export const updateParkingAssistant = async (req, res) => {
 
 // Delete a parking assistant by ID
 export const deleteParkingAssistant = async (req, res) => {
-     const language = getLanguage(req);
+     const language = getLanguage(req,responses);
      try {
           const deletedAssistant = await ParkingAssistant.findByIdAndDelete(req.params.id);
           if (!deletedAssistant) {
@@ -77,7 +77,7 @@ export const deleteParkingAssistant = async (req, res) => {
 
 // Get the stats of the tickets for the assistant
 export const getTicketsStatsByAssistantId = async (req, res) => {
-     const language = getLanguage(req);
+     const language = getLanguage(req,responses);
      const parkingAssistant = req.headers.userid;
      try {
           const pipeline = [
@@ -129,7 +129,7 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
 
 // Controller function to fetch tickets
 export const getTickets = async (req, res) => {
-     const language = getLanguage(req);
+     const language = getLanguage(req,responses);
      try {
           let { page, userid } = req.headers;
           let { searchQuery } = req.query;

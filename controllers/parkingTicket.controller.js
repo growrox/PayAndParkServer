@@ -38,7 +38,7 @@ export const createParkingTicket = async (req, res) => {
 
     console.log("Body ", req.body);
     const { userId } = req.headers;
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
 
     // Check if there is an assistant with the provided phone number and role
 
@@ -130,7 +130,7 @@ export const createParkingTicket = async (req, res) => {
 // controller to get ticket details
 export const getVehicleTypeDetail = async (req, res) => {
   try {
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
     const parkingTicket = await ParkingTicket.findById(req.params.id);
     parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${parkingTicket.image
       }`;
@@ -152,7 +152,7 @@ export const getVehicleTypeDetail = async (req, res) => {
 // Confirm payment details if the payment is cussessful.
 export const updatePaymentStatusOnline = async (req, res) => {
   try {
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
     console.log("Update order status", req.body);
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body;
@@ -204,7 +204,7 @@ export const updatePaymentStatusOnline = async (req, res) => {
 // Generate order to accept the paymetns
 export const generatePaymentForTicket = async (req, res) => {
   try {
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
 
     const { amount } = req.body;
     const orderPaymentDetails = await generatePayment(amount);
@@ -236,7 +236,7 @@ export const generatePaymentForTicket = async (req, res) => {
 // Controller to get all parking tickets with pagination
 export const getParkingTickets = async (req, res) => {
   try {
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
 
     const { page = 1, pageSize = 10 } = req.query;
 
@@ -306,7 +306,7 @@ export const getParkingTickets = async (req, res) => {
 // Controller to get all the non settle tickets
 export const getTicketsByAssistantId = async (req, res) => {
   const phoneNumber = req.params.assistantId;
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
 
   try {
     // Query to find all tickets where parkingAssistant's phoneNumber matches
@@ -342,7 +342,7 @@ export const getTicketsByAssistantId = async (req, res) => {
 // Controller to get all the non settle tickets
 export const getTicketsStatsByAssistantId = async (req, res) => {
   const phoneNumber = req.params.assistantId;
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
 
   try {
     const pipeline = [
@@ -391,7 +391,7 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
 // Controller to get a single parking ticket by PhoneNumer or VehicalNumber
 export const getParkingTicketByQuery = async (req, res) => {
   const param = req.params.query;
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
 
   console.log("Params ", param);
   // Regex patterns for validation
@@ -434,7 +434,7 @@ export const getParkingTicketByQuery = async (req, res) => {
 // Controller to update a parking ticket by ID
 export const updateParkingTicketById = async (req, res) => {
   try {
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
 
     const updatedTicket = await ParkingTicket.findByIdAndUpdate(
       req.params.id,
@@ -465,7 +465,7 @@ export const updateParkingTicketById = async (req, res) => {
 // Controller to delete a parking ticket by ID
 export const deletePaymentOrderById = async (req, res) => {
   try {
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
 
     const deletedTicket = await Transaction.findByIdAndDelete(req.params.id);
     if (!deletedTicket) {
@@ -490,7 +490,7 @@ export const deletePaymentOrderById = async (req, res) => {
 // Controller to delete a parking ticket by ID
 export const deleteParkingTicketById = async (req, res) => {
   try {
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
 
     const deletedTicket = await ParkingTicket.findByIdAndRemove(req.params.id);
     if (!deletedTicket) {
@@ -511,7 +511,7 @@ export const deleteParkingTicketById = async (req, res) => {
 export const uploadTicketImage = async (req, res) => {
   try {
     const file = req.file;
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
 
     console.log("userid,  file", file);
 
@@ -533,7 +533,7 @@ export const uploadTicketImage = async (req, res) => {
 export const deleteTicketImage = async (req, res) => {
   const filename = req.params.filename;
   const imagePath = path.join(__dirname, "..", "images", "tickets", filename);
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
 
   try {
     const myPromise = new Promise((resolve, reject) => {
@@ -564,7 +564,7 @@ export const deleteTicketImage = async (req, res) => {
 
 export const getAllTickets = async (req, res) => {
   try {
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
 
     const { search = "" } = req.query;
     const page = Number(req.query.page) || 1;
@@ -599,7 +599,7 @@ export const getAllTickets = async (req, res) => {
 
 export const getTicketLocation = async (req, res) => {
   try {
-    const language = getLanguage(req);
+    const language = getLanguage(req,responses);
 
     const { lat, lon } = req.query;
 

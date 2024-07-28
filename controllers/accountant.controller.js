@@ -11,7 +11,7 @@ export const settleSupervisorTickets = async (req, res) => {
      const { accountantID, totalCollectedAmount } = req.body;
      const { supervisorID } = req.params;
      console.log("accountantID ", accountantID);
-     const language = getLanguage(req);
+     const language = getLanguage(req,responses);
      try {
           // Fetch non-settled parking tickets with paymentMode as Cash and matching parkingAssistantID
 
@@ -109,7 +109,7 @@ export const getSupervisors = async (req, res) => {
      const { searchQuery, page = 1, pageSize = 10 } = req.query; // Extract search query, page, and pageSize from query params
 
      // Determine language from headers, default to 'en'
-     const language = getLanguage(req);
+     const language = getLanguage(req, responses);
 
 
      try {
@@ -210,7 +210,7 @@ export const getAllSettlementTickets = async (req, res) => {
      const { accountantID } = req.params;
      const { page = 1, pageSize = 10, startDate, endDate, searchQuery } = req.query; // Extract page, pageSize, and searchQuery from query params
      console.log("pageSize  ", pageSize);
-     const language = getLanguage(req);
+     const language = getLanguage(req, responses);
 
      try {
           console.log("accountantID ", accountantID);
@@ -343,7 +343,7 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
      const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
 
      // Determine language from headers, default to 'en'
-     const language = getLanguage(req);
+     const language = getLanguage(req, responses);
 
 
      try {
@@ -412,7 +412,7 @@ export const getAccountantStats = async (req, res) => {
      const accountantID = req.params.accountantID;
 
      // Determine language from headers, default to 'en'
-     const language = getLanguage(req);
+     const language = getLanguage(req, responses);
 
      try {
           // Get the start and end of today in client's timezone (Asia/Kolkata)
@@ -496,7 +496,7 @@ export const getAccountantStatsBetweenTwoDates = async (req, res) => {
      const { startDate, endDate } = req.query;
 
      // Determine language from headers, default to 'en'
-     const language = getLanguage(req);
+     const language = getLanguage(req, responses);
 
      try {
           // Get the start and end dates in client's timezone (Asia/Kolkata)

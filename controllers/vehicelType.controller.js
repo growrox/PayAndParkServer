@@ -6,7 +6,7 @@ import { getLanguage } from "../utils/helperFunctions.js";
 import { responses } from "../utils/Translate/vehicalType.response.js";
 
 export const createVehicleType = async (req, res) => {
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
   try {
     const { name } = req.body;
     const hourlyPrices = JSON.parse(req.body.hourlyPrices);
@@ -30,7 +30,7 @@ export const createVehicleType = async (req, res) => {
 };
 
 export const getAllVehicleType = async (req, res) => {
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
 
   try {
     const vehicleTypes = await VehicleType.find({});
@@ -49,7 +49,7 @@ export const getAllVehicleType = async (req, res) => {
 };
 
 export const serveImage = (req, res) => {
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
 
   try {
     const { imageName, folderName } = req.params;
@@ -65,7 +65,7 @@ export const serveImage = (req, res) => {
 };
 
 export const getVehicleTypeDetail = async (req, res) => {
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
 
   try {
     const vehicleType = await VehicleType.findById(req.params.id);
@@ -84,7 +84,7 @@ export const getVehicleTypeDetail = async (req, res) => {
 };
 
 export const updateVehicleType = async (req, res) => {
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
 
   try {
     const { name } = req.body;
@@ -122,7 +122,7 @@ export const updateVehicleType = async (req, res) => {
 };
 
 export const deleteVehicleType = async (req, res) => {
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
 
   try {
     const vehicleType = await VehicleType.findById(req.params.id);

@@ -223,7 +223,7 @@ export function scheduleCronAfterMinutes(endTime, minutesToAdd) {
   return cronSchedule
 }
 
-export function getLanguage(req) {
+export function getLanguage(req, responses) {
   const lang = req.headers['client-language'] || 'en';
   return responses.message[lang] ? lang : 'en';
 };

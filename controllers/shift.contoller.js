@@ -4,7 +4,7 @@ import { responses } from "../utils/Translate/shift.response.js";
 import { getLanguage } from "../utils/helperFunctions.js";
 
 export const createShift = async (req, res) => {
-     const language = getLanguage(req); // Get user's language preference
+     const language = getLanguage(req,responses); // Get user's language preference
      try {
           const { name, startTime, endTime } = req.body;
 
@@ -36,7 +36,7 @@ export const createShift = async (req, res) => {
 };
 
 export const getShift = async (req, res) => {
-     const language = getLanguage(req); // Get user's language preference
+     const language = getLanguage(req,responses); // Get user's language preference
      try {
           const shift = await getShiftList();
           if (isEmpty(shift)) {
@@ -57,7 +57,7 @@ export const getShift = async (req, res) => {
 };
 
 export const updateShift = async (req, res) => {
-     const language = getLanguage(req); // Get user's language preference
+     const language = getLanguage(req,responses); // Get user's language preference
      const { id } = req.params;
      const { name, startTime, endTime } = req.body;
 

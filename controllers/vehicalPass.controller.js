@@ -5,7 +5,7 @@ import { responses } from "../utils/Translate/vehicalPass.response.js";
 
 
 export const createVehiclePass = async (req, res) => {
-  const language = getLanguage(req)
+  const language = getLanguage(req,responses);
   try {
     const {
       vehicleNo, phone, name, vehicleType, vehicleModel, vehicleColor, passExpiryDate, insuranceExpiryDate
@@ -54,7 +54,7 @@ export const createVehiclePass = async (req, res) => {
 
 // Example: Get all vehicle passes
 export const getAllVehiclePasses = async (req, res) => {
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -86,7 +86,7 @@ export const getAllVehiclePasses = async (req, res) => {
 // Example: Get vehicle pass by name, phone or vehicalNo
 export const getVehiclePass = async (req, res) => {
   const { filter } = req.params;
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
   try {
     const passes = await VehiclePass.find({
       $or: [
@@ -120,7 +120,7 @@ export const getVehiclePass = async (req, res) => {
 
 
 export const updateVehiclePass = async (req, res) => {
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
   const {
     vehicleNo, phone, name, vehicleType, vehicleModel, vehicleColor, passExpiryDate, insuranceExpiryDate
   } = req.body;
@@ -162,7 +162,7 @@ export const updateVehiclePass = async (req, res) => {
 
 // Example: Delete vehicle pass by pass_id
 export const deleteVehiclePass = async (req, res) => {
-  const language = getLanguage(req);
+  const language = getLanguage(req,responses);
   try {
     if (isEmpty(req.params.passId)) {
       return res.status(404).json({ error: responses.errors[language ].passIdNotFound });
