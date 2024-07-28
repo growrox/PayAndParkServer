@@ -79,24 +79,6 @@ app.use('/api/v1', VehicalPass);
 app.use("/api/v1", vehicleType);
 
 
-
-
-//Remove this code in production of liver server
-
-// ----------------------------
-
-// Define the cron job to run every 5 minutes
-cron.schedule('*/7 * * * *', () => {
-  console.log("Cron run --- ");
-}, {
-  scheduled: true,
-  timezone: 'Asia/Kolkata' // Adjust timezone as per your location
-});
-
-console.log('Cron job started.');
-
-//-----------
-
 function scheduleShiftCronJobs(shifts) {
   shifts.forEach(shift => {
     // Calculate the cron schedule time (15 minutes after the shift's end time)
@@ -107,10 +89,10 @@ function scheduleShiftCronJobs(shifts) {
     // Define the cron job task
 
     cron.schedule(cronTime, async () => {
-    // cron.schedule("1 2 * * *", async () => {
+      // cron.schedule("1 2 * * *", async () => {
 
       const loggedOutUsers = await AutoClockOutUser(shift._id)
-      console.log(`All users logged-out for the "${shift.name}" at ${cronTime}`);
+      console.log(`All users logged-out for the "${shift.name}" at ${cronTime} Date:- ${new Date()}`);
       // Perform your desired action here
     }, {
       scheduled: true,
