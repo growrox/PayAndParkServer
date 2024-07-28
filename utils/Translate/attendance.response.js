@@ -1,5 +1,5 @@
 export const responses = {
-     "message": {
+     "messages": {
           "en": {
                "clockInSuccess": "Clocked-In successfully. Hope you are doing well.",
                "clockOutSuccess": "Clocked-out successfully. See you tomorrow.",
@@ -19,7 +19,7 @@ export const responses = {
                "statusUnchanged": "स्थिती आधीच तीच आहे जी अद्यतन करण्यासाठी विनंती केली गेली होती."
           }
      },
-     "error": {
+     "errors": {
           "en": {
                "userNotFound": "User not found",
                "alreadyClockedOut": "User has already clocked out for today's shift",

@@ -14,7 +14,7 @@ export const clockIn = async (req, res) => {
   try {
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ error: responses.error[language].userNotFound });
+      return res.status(404).json({ error: responses.errors[language].userNotFound });
     }
 
     const currentDate = new Date();
@@ -24,7 +24,7 @@ export const clockIn = async (req, res) => {
       clockOutTime: { $gte: new Date(currentDate.setHours(0, 0, 0, 0)) },
     });
     if (existingAttendanceToday) {
-      return res.status(400).json({ error: responses.error[language].alreadyClockedOut });
+      return res.status(400).json({ error: responses.errors[language].alreadyClockedOut });
     }
 
     const existingClockIn = await Attendance.findOne({
@@ -33,12 +33,12 @@ export const clockIn = async (req, res) => {
       clockOutTime: { $exists: false },
     });
     if (existingClockIn) {
-      return res.status(400).json({ error: responses.error[language].alreadyClockedIn });
+      return res.status(400).json({ error: responses.errors[language].alreadyClockedIn });
     }
 
     const shift = await Shift.findById(user.shiftId);
     if (!shift) {
-      return res.status(404).json({ error: responses.error[language].shiftNotFound });
+      return res.status(404).json({ error: responses.errors[language].shiftNotFound });
     }
 
     const { shiftStartTime, shiftEndTime } = parseTime(shift.startTime, shift.endTime);
@@ -60,7 +60,7 @@ export const clockIn = async (req, res) => {
     );
 
     if (clockInTime < shiftStartDate || clockInTime > shiftEndDate) {
-      return res.status(400).json({ error: responses.error[language].clockInOutsideHours });
+      return res.status(400).json({ error: responses.errors[language].clockInOutsideHours });
     }
 
     const lateThreshold = new Date(shiftStartDate.getTime() + 45 * 60000);
@@ -73,10 +73,10 @@ export const clockIn = async (req, res) => {
       clockInTime,
       isLateToday,
     });
-    return res.status(200).json({ message: responses.message[language].clockInSuccess });
+    return res.status(200).json({ message: responses.messages[language].clockInSuccess });
   } catch (error) {
     console.error("Error: ", error);
-    return res.status(500).json({ error: responses.error[language].serverError });
+    return res.status(500).json({ error: responses.errors[language].serverError });
   }
 };
 
@@ -88,7 +88,7 @@ export const clockOut = async (req, res) => {
   try {
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ error: responses.error[language].userNotFound });
+      return res.status(404).json({ error: responses.errors[language].userNotFound });
     }
 
     const attendance = await Attendance.findOne({
@@ -97,7 +97,7 @@ export const clockOut = async (req, res) => {
       clockOutTime: { $exists: false },
     });
     if (!attendance) {
-      return res.status(400).json({ error: responses.error[language].notClockedIn });
+      return res.status(400).json({ error: responses.errors[language].notClockedIn });
     }
 
     const updatedAttendance = await Attendance.findOneAndUpdate(
@@ -107,13 +107,13 @@ export const clockOut = async (req, res) => {
     );
 
     if (!updatedAttendance) {
-      return res.status(404).json({ error: responses.error[language].attendanceNotFound });
+      return res.status(404).json({ error: responses.errors[language].attendanceNotFound });
     }
     await User.findByIdAndUpdate(userId, { isOnline: false });
 
-    return res.status(200).json({ message: responses.message[language].clockOutSuccess });
+    return res.status(200).json({ message: responses.messages[language].clockOutSuccess });
   } catch (error) {
-    return res.status(500).json({ error: responses.error[language].serverError });
+    return res.status(500).json({ error: responses.errors[language].serverError });
   }
 };
 
@@ -127,12 +127,12 @@ export const updateAttendance = async (req, res) => {
     const attendanceAvailable = await Attendance.findById(attendanceId);
 
     if (isEmpty(attendanceAvailable)) {
-      return res.status(404).json({ error: responses.error[language].attendanceNotFound });
+      return res.status(404).json({ error: responses.errors[language].attendanceNotFound });
     }
 
     if (attendanceAvailable.isLateToday == isLateToday) {
       return res.status(202).json({
-        message: responses.message[language].statusUnchanged,
+        message: responses.messages[language].statusUnchanged,
       });
     }
 
@@ -140,9 +140,9 @@ export const updateAttendance = async (req, res) => {
       isLateToday,
     });
 
-    return res.status(200).json({ message: responses.message[language].attendanceUpdated });
+    return res.status(200).json({ message: responses.messages[language].attendanceUpdated });
   } catch (error) {
-    return res.status(500).json({ error: responses.error[language].serverError });
+    return res.status(500).json({ error: responses.errors[language].serverError });
   }
 };
 
@@ -240,6 +240,6 @@ export const getAttendanceByMonth = async (req, res) => {
 
     res.status(200).json({ result: attendance });
   } catch (error) {
-    res.status(500).json({ message: responses.error[language].serverError, error });
+    res.status(500).json({ message: responses.errors[language].serverError, error });
   }
 };

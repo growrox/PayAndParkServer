@@ -1,5 +1,5 @@
 export const responses = {
-     "message": {
+     "messages": {
           "en": {
                "ticketsSettledSuccess": "Supervisor tickets settled successfully.",
                "settlementTicketList": "Here is the settlement ticket list.",
@@ -28,7 +28,7 @@ export const responses = {
                "noStatsFound": "प्रदान केलेल्या तारखांच्या दरम्यान कोणतीही आकडेवारी मिळाली नाही.",
           }
      },
-     "error": {
+     "errors": {
           "en": {
                "supervisorNotFound": "Supervisor not found, please check the ID.",
                "accountantNotFound": "Accountant not found, please check the ID.",

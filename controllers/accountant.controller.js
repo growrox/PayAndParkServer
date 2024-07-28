@@ -5,25 +5,25 @@ import SupervisorSettlementTicket from '../models/settlementTicket.model.js';
 import AccountantSettlementTicket from '../models/accountantSettlementTicket.model.js';
 import moment from "moment-timezone";
 import { responses } from '../utils/Translate/accountant.response.js';
+import { getLanguage } from '../utils/helperFunctions.js';
 
 export const settleSupervisorTickets = async (req, res) => {
      const { accountantID, totalCollectedAmount } = req.body;
      const { supervisorID } = req.params;
      console.log("accountantID ", accountantID);
-     const lang = req.headers['client-language'] || 'en';
-     const language = responses.message[lang] ? lang : 'en';
+     const language = getLanguage(req);
      try {
           // Fetch non-settled parking tickets with paymentMode as Cash and matching parkingAssistantID
 
           const findSupervisor = await User.findById(supervisorID);
           if (isEmpty(findSupervisor)) {
-               return res.status(404).json({ error: responses.error[language].supervisorNotFound });
+               return res.status(404).json({ error: responses.errors[language].supervisorNotFound });
           }
 
 
           const findAccountant = await User.findById(accountantID);
           if (isEmpty(findAccountant)) {
-               return res.status(404).json({ error: responses.error[language].accountantNotFound });
+               return res.status(404).json({ error: responses.errors[language].accountantNotFound });
           }
 
 
@@ -54,7 +54,7 @@ export const settleSupervisorTickets = async (req, res) => {
 
           if (isEmpty(ticketsToSettle)) {
                const lastUpdated = await SupervisorSettlementTicket.findOne({ supervisor: new mongoose.Types.ObjectId(supervisorID), 'isSettled': true }, { updatedAt: 1 }).sort({ updatedAt: -1 })
-               return res.status(200).json({ message: responses.error[language].noNonSettledTickets, lastSettled: (new Date(lastUpdated.updatedAt)) });
+               return res.status(200).json({ message: responses.errors[language].noNonSettledTickets, lastSettled: (new Date(lastUpdated.updatedAt)) });
           }
 
           const { TotalCollectedAmount, TotalFine, TotalReward } = ticketsToSettle;
@@ -98,7 +98,7 @@ export const settleSupervisorTickets = async (req, res) => {
                     }
                });
 
-          return res.json({ message: responses.message[language].ticketsSettledSuccess, result: { settlementId: savedSettlement._id } });
+          return res.json({ message: responses.messages[language].ticketsSettledSuccess, result: { settlementId: savedSettlement._id } });
      } catch (error) {
           console.error("Error settling the supervisor tickets.", error);
           return res.status(500).json({ error: error.message });
@@ -109,8 +109,8 @@ export const getSupervisors = async (req, res) => {
      const { searchQuery, page = 1, pageSize = 10 } = req.query; // Extract search query, page, and pageSize from query params
 
      // Determine language from headers, default to 'en'
-     const lang = req.headers['accept-language'] || 'en';
-     const language = responses.message[lang] ? lang : 'en';
+     const language = getLanguage(req);
+
 
      try {
           // Step 1: Prepare the match condition for supervisors
@@ -131,7 +131,7 @@ export const getSupervisors = async (req, res) => {
           const totalCount = await User.countDocuments(matchCondition);
 
           if (totalCount === 0) {
-               return res.status(404).json({ error: responses.error[language].noSupervisorFound });
+               return res.status(404).json({ error: responses.errors[language].noSupervisorFound });
           }
 
           // Step 3: Get list of supervisors matching the match condition with pagination
@@ -187,7 +187,7 @@ export const getSupervisors = async (req, res) => {
           const totalPages = Math.ceil(totalCount / parseInt(pageSize));
 
           return res.status(200).json({
-               message: responses.message[language].supervisorListWithStats,
+               message: responses.messages[language].supervisorListWithStats,
                result: {
                     supervisors: supervisorsWithStats,
                     pagination: {
@@ -210,12 +210,12 @@ export const getAllSettlementTickets = async (req, res) => {
      const { accountantID } = req.params;
      const { page = 1, pageSize = 10, startDate, endDate, searchQuery } = req.query; // Extract page, pageSize, and searchQuery from query params
      console.log("pageSize  ", pageSize);
-     const lang = req.headers['client-language'] || 'en';
-     const language = responses.message[lang] ? lang : 'en';
+     const language = getLanguage(req);
+
      try {
           console.log("accountantID ", accountantID);
           if (isEmpty(accountantID)) {
-               return res.status(404).json({ error: responses.error[language].noAccountantId  });
+               return res.status(404).json({ error: responses.errors[language].noAccountantId  });
           }
 
           const query = {
@@ -293,7 +293,7 @@ export const getAllSettlementTickets = async (req, res) => {
 
           console.log("Result ", result.length);
           if (isEmpty(result)) {
-               return res.status(200).json({ message: responses.error[language].noNonSettledTickets, result: [] });
+               return res.status(200).json({ message: responses.errors[language].noNonSettledTickets, result: [] });
           } else {
                // Calculate the total collected amount
                const totalCollectedAmount = result.reduce((total, current) => total + current.totalCollectedAmount, 0);
@@ -328,7 +328,7 @@ export const getAllSettlementTickets = async (req, res) => {
                     stats: { totalCollectedAmount }
                };
 
-               return res.status(200).json({ message: responses.message[language].settlementTicketList, result: response });
+               return res.status(200).json({ message: responses.messages[language].settlementTicketList, result: response });
           }
 
      } catch (error) {
@@ -343,13 +343,13 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
      const { page = 1, pageSize = 10 } = req.query; // Extract page and pageSize from query params
 
      // Determine language from headers, default to 'en'
-     const lang = req.headers['accept-language'] || 'en';
-     const language = responses.message[lang] ? lang : 'en';
+     const language = getLanguage(req);
+
 
      try {
           console.log("supervisorID ", supervisorID);
           if (!supervisorID) {
-               return res.status(404).json({ error: responses.error[language].noSupervisorIdProvided });
+               return res.status(404).json({ error: responses.errors[language].noSupervisorIdProvided });
           }
 
           // Check if supervisor exists
@@ -359,7 +359,7 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
           });
 
           if (!findSupervisor) {
-               return res.status(404).json({ error: responses.error[language].supervisorNotFound });
+               return res.status(404).json({ error: responses.errors[language].supervisorNotFound });
           }
 
           const pipeline = [
@@ -389,7 +389,7 @@ export const getAllSettlementTicketsBySupervisor = async (req, res) => {
           const totalPages = Math.ceil(totalCount / pageSize);
 
           return res.status(200).json({
-               message: responses.message[language].listOfTickets,
+               message: responses.messages[language].listOfTickets,
                result: {
                     tickets: result.length === 0 ? [] : result,
                     pagination: {
@@ -412,8 +412,7 @@ export const getAccountantStats = async (req, res) => {
      const accountantID = req.params.accountantID;
 
      // Determine language from headers, default to 'en'
-     const lang = req.headers['accept-language'] || 'en';
-     const language = responses.message[lang] ? lang : 'en';
+     const language = getLanguage(req);
 
      try {
           // Get the start and end of today in client's timezone (Asia/Kolkata)
@@ -434,7 +433,7 @@ export const getAccountantStats = async (req, res) => {
           });
 
           if (!todayAccountantSettlementTicket.length) {
-               return res.status(404).json({ error: responses.error[language].noAccountantSettlementTicketFound });
+               return res.status(404).json({ error: responses.errors[language].noAccountantSettlementTicketFound });
           }
 
           // Extract all settlement IDs
@@ -480,13 +479,13 @@ export const getAccountantStats = async (req, res) => {
           };
 
           return res.status(200).json({
-               message: responses.message[language].accountantStats,
+               message: responses.messages[language].accountantStats,
                result: response
           });
 
      } catch (error) {
           console.error('Error getting the accountant stats.', error);
-          return res.status(500).json({ error: responses.error[language].serverError });
+          return res.status(500).json({ error: responses.errors[language].serverError });
      }
 };
 
@@ -497,8 +496,7 @@ export const getAccountantStatsBetweenTwoDates = async (req, res) => {
      const { startDate, endDate } = req.query;
 
      // Determine language from headers, default to 'en'
-     const lang = req.headers['accept-language'] || 'en';
-     const language = responses.message[lang] ? lang : 'en';
+     const language = getLanguage(req);
 
      try {
           // Get the start and end dates in client's timezone (Asia/Kolkata)
@@ -521,7 +519,7 @@ export const getAccountantStatsBetweenTwoDates = async (req, res) => {
 
           if (!accountantSettlementTickets.length) {
                return res.status(200).json({
-                    message: responses.message[language].noStatsFound,
+                    message: responses.messages[language].noStatsFound,
                     result: []
                });
           }
@@ -568,13 +566,13 @@ export const getAccountantStatsBetweenTwoDates = async (req, res) => {
           };
 
           return res.status(200).json({
-               message: responses.message[language].accountantStats,
+               message: responses.messages[language].accountantStats,
                result: response
           });
 
      } catch (error) {
           console.error('Error getting the accountant stats.', error);
-          return res.status(500).json({ error: responses.error[language].serverError });
+          return res.status(500).json({ error: responses.errors[language].serverError });
      }
 };
 

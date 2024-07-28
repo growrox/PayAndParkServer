@@ -1,5 +1,5 @@
 export const responses = {
-     "message": {
+     "messages": {
           "en": {
                "assistantCreated": "Assistant account created.",
                "dataFetched": "Data fetched successfully.",
@@ -31,7 +31,7 @@ export const responses = {
                "noTicketsFound": "कोणतीही तिकिटे सापडली नाहीत"
           }
      },
-     "error": {
+     "errors": {
           "en": {
                "serverError": "Server error",
                "assistantNotFound": "Parking Assistant not found"

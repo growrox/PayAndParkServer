@@ -11,9 +11,9 @@ export const createParkingAssistant = async (req, res) => {
           const { name, supervisorCode, phone, email, address } = req.body;
           const newAssistant = new ParkingAssistant({ name, supervisorCode, phone, email, address });
           const savedAssistant = await newAssistant.save();
-          return res.status(201).json({ message: responses.message[language].assistantCreated, result: savedAssistant });
+          return res.status(201).json({ message: responses.messages[language].assistantCreated, result: savedAssistant });
      } catch (err) {
-          return res.status(500).json({ error: responses.error[language].serverError });
+          return res.status(500).json({ error: responses.errors[language].serverError });
      }
 };
 
@@ -22,9 +22,9 @@ export const getAllParkingAssistants = async (req, res) => {
      const language = getLanguage(req);
      try {
           const assistants = await ParkingAssistant.find();
-          return res.json({ message: responses.message[language].dataFetched, result: assistants });
+          return res.json({ message: responses.messages[language].dataFetched, result: assistants });
      } catch (err) {
-          return res.status(500).json({ error: responses.error[language].serverError });
+          return res.status(500).json({ error: responses.errors[language].serverError });
      }
 };
 
@@ -34,11 +34,11 @@ export const getParkingAssistantById = async (req, res) => {
      try {
           const assistant = await ParkingAssistant.findById(req.params.id);
           if (!assistant) {
-               return res.status(404).json({ error: responses.error[language].assistantNotFound });
+               return res.status(404).json({ error: responses.errors[language].assistantNotFound });
           }
           return res.json(assistant);
      } catch (err) {
-          return res.status(500).json({ error: responses.error[language].serverError });
+          return res.status(500).json({ error: responses.errors[language].serverError });
      }
 };
 
@@ -53,11 +53,11 @@ export const updateParkingAssistant = async (req, res) => {
                { new: true }
           );
           if (!updatedAssistant) {
-               return res.status(404).json({ error: responses.error[language].assistantNotFound });
+               return res.status(404).json({ error: responses.errors[language].assistantNotFound });
           }
-          return res.json({ message: responses.message[language].detailsUpdated, result: updatedAssistant });
+          return res.json({ message: responses.messages[language].detailsUpdated, result: updatedAssistant });
      } catch (err) {
-          return res.status(500).json({ error: responses.error[language].serverError });
+          return res.status(500).json({ error: responses.errors[language].serverError });
      }
 };
 
@@ -67,11 +67,11 @@ export const deleteParkingAssistant = async (req, res) => {
      try {
           const deletedAssistant = await ParkingAssistant.findByIdAndDelete(req.params.id);
           if (!deletedAssistant) {
-               return res.status(404).json({ error: responses.error[language].assistantNotFound });
+               return res.status(404).json({ error: responses.errors[language].assistantNotFound });
           }
-          return res.json({ message: responses.message[language].assistantDeleted });
+          return res.json({ message: responses.messages[language].assistantDeleted });
      } catch (err) {
-          return res.status(500).json({ error: responses.error[language].serverError });
+          return res.status(500).json({ error: responses.errors[language].serverError });
      }
 };
 
@@ -114,16 +114,16 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
 
           return res.json(results.length > 0 ?
                {
-                    message: responses.message[language].settlementsFetched,
+                    message: responses.messages[language].settlementsFetched,
                     result: [{ ...results[0], ...results2[0] }][0]
                }
                :
                {
-                    message: responses.message[language].noSettlements,
+                    message: responses.messages[language].noSettlements,
                     result: { TotalAmount: 0, TotalCash: 0, TotalOnline: 0, LastSettledDate: null }
                });
      } catch (error) {
-          return res.status(500).json({ message: responses.error[language].serverError });
+          return res.status(500).json({ message: responses.errors[language].serverError });
      }
 };
 
@@ -184,11 +184,11 @@ export const getTickets = async (req, res) => {
           const totalCount = await ParkingTicket.find({ parkingAssistant: new mongoose.Types.ObjectId(userid) }).countDocuments();
 
           if (tickets.length === 0) {
-               return res.status(200).json({ message: responses.message[language].noTicketsFound, result: { data: [], pagination: { total: 0, limit, pageNumber } } });
+               return res.status(200).json({ message: responses.messages[language].noTicketsFound, result: { data: [], pagination: { total: 0, limit, pageNumber } } });
           }
 
           let responseObj = {
-               message: responses.message[language].ticketsFetched,
+               message: responses.messages[language].ticketsFetched,
                result: { data: tickets },
           };
           if (!page && page != 'home') {
@@ -198,6 +198,6 @@ export const getTickets = async (req, res) => {
           return res.status(200).json(responseObj);
      } catch (err) {
           console.error('Error fetching tickets:', err);
-          return res.status(500).json({ error: responses.error[language].serverError });
+          return res.status(500).json({ error: responses.errors[language].serverError });
      }
 };
