@@ -230,7 +230,7 @@ export const getAllSettlementTickets = async (req, res) => {
                     dateRange.$gte = new Date(LocalStartDate);
                }
                if (endDate) {
-                    const LocalEndDate = moment.tz(new Date(startDate), 'Asia/Kolkata').endOf('day').clone().utc();
+                    const LocalEndDate = moment.tz(new Date(endDate), 'Asia/Kolkata').endOf('day').clone().utc();
                     const end = new Date(LocalEndDate)
                     dateRange.$lte = end;
                }

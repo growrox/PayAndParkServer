@@ -5,6 +5,7 @@ import { isEmpty } from '../utils/helperFunctions.js';
 import SupervisorSettlementTicket from '../models/settlementTicket.model.js';
 import { responses } from '../utils/Translate/supervisor.response.js';
 import { getLanguage } from '../utils/helperFunctions.js';
+import moment from 'moment-timezone';
 
 export const settleParkingTickets = async (req, res) => {
      const language = getLanguage(req,responses); // Get user's language preference
@@ -433,10 +434,12 @@ export const getAllSettlementTickets = async (req, res) => {
           if (startDate || endDate) {
                const dateRange = {};
                if (startDate) {
-                    dateRange.$gte = new Date(startDate);
+                    const LocalStartDate = moment.tz(new Date(startDate), 'Asia/Kolkata').startOf('day').clone().utc();
+                    dateRange.$gte = new Date(LocalStartDate);
                }
                if (endDate) {
-                    const end = new Date(new Date(endDate).setHours(23, 59, 59, 999)); // End of the day
+                    const LocalEndDate = moment.tz(new Date(endDate), 'Asia/Kolkata').endOf('day').clone().utc();
+                    const end = new Date(LocalEndDate)
                     dateRange.$lte = end;
                }
                query.createdAt = dateRange;
