@@ -9,11 +9,11 @@ export const responses = {
                orderGenerated: "Order generated for the ticket.",
                ticketList: "Here is the parking tickets list",
                ticketUpdated: "Tickets updated successfully",
-               deleteTicket:"Parking payment ticket deleted successfully."
+               deleteTicket: "Parking payment ticket deleted successfully."
           },
           "hi": {
                ticketAlreadyAvailable: "इस वाहन के लिए एक टिकट पहले ही पिछले 30 मिनट में बना दिया गया था।",
-               onlineTransaction:"ऑनलाइन भुगतान में OnlineTransactionId की आवश्यकता है।",
+               onlineTransaction: "ऑनलाइन भुगतान में OnlineTransactionId की आवश्यकता है।",
                ticketCreated: "पार्किंग टिकट बना दिया गया है।",
                vehicalList: "सभी वाहनों की विवरण सूची",
                onlinePaymentCompleted: "भुगतान सफलतापूर्वक पूरा हो गया।",
@@ -25,12 +25,12 @@ export const responses = {
           },
           "mr": {
                ticketAlreadyAvailable: "या वाहनासाठी एक तिकीट आधीच गेल्या 30 मिनिटांत तयार करण्यात आले आहे.",
-               onlineTransaction:"ऑनलाइन पेमेंटसाठी OnlineTransactionId आवश्यक आहे.",
+               onlineTransaction: "ऑनलाइन पेमेंटसाठी OnlineTransactionId आवश्यक आहे.",
                ticketCreated: "पार्किंग तिकीट तयार केले आहे.",
                vehicalList: "सर्व वाहनांचे तपशील यादी",
                onlinePaymentCompleted: "भुगतान यशस्वीरित्या पूर्ण झाले.",
                orderGenerated: "तिकीटसाठी आदेश तयार करण्यात आले आहे.",
-               ticketList:"येथे पार्किंग तिकिटांची यादी आहे",
+               ticketList: "येथे पार्किंग तिकिटांची यादी आहे",
                ticketUpdated: "तिकीट यशस्वीरित्या अपडेट केले गेले.",
                deleteTicket: "पार्किंग पेमेंट तिकीट यशस्वीरित्या हटवले गेले."
 
@@ -40,17 +40,22 @@ export const responses = {
           "en": {
                ticketNotFound: "Parking ticket not found",
                wrongSignature: "Signature does not match.",
-               paymentNotGenerated:"Payment not generated please try again.",
+               paymentNotGenerated: "Payment not generated please try again.",
+               NotFoundOrOnline: "Assistant not found or is not online."
           },
           "hi": {
                ticketNotFound: "पार्किंग टिकट नहीं मिला।",
                wrongSignature: "हस्ताक्षर मेल नहीं खाता।",
                paymentNotGenerated: "भुगतान नहीं हुआ, कृपया पुनः प्रयास करें।",
+               NotFoundOrOnline: "सहायक नहीं मिला या ऑनलाइन नहीं है।"
+
           },
           "mr": {
                ticketNotFound: "पार्किंग तिकीट सापडले नाही.",
                wrongSignature: "स्वाक्षरी जुळत नाही.",
                paymentNotGenerated: "भुगतान निर्माण झाले नाही, कृपया पुन्हा प्रयत्न करा.",
+               NotFoundOrOnline: "सहाय्यक सापडला नाही किंवा ऑनलाइन नाही."
+
           }
      }
 }

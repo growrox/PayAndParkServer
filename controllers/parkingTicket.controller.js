@@ -14,6 +14,7 @@ import path from "path";
 import NodeGeocoder from "node-geocoder";
 import { getLanguage } from "../utils/helperFunctions.js";
 import { responses } from "../utils/Translate/parkingTicket.response.js";
+import mongoose from "mongoose";
 
 export const createParkingTicket = async (req, res) => {
   try {
@@ -38,13 +39,19 @@ export const createParkingTicket = async (req, res) => {
 
     console.log("Body ", req.body);
     const { userId } = req.headers;
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
 
     // Check if there is an assistant with the provided phone number and role
 
     console.log("userid  ", userId);
-    const AssistanceAvailable = await User.findById(userId);
+    const AssistanceAvailable = await User.findOne({ _id: mongoose.Types.ObjectId(userId), isOnline: true });
     console.log("AssistanceAvailable ", AssistanceAvailable);
+
+    if (isEmpty(AssistanceAvailable)) {
+      return res.status(200).json({
+        message: responses.messages[language].NotFoundOrOnline,
+      });
+    }
     // Check if there is already a ticket for the vehicle number created within the last 30 minutes
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
     const existingTicket = await ParkingTicket.findOne({
@@ -130,7 +137,7 @@ export const createParkingTicket = async (req, res) => {
 // controller to get ticket details
 export const getVehicleTypeDetail = async (req, res) => {
   try {
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
     const parkingTicket = await ParkingTicket.findById(req.params.id);
     parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${parkingTicket.image
       }`;
@@ -152,7 +159,7 @@ export const getVehicleTypeDetail = async (req, res) => {
 // Confirm payment details if the payment is cussessful.
 export const updatePaymentStatusOnline = async (req, res) => {
   try {
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
     console.log("Update order status", req.body);
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body;
@@ -204,7 +211,7 @@ export const updatePaymentStatusOnline = async (req, res) => {
 // Generate order to accept the paymetns
 export const generatePaymentForTicket = async (req, res) => {
   try {
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
 
     const { amount } = req.body;
     const orderPaymentDetails = await generatePayment(amount);
@@ -236,7 +243,7 @@ export const generatePaymentForTicket = async (req, res) => {
 // Controller to get all parking tickets with pagination
 export const getParkingTickets = async (req, res) => {
   try {
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
 
     const { page = 1, pageSize = 10 } = req.query;
 
@@ -306,7 +313,7 @@ export const getParkingTickets = async (req, res) => {
 // Controller to get all the non settle tickets
 export const getTicketsByAssistantId = async (req, res) => {
   const phoneNumber = req.params.assistantId;
-  const language = getLanguage(req,responses);
+  const language = getLanguage(req, responses);
 
   try {
     // Query to find all tickets where parkingAssistant's phoneNumber matches
@@ -327,7 +334,7 @@ export const getTicketsByAssistantId = async (req, res) => {
 
     return res.json({
       message: responses.messages[language].ticketList,
-        // "here is the all parking tickets for you.",
+      // "here is the all parking tickets for you.",
       result: {
         totalCount,
         totalCost,
@@ -342,7 +349,7 @@ export const getTicketsByAssistantId = async (req, res) => {
 // Controller to get all the non settle tickets
 export const getTicketsStatsByAssistantId = async (req, res) => {
   const phoneNumber = req.params.assistantId;
-  const language = getLanguage(req,responses);
+  const language = getLanguage(req, responses);
 
   try {
     const pipeline = [
@@ -376,8 +383,8 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
 
     // Return the results
     res.json({
-      message:responses.messages[language].ticketList,
-        // "Here is the ticket stats",
+      message: responses.messages[language].ticketList,
+      // "Here is the ticket stats",
       result:
         results.length > 0
           ? results[0]
@@ -391,7 +398,7 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
 // Controller to get a single parking ticket by PhoneNumer or VehicalNumber
 export const getParkingTicketByQuery = async (req, res) => {
   const param = req.params.query;
-  const language = getLanguage(req,responses);
+  const language = getLanguage(req, responses);
 
   console.log("Params ", param);
   // Regex patterns for validation
@@ -417,13 +424,13 @@ export const getParkingTicketByQuery = async (req, res) => {
     if (isEmpty(ticket)) {
       return res.status(404).json({
         error: responses.errors[language].ticketNotFound,
-          // "Parking ticket not found"
+        // "Parking ticket not found"
       });
     }
 
     return res.json({
       message: responses.messages[language].ticketList,
-        // "Here is all the matched results",
+      // "Here is all the matched results",
       result: ticket,
     });
   } catch (error) {
@@ -434,7 +441,7 @@ export const getParkingTicketByQuery = async (req, res) => {
 // Controller to update a parking ticket by ID
 export const updateParkingTicketById = async (req, res) => {
   try {
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
 
     const updatedTicket = await ParkingTicket.findByIdAndUpdate(
       req.params.id,
@@ -444,12 +451,12 @@ export const updateParkingTicketById = async (req, res) => {
     if (!updatedTicket) {
       return res.status(404).json({
         error: responses.errors[language].ticketNotFound,
-          // "Parking ticket not found"
+        // "Parking ticket not found"
       });
     }
     return res.json({
       message: responses.messages[language].ticketUpdated,
-        // "Tickets updated.",
+      // "Tickets updated.",
       result: updatedTicket
     });
   } catch (error) {
@@ -465,7 +472,7 @@ export const updateParkingTicketById = async (req, res) => {
 // Controller to delete a parking ticket by ID
 export const deletePaymentOrderById = async (req, res) => {
   try {
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
 
     const deletedTicket = await Transaction.findByIdAndDelete(req.params.id);
     if (!deletedTicket) {
@@ -473,13 +480,13 @@ export const deletePaymentOrderById = async (req, res) => {
         .status(404)
         .json({
           error: responses.errors[language].ticketNotFound,
-            // "Parking payment ticket not found"
+          // "Parking payment ticket not found"
         });
     }
     return res.json({
       message: responses.messages[language].deleteTicekt,
 
-        // "Parking payment ticket deleted successfully"
+      // "Parking payment ticket deleted successfully"
     });
 
   } catch (error) {
@@ -490,18 +497,18 @@ export const deletePaymentOrderById = async (req, res) => {
 // Controller to delete a parking ticket by ID
 export const deleteParkingTicketById = async (req, res) => {
   try {
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
 
     const deletedTicket = await ParkingTicket.findByIdAndRemove(req.params.id);
     if (!deletedTicket) {
       return res.status(404).json({
-          error: responses.errors[language].ticketNotFound,
-          // "Parking ticket not found"
+        error: responses.errors[language].ticketNotFound,
+        // "Parking ticket not found"
       });
     }
     return res.json({
       message: responses.messages[language].deleteTicket,
-        // "Parking ticket deleted successfully"
+      // "Parking ticket deleted successfully"
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -511,7 +518,7 @@ export const deleteParkingTicketById = async (req, res) => {
 export const uploadTicketImage = async (req, res) => {
   try {
     const file = req.file;
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
 
     console.log("userid,  file", file);
 
@@ -533,7 +540,7 @@ export const uploadTicketImage = async (req, res) => {
 export const deleteTicketImage = async (req, res) => {
   const filename = req.params.filename;
   const imagePath = path.join(__dirname, "..", "images", "tickets", filename);
-  const language = getLanguage(req,responses);
+  const language = getLanguage(req, responses);
 
   try {
     const myPromise = new Promise((resolve, reject) => {
@@ -564,7 +571,7 @@ export const deleteTicketImage = async (req, res) => {
 
 export const getAllTickets = async (req, res) => {
   try {
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
 
     const { search = "" } = req.query;
     const page = Number(req.query.page) || 1;
@@ -599,7 +606,7 @@ export const getAllTickets = async (req, res) => {
 
 export const getTicketLocation = async (req, res) => {
   try {
-    const language = getLanguage(req,responses);
+    const language = getLanguage(req, responses);
 
     const { lat, lon } = req.query;
 

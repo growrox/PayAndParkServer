@@ -41,8 +41,8 @@ const onlineStatusMiddleware = async (req, res, next) => {
                const assistant = await ParkingAssistant.findById(userId);
 
                // Check if assistant exists and is online
-               if (!assistant || !assistant.isOnline) {
-                    return res.status(403).json({ error: 'Assistant is not available or not online.' });
+               if (!assistant) {
+                    return res.status(403).json({ error: 'No assistant found.' });
                }
 
                // Assistant is online, proceed to next middleware or route handler
