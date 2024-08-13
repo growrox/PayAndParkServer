@@ -9,7 +9,7 @@ import { responses } from "../utils/Translate/attendance.response.js";
 // Clock-In
 export const clockIn = async (req, res) => {
   const { userId } = req.params;
-  const language = getLanguage(req,responses);
+  const language = getLanguage(req, responses);
 
   try {
     const user = await User.findById(userId);
@@ -71,7 +71,7 @@ export const clockIn = async (req, res) => {
       userId,
       shiftId: user.shiftId,
       clockInTime,
-      isLateToday,
+      isLateToday: false,
     });
     return res.status(200).json({ message: responses.messages[language].clockInSuccess });
   } catch (error) {
@@ -83,7 +83,7 @@ export const clockIn = async (req, res) => {
 // Clock-Out
 export const clockOut = async (req, res) => {
   const { userId } = req.params;
-  const language = getLanguage(req,responses);
+  const language = getLanguage(req, responses);
 
   try {
     const user = await User.findById(userId);
@@ -121,7 +121,7 @@ export const clockOut = async (req, res) => {
 export const updateAttendance = async (req, res) => {
   const { attendanceId } = req.params;
   const { isLateToday } = req.body;
-  const language = getLanguage(req,responses);
+  const language = getLanguage(req, responses);
 
   try {
     const attendanceAvailable = await Attendance.findById(attendanceId);
@@ -226,7 +226,7 @@ export async function AutoClockOutUser(shiftId) {
 // Get Attendance by Month
 export const getAttendanceByMonth = async (req, res) => {
   const { userId, year, month } = req.query;
-  const language = getLanguage(req,responses);
+  const language = getLanguage(req, responses);
 
   try {
     const startDate = new Date(year, month, 1);
