@@ -118,7 +118,7 @@ async function sendOTP(toNumber, otp) {
 
 export async function sendTicketConfirmation(ticketDetails) {
   const { Name, toNumber, TicketNumber, VehicalNumber, ParkingAssistant, Duration, Amount, PaymentMode, DateTime } = ticketDetails;
-  const ninePercent = (Amount * 0.09).toFixed(2);
+  const ninePercent = +(Amount * 0.09).toFixed(2);
   const GrandTotal = Math.ceil(Amount + (ninePercent * 2))
 
   console.log("new Date ", new Date());
