@@ -22,8 +22,8 @@ import authMiddleware from "../middlewares/validateJWT.js";
 
 // Routes for user management
 router.post(SIGN_UP, authMiddleware, createUser);
-router.post(LOGIN, authMiddleware, loginUser);
-router.post(VERIFY_OTP, authMiddleware, validateOTP);
+router.post(LOGIN, loginUser);
+router.post(VERIFY_OTP, validateOTP);
 router.get(GET_USER, authMiddleware, getUsers);
 router.get(GET_USER_STATUS, authMiddleware, validateJWT, getUserStatus);
 router.put(UPDATE_USER, authMiddleware, updateUser);
