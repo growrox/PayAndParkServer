@@ -44,7 +44,7 @@ export const createParkingTicket = async (req, res) => {
     // Check if there is an assistant with the provided phone number and role
 
     console.log("userid  ", userId);
-    const AssistanceAvailable = await User.findOne({ _id: mongoose.Types.ObjectId(userId), isOnline: true });
+    const AssistanceAvailable = await User.findOne({ _id: new mongoose.Types.ObjectId(userId), isOnline: true });
     console.log("AssistanceAvailable ", AssistanceAvailable);
 
     if (isEmpty(AssistanceAvailable)) {
