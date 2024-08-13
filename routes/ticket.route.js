@@ -21,6 +21,7 @@ import path from "path";
 import checkParkingAssistant from "../middlewares/checkParkingAssistant.js";
 import { getTickets } from "../controllers/parkingAssistant.controller.js";
 import { ROUTES } from "../utils/routes.js";
+import authMiddleware from "../middlewares/validateJWT.js";
 
 const router = express.Router();
 
@@ -61,21 +62,21 @@ router.post(
   createParkingTicket
 );
 
-router.post(GENERATE_ORDER, checkParkingAssistant, generatePaymentForTicket);
-router.get(GET_ALL_TICKETS, getAllTickets);
-router.post(PAYMENT_STATUS, updatePaymentStatusOnline);
-router.get(GET_TOCKET, getParkingTickets);
-router.get(GET_LOCATION, getTicketLocation);
-router.get(GET_QUERY_TICKET, getParkingTicketByQuery);
-router.get(GET_TICKET_FOR_ASSISTANT, getTicketsByAssistantId);
-router.delete(DELETE_PAYMENT_ORDER, deletePaymentOrderById);
-router.get(GET_VEHICAL_TYPE_DETAILS, getVehicleTypeDetail);
+router.post(GENERATE_ORDER,authMiddleware, checkParkingAssistant, generatePaymentForTicket);
+router.get(GET_ALL_TICKETS,authMiddleware, getAllTickets);
+router.post(PAYMENT_STATUS,authMiddleware, updatePaymentStatusOnline);
+router.get(GET_TOCKET,authMiddleware, getParkingTickets);
+router.get(GET_LOCATION,authMiddleware, getTicketLocation);
+router.get(GET_QUERY_TICKET,authMiddleware, getParkingTicketByQuery);
+router.get(GET_TICKET_FOR_ASSISTANT,authMiddleware, getTicketsByAssistantId);
+router.delete(DELETE_PAYMENT_ORDER,authMiddleware, deletePaymentOrderById);
+router.get(GET_VEHICAL_TYPE_DETAILS,authMiddleware, getVehicleTypeDetail);
 // router.get('/parking-tickets/stats/:assistantId', getTicketsByAssistantId);
 
-router.delete(DELETE_TICEKT_IMAGE, deleteTicketImage);
+router.delete(DELETE_TICEKT_IMAGE, authMiddleware, deleteTicketImage);
 
 // Bellow two routes will not be used yet.
-router.put(UPDATE_TICKET_BY_ID, updateParkingTicketById);
-router.delete(DELTE_TICEKT_BY_ID, deleteParkingTicketById);
+router.put(UPDATE_TICKET_BY_ID, authMiddleware,updateParkingTicketById);
+router.delete(DELTE_TICEKT_BY_ID, authMiddleware,deleteParkingTicketById);
 
 export default router;

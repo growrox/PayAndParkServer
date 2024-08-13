@@ -21,7 +21,7 @@ const {
 router.post(CREATE, validateJWT, upload.single("image"), createVehicleType);
 router.get(GET, serveImage);
 router.put(UPDATE, validateJWT, upload.single("image"), updateVehicleType);
-router.get(GET_ALL, getAllVehicleType);
+router.get(GET_ALL, validateJWT, getAllVehicleType);
 router.get(GET_DETAIL, validateJWT, getVehicleTypeDetail);
 router.delete(DELETE, validateJWT, deleteVehicleType);
 
