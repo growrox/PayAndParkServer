@@ -120,6 +120,7 @@ export async function sendTicketConfirmation(ticketDetails) {
   const { Name, toNumber, TicketNumber, VehicalNumber, ParkingAssistant, Duration, Amount, PaymentMode, DateTime } = ticketDetails;
   const ninePercent = +(Amount * 0.09).toFixed(2);
   const GrandTotal = Math.ceil(Amount + (ninePercent * 2))
+  const transactionDetails = findTransactionByAmount(Amount)
 
   console.log("new Date ", new Date());
   console.log("Client Date ", DateTime);
@@ -135,7 +136,7 @@ export async function sendTicketConfirmation(ticketDetails) {
     "template_id": process.env.TICKET_CONFIRMATION_TEMPLATE_ID,
     "to": [toNumber],
     "text":
-      `M.B.M.C Pay&Park,Bhalavi Grp \n DATE:- ${getDateTime(DateTime).date} \n TIME :- ${getDateTime(DateTime).time} \n Dear ${Name} Your parking ticket has been successfully generated. \n Ticket Number: ${TicketNumber} \n Vehicle Number: ${VehicalNumber} \n Parking Assistant: ${ParkingAssistant} \n Duration: ${Duration + "hrs"} \n Base Amount : ${Amount} \n CGST 9% : ${ninePercent} \n SGST 9% : ${ninePercent} \n RND OFF : ${(GrandTotal - (Amount + ninePercent + ninePercent)).toFixed(2)} \n GRAND TOTAL : ${GrandTotal} \n Payment Mode: ${PaymentMode}. MBMC`,
+      `M.B.M.C Pay&Park,Bhalavi Grp \n DATE:- ${getDateTime(DateTime).date} \n TIME :- ${getDateTime(DateTime).time} \n Dear ${Name} Your parking ticket has been successfully generated. \n Ticket Number: ${TicketNumber} \n Vehicle Number: ${VehicalNumber} \n Parking Assistant: ${ParkingAssistant} \n Duration: ${Duration + "hrs"} \n Base Amount : ${transactionDetails.amount} \n CGST 9% : ${transactionDetails.ninePercent} \n SGST 9% : ${transactionDetails.ninePercent} \n RND OFF : ${transactionDetails.rnd} \n GRAND TOTAL : ${transactionDetails.GrandTotal} \n Payment Mode: ${PaymentMode}. MBMC`,
     // "text": "M.B.M.C Pay&Park 3, Bhalavi Grp \n DATE:- 07.07.24,\n TIME :- 2: 00pm \n Dear Hitesh Pal Your parking ticket has been successfully generated. Ticket Number: AB1235 Vehicle Number: MH04 GK 3445 Parking Assistant: Aditya Singh Duration: 2hrs Base Amount : 30 CGST 9%  : 9 SGST 9%   : 9 RND OFF : 38 GRAND TOTAL : 38Payment Mode: Online. MBMC",
     "scheduletime": formatTime()
   };
@@ -230,3 +231,26 @@ export function getLanguage(req, responses) {
 
 // const text = "M.B.M.C Pay&Park 3, Bhalavi Grp \n DATE:- 07.07.24,\n TIME :- 2: 00pm \n Dear Hitesh Pal Your parking ticket has been successfully generated. Ticket Number: AB1235 Vehicle Number: MH04 GK 3445 Parking Assistant: Aditya Singh Duration: 2hrs Base Amount : 30 CGST 9%  : 9 SGST 9%   : 9 RND OFF : 38 GRAND TOTAL : 38Payment Mode: Online. MBMC"
 // console.log("MEssage ", text);
+
+const transactions = [
+  { amount: 15, ninePercent: 1.35, rnd: '0.30', GrandTotal: 18 },
+  { amount: 20, ninePercent: 1.8, rnd: '0.40', GrandTotal: 24 },
+  { amount: 25, ninePercent: 2.25, rnd: '0.50', GrandTotal: 30 },
+  { amount: 50, ninePercent: 4.5, rnd: '0.00', GrandTotal: 59 },
+  { amount: 70, ninePercent: 6.3, rnd: '0.40', GrandTotal: 83 },
+  { amount: 60, ninePercent: 5.4, rnd: '0.20', GrandTotal: 71 },
+  { amount: 75, ninePercent: 6.75, rnd: '0.50', GrandTotal: 89 },
+  { amount: 100, ninePercent: 9, rnd: '0.00', GrandTotal: 118 },
+  { amount: 125, ninePercent: 11.25, rnd: '0.50', GrandTotal: 148 },
+  { amount: 175, ninePercent: 15.75, rnd: '0.50', GrandTotal: 207 },
+  { amount: 150, ninePercent: 13.5, rnd: '0.00', GrandTotal: 177 },
+  { amount: 350, ninePercent: 31.5, rnd: '0.00', GrandTotal: 413 },
+  { amount: 1000, ninePercent: 90, rnd: '0.00', GrandTotal: 1180 },
+  { amount: 2000, ninePercent: 180, rnd: '0.00', GrandTotal: 2360 },
+  { amount: 4000, ninePercent: 360, rnd: '0.00', GrandTotal: 4720 }
+];
+
+// Function to find the corresponding object by amount
+function findTransactionByAmount(GrandTotal) {
+  return transactions.find(transaction => transaction.GrandTotal === GrandTotal);
+}

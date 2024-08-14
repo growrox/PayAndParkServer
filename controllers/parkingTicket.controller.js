@@ -97,7 +97,7 @@ export const createParkingTicket = async (req, res) => {
     }
 
     const savedTicket = await newTicket.save();
-    const ticketId = "666f0e35284b2b8f1707c77b"; // savedTicket._id;
+    const ticketId = savedTicket._id //"666f0e35284b2b8f1707c77b"; // savedTicket._id;
     // sendTicketConfirmation  Date, Time, Name, TicketNumber, VehicalNumber, ParkingAssistant, Duration, Amount, PaymentMode
     const smsParams = {
       Name: name,
