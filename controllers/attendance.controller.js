@@ -21,7 +21,7 @@ export const clockIn = async (req, res) => {
     const existingAttendanceToday = await Attendance.findOne({
       userId,
       shiftId: user.shiftId,
-      clockOutTime: { $gte: new Date(currentDate.setHours(0, 0, 0, 0)) },
+      clockInTime: { $gte: new Date(currentDate.setHours(0, 0, 0, 0)) },
     });
     if (existingAttendanceToday) {
       return res.status(400).json({ error: responses.errors[language].alreadyClockedOut });
