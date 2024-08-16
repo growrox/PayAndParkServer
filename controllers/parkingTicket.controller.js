@@ -82,7 +82,8 @@ export const createParkingTicket = async (req, res) => {
       passId,
       name,
       address,
-      createdAtClient
+      createdAtClient,
+      status: paymentMode == "Online" ? "settled" : "created"
     });
     console.log("newTicket ", newTicket._id);
 
