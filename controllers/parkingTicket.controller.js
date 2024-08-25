@@ -640,7 +640,6 @@ export const getTicketByVehicleNumber = async (req, res) => {
   try {
     // Extract vehicleNumber and vehicleType from query parameters
     const { vehicleNumber, vehicleType } = req.query;
-    console.log({ vehicleNumber, vehicleType });
 
     if (!vehicleNumber) {
       return res.status(400).json({ message: 'Vehicle number is required' });
