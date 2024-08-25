@@ -6,7 +6,7 @@ import { responses } from '../utils/Translate/assistant.response.js';
 
 // Create a new parking assistant
 export const createParkingAssistant = async (req, res) => {
-     const language = getLanguage(req,responses);
+     const language = getLanguage(req, responses);
      try {
           const { name, supervisorCode, phone, email, address } = req.body;
           const newAssistant = new ParkingAssistant({ name, supervisorCode, phone, email, address });
@@ -19,7 +19,7 @@ export const createParkingAssistant = async (req, res) => {
 
 // Get all parking assistants
 export const getAllParkingAssistants = async (req, res) => {
-     const language = getLanguage(req,responses);
+     const language = getLanguage(req, responses);
      try {
           const assistants = await ParkingAssistant.find();
           return res.json({ message: responses.messages[language].dataFetched, result: assistants });
@@ -30,7 +30,7 @@ export const getAllParkingAssistants = async (req, res) => {
 
 // Get a single parking assistant by ID
 export const getParkingAssistantById = async (req, res) => {
-     const language = getLanguage(req,responses);
+     const language = getLanguage(req, responses);
      try {
           const assistant = await ParkingAssistant.findById(req.params.id);
           if (!assistant) {
@@ -44,7 +44,7 @@ export const getParkingAssistantById = async (req, res) => {
 
 // Update a parking assistant by ID
 export const updateParkingAssistant = async (req, res) => {
-     const language = getLanguage(req,responses);
+     const language = getLanguage(req, responses);
      try {
           const { name, supervisorCode, phone } = req.body;
           const updatedAssistant = await ParkingAssistant.findByIdAndUpdate(
@@ -63,7 +63,7 @@ export const updateParkingAssistant = async (req, res) => {
 
 // Delete a parking assistant by ID
 export const deleteParkingAssistant = async (req, res) => {
-     const language = getLanguage(req,responses);
+     const language = getLanguage(req, responses);
      try {
           const deletedAssistant = await ParkingAssistant.findByIdAndDelete(req.params.id);
           if (!deletedAssistant) {
@@ -77,8 +77,9 @@ export const deleteParkingAssistant = async (req, res) => {
 
 // Get the stats of the tickets for the assistant
 export const getTicketsStatsByAssistantId = async (req, res) => {
-     const language = getLanguage(req,responses);
+     const language = getLanguage(req, responses);
      const parkingAssistant = req.headers.userid;
+
      try {
           const pipeline = [
                { $match: { parkingAssistant: new mongoose.Types.ObjectId(parkingAssistant), status: { $ne: 'settled' } } },
@@ -96,9 +97,10 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
                                    $cond: [{ $eq: ["$paymentMode", "Online"] }, "$amount", 0]
                               }
                          },
+                         TotalTickets: { $sum: 1 }  // Add total ticket count
                     }
                },
-               { $project: { _id: 0, TotalAmount: 1, TotalCash: 1, TotalOnline: 1 } },
+               { $project: { _id: 0, TotalAmount: 1, TotalCash: 1, TotalOnline: 1, TotalTickets: 1 } },
           ];
 
           const pipeline2 = [
@@ -109,27 +111,59 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
                { $project: { _id: 0 } }
           ];
 
-          const results = await ParkingTicket.aggregate(pipeline);
-          const results2 = await ParkingTicket.aggregate(pipeline2);
+          const pipeline3 = [
+               { $match: { parkingAssistant: new mongoose.Types.ObjectId(parkingAssistant), status: { $ne: 'settled' } } },
+               {
+                    $group: {
+                         _id: "$vehicleType",
+                         TicketCount: { $sum: 1 }
+                    }
+               },
+               {
+                    $project: {
+                         _id: 0,
+                         vehicleType: "$_id",
+                         TicketCount: 1
+                    }
+               }
+          ];
 
-          return res.json(results.length > 0 ?
+          const [ticketStats, lastSettled, vehicleTypes] = await Promise.all([
+               ParkingTicket.aggregate(pipeline),
+               ParkingTicket.aggregate(pipeline2),
+               ParkingTicket.aggregate(pipeline3)
+          ]);
+
+          return res.json(ticketStats.length > 0 ?
                {
                     message: responses.messages[language].settlementsFetched,
-                    result: [{ ...results[0], ...results2[0] }][0]
+                    result: {
+                         ...ticketStats[0],
+                         LastSettledDate: lastSettled.length > 0 ? lastSettled[0].LastSettledDate : null,
+                         VehicleTypes: vehicleTypes
+                    }
                }
                :
                {
                     message: responses.messages[language].noSettlements,
-                    result: { TotalAmount: 0, TotalCash: 0, TotalOnline: 0, LastSettledDate: null }
+                    result: {
+                         TotalAmount: 0,
+                         TotalCash: 0,
+                         TotalOnline: 0,
+                         TotalTickets: 0,
+                         LastSettledDate: null,
+                         VehicleTypes: []
+                    }
                });
      } catch (error) {
           return res.status(500).json({ message: responses.errors[language].serverError });
      }
 };
 
+
 // Controller function to fetch tickets
 export const getTickets = async (req, res) => {
-     const language = getLanguage(req,responses);
+     const language = getLanguage(req, responses);
      try {
           let { page, userid } = req.headers;
           let { searchQuery } = req.query;
