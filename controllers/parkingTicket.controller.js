@@ -638,24 +638,30 @@ export const getTicketLocation = async (req, res) => {
 
 export const getTicketByVehicleNumber = async (req, res) => {
   try {
-    // Extract vehicleNumber from query parameters
-    const { vehicleNumber } = req.query;
-    console.log({ vehicleNumber });
-
+    // Extract vehicleNumber and vehicleType from query parameters
+    const { vehicleNumber, vehicleType } = req.query;
+    console.log({ vehicleNumber, vehicleType });
 
     if (!vehicleNumber) {
       return res.status(400).json({ message: 'Vehicle number is required' });
     }
 
-    // Query the database to find a ticket with the given vehicle number
-    const tickets = await ParkingTicket.find({ vehicleNumber: { $regex: vehicleNumber, $options: "i" } }, { name: 1, phoneNumber: 1 }); // Adjust the query based on your ORM/model
+    // Create the query object based on the presence of vehicleType
+    const query = { vehicleNumber: { $regex: vehicleNumber, $options: 'i' } };
+
+    if (vehicleType) {
+      query.vehicleType = vehicleType; // Exact match for vehicleType
+    }
+
+    // Query the database to find tickets with the given vehicle number and optional vehicle type
+    const tickets = await ParkingTicket.find(query, { name: 1, phoneNumber: 1, vehicleNumber: 1, vehicleType: 1 }); // Adjust the query based on your ORM/model
     console.log("tickets ", tickets);
 
     if (isEmpty(tickets)) {
       // If no ticket is found, return a message indicating it's a new vehicle
       return res.status(404).json({ message: 'This is a new vehicle' });
     } else {
-      // If ticket is found, return its details
+      // If tickets are found, return their details
       return res.status(200).json({
         message: "Here is the matching tickets list.",
         result: tickets
