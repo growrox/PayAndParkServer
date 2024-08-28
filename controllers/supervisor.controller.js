@@ -704,3 +704,84 @@ export const getAllSuperVisors = async (req, res) => {
           return res.status(500).json({ error: responses.errors[language].internalServerError });
      }
 };
+
+export const getUnsettledTicketsForSupervisor = async (req, res) => {
+     const language = getLanguage(req, responses); // Fallback to English if language is not set
+     const { supervisorId } = req.params; // Assuming supervisorId is passed as a URL parameter
+
+     try {
+
+          const pipeline = [
+               {
+                    $match: {
+                         supervisor: new mongoose.Types.ObjectId(supervisorId),
+                         isSettled: false
+                    }
+               },
+               {
+                    $unwind: "$cashComponent"
+               },
+               {
+                    $group: {
+                         _id: null,
+                         totalCollectedAmount: { $sum: "$totalCollectedAmount" },
+                         denominationTotals: {
+                              $push: {
+                                   denomination: "$cashComponent.denomination",
+                                   count: "$cashComponent.count"
+                              }
+                         }
+                    }
+               },
+               {
+                    $addFields: {
+                         denominationTotals: {
+                              $arrayToObject: {
+                                   $map: {
+                                        input: "$denominationTotals",
+                                        as: "item",
+                                        in: {
+                                             k: "$$item.denomination",
+                                             v: {
+                                                  $sum: {
+                                                       $map: {
+                                                            input: {
+                                                                 $filter: {
+                                                                      input: "$denominationTotals",
+                                                                      as: "filterItem",
+                                                                      cond: { $eq: ["$$filterItem.denomination", "$$item.denomination"] }
+                                                                 },
+                                                                 as: "sumItem",
+                                                                 in: "$$sumItem.count"
+                                                            }
+                                                       }
+                                                  }
+                                             }
+                                        }
+                                   }
+                              }
+                         }
+                    }
+               },
+               {
+                    $project: {
+                         _id: 0,
+                         totalCollectedAmount: 1,
+                         denominationTotals: 1
+                    }
+               }
+          ];
+
+          const result = await SupervisorSettlementTicket.aggregate(pipeline);
+
+          return res.status(200).json({
+               message: responses.messages[language].unsettledTicketsFetchedSuccessfully,
+               result: result[0] || { totalCollectedAmount: 0, denominationTotals: {} }
+          });
+     } catch (error) {
+          console.error("Error fetching unsettled tickets for supervisor.", error);
+          return res.status(500).json({ error: responses.errors[language].internalServerError });
+     }
+};
+
+
