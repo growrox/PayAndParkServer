@@ -324,8 +324,8 @@ export const getUsers = async (req, res) => {
 
     // Find users based on the query, select specific fields, and apply pagination
     const users = await User.find(query)
-      .select("name code phone role supervisorCode shiftId isOnline")
-      .populate("shiftId")
+      .select("name code phone role supervisorCode shiftId isOnline siteId")
+      .populate("shiftId siteId")
       .sort({ createdAt: -1 })
       .skip((page - 1) * pageSize)
       .limit(parseInt(pageSize))
@@ -441,7 +441,9 @@ export const getUserStatus = async (req, res) => {
 // Update a user
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  const { name, supervisorCode, shiftId } = req.body;
+  const { name, supervisorCode, shiftId, siteId } = req.body;
+  console.log({siteId});
+  
   const language = getLanguage(req, responses);
   try {
     const userAvailable = await User.findById(id);
@@ -462,7 +464,11 @@ export const updateUser = async (req, res) => {
     if (!isEmpty(shiftId)) {
       updateDetails.shiftId = shiftId;
     }
-
+    if (!isEmpty(siteId)) {
+      updateDetails.siteId = siteId;
+    }
+    console.log({updateDetails});
+    
     const updatedUser = await User.findByIdAndUpdate(id, updateDetails, { new: true });
 
     return res.status(200).json({

@@ -71,5 +71,12 @@ export const ROUTES = {
     DELTE_TICEKT_BY_ID: "/parking-tickets/:id",
     GET_PREVIOUS_TICKET_DETAILS: "/ticket/previous",
     GET_PARKING_TICKETS_IN_DATE_RANGE: "/parking-tickets-by-date-range"
+  },
+  SITE: {
+    CREATE: "/create-site",
+    GET_DETAIL: "/get-site/:id",
+    GET_ALL: "/get-all-sites",
+    UPDATE: "/update-site/:id",
+    DELETE: "/delete-site/:id",
   }
 };

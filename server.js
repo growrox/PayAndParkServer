@@ -9,6 +9,7 @@ import ParkingAssistant from "./routes/assistant.route.js";
 import Supervisor from "./routes/supervisor.route.js";
 import Accountant from "./routes/accountant.route.js";
 import ShiftRoutes from "./routes/shift.route.js";
+import SiteRoutes from "./routes/site.routes.js";
 import Attendance from "./routes/attendence.route.js";
 import VehicalPass from "./routes/vehicalPass.route.js";
 import Razorpay from "razorpay";
@@ -75,7 +76,7 @@ app.use("/api/v1", Accountant);
 app.use('/api/v1', ShiftRoutes);
 app.use('/api/v1', Attendance);
 app.use('/api/v1', VehicalPass);
-
+app.use('/api/v1', SiteRoutes);
 app.use("/api/v1", vehicleType);
 
 

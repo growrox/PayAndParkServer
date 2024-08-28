@@ -14,6 +14,7 @@ const userSchema = new Schema({
   isOnline: { type: Boolean, default: false },
   isActivated: { type: Boolean, default: true },
   shiftId: { type: Schema.Types.ObjectId, ref: 'Shift' },
+  siteId: { type: Schema.Types.ObjectId, ref: 'Site' },
   lastSettledTicketId: { type: Schema.Types.ObjectId, ref: 'SupervisorSettlementTicket' }
 }, { timestamps: true, versionKey: false });
 
