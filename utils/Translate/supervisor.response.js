@@ -10,7 +10,9 @@ export const responses = {
                noUnsettledTicketsFound: "No unsettled tickets found for the supervisor.",
                supervisorStatsFetchedSuccessfully: "Here is the supervisor stats.",
                allSupervisorsListFetchedSuccessfully: "All supervisors list fetched successfully.",
-               unsettledTicketsFetchedSuccessfully: "All ticket denominations"
+               unsettledTicketsFetchedSuccessfully: "All ticket denominations",
+               nothingToCollect: "Nothing To Collect for now."
+
           },
           hi: {
                ticketsAlreadySettled: "आज के लिए टिकट पहले ही निपटाए जा चुके हैं।",
@@ -22,7 +24,9 @@ export const responses = {
                noUnsettledTicketsFound: "सुपरवाइजर के लिए कोई निपटाए गए टिकट नहीं मिले।",
                supervisorStatsFetchedSuccessfully: "यहाँ सुपरवाइजर के आँकड़े हैं।",
                allSupervisorsListFetchedSuccessfully: "सभी सुपरवाइज़रों की सूची सफलतापूर्वक प्राप्त की गई।",
-               unsettledTicketsFetchedSuccessfully: "All ticket denominations"
+               unsettledTicketsFetchedSuccessfully: "All ticket denominations",
+               nothingToCollect: "Nothing To Collect for now."
+
           },
           mr: {
                ticketsAlreadySettled: "आजसाठी तिकीट आधीच निपटले आहेत.",
@@ -34,7 +38,9 @@ export const responses = {
                noUnsettledTicketsFound: "सुपरवाइझर साठी कोणतीही निपटलेली तिकीटे सापडली नाहीत.",
                supervisorStatsFetchedSuccessfully: "येथे सुपरवाइझरचे सांख्यिकीय माहिती आहे.",
                allSupervisorsListFetchedSuccessfully: "सर्व सुपरवायझर यादी यशस्वीरित्या प्राप्त झाली.",
-               unsettledTicketsFetchedSuccessfully: "All ticket denominations"
+               unsettledTicketsFetchedSuccessfully: "All ticket denominations",
+               nothingToCollect: "Nothing To Collect for now."
+
           }
      },
      errors: {
@@ -50,7 +56,6 @@ export const responses = {
                internalServerError: 'Internal server error.',
                supervisorNotFound: 'Supervisor not found',
                supervisorIdNotFound: 'No supervisor ID provided. Please check again.',
-
           },
           hi: {
                cashComponentsRequired: 'कैश घटक आवश्यक हैं।',

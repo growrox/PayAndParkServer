@@ -710,78 +710,70 @@ export const getUnsettledTicketsForSupervisor = async (req, res) => {
      const { supervisorID } = req.params; // Assuming supervisorId is passed as a URL parameter
 
      try {
+          // Fetch all tickets for the supervisor that are not settled
 
-          const pipeline = [
-               {
-                    $match: {
-                         supervisor: new mongoose.Types.ObjectId(supervisorID),
-                         isSettled: false
-                    }
-               },
-               {
-                    $unwind: "$cashComponent"
-               },
-               {
-                    $group: {
-                         _id: null,
-                         totalCollectedAmount: { $sum: "$totalCollectedAmount" },
-                         denominationTotals: {
-                              $push: {
-                                   denomination: "$cashComponent.denomination",
-                                   count: "$cashComponent.count"
-                              }
-                         }
-                    }
-               },
-               {
-                    $addFields: {
-                         denominationTotals: {
-                              $arrayToObject: {
-                                   $map: {
-                                        input: "$denominationTotals",
-                                        as: "item",
-                                        in: {
-                                             k: "$$item.denomination",
-                                             v: {
-                                                  $sum: {
-                                                       $map: {
-                                                            input: {
-                                                                 $filter: {
-                                                                      input: "$denominationTotals",
-                                                                      as: "filterItem",
-                                                                      cond: { $eq: ["$$filterItem.denomination", "$$item.denomination"] }
-                                                                 },
-                                                                 as: "sumItem",
-                                                                 in: "$$sumItem.count"
-                                                            }
-                                                       }
-                                                  }
-                                             }
-                                        }
-                                   }
-                              }
-                         }
-                    }
-               },
-               {
-                    $project: {
-                         _id: 0,
-                         totalCollectedAmount: 1,
-                         denominationTotals: 1
-                    }
-               }
-          ];
 
-          const result = await SupervisorSettlementTicket.aggregate(pipeline);
+
+          const tickets = await SupervisorSettlementTicket.find({
+               supervisor: new mongoose.Types.ObjectId(supervisorID),
+               isSettled: false
+          }, {
+               cashComponent: 1,
+               totalCollectedAmount: 1,
+               totalFine,
+               totalReward
+          });
+
+          if (isEmpty(tickets)) {
+               return res.status(200).json({
+                    message: responses.messages[language].nothingToCollect
+               })
+          }
+
+          // Initialize totals
+          const denominationTotals = {
+               '500': 0,
+               '200': 0,
+               '100': 0,
+               '50': 0,
+               '20': 0,
+               '10': 0,
+               '5': 0,
+               '2': 0,
+               '1': 0
+          };
+          let totalCollectedAmount = 0;
+          let totalFineAmount = 0;
+          let totalRewardAmount = 0;
+
+          // Iterate over tickets and calculate totals
+          tickets.forEach(ticket => {
+               totalCollectedAmount += ticket.totalCollectedAmount;
+               totalFineAmount += ticket.totalFineAmount;
+               totalRewardAmount += ticket.totalRewardAmount;
+
+               ticket.cashComponent.forEach(component => {
+                    const { denomination, count } = component;
+                    if (denominationTotals.hasOwnProperty(denomination)) {
+                         denominationTotals[denomination] += count;
+                    }
+               });
+          });
 
           return res.status(200).json({
                message: responses.messages[language].unsettledTicketsFetchedSuccessfully,
-               result: result[0] || { totalCollectedAmount: 0, denominationTotals: {} }
+               result: {
+                    totalCollectedAmount,
+                    denominationTotals,
+                    totalFineAmount,
+                    totalRewardAmount
+               }
           });
      } catch (error) {
           console.error("Error fetching unsettled tickets for supervisor.", error);
           return res.status(500).json({ error: responses.errors[language].internalServerError });
      }
 };
+
 
 
