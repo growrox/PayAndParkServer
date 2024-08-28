@@ -16,7 +16,8 @@ export const ROUTES = {
   },
   ASSISTANT: {
     STATS: "/parking-assistant/stats",
-    GET_TICKETS: "/parking-assistant/tickets"
+    GET_TICKETS: "/parking-assistant/tickets",
+    GET_GLOBAL_TICKETS: "/parking-assistant/global/tickets",
   },
   SHIFT: {
     CREATE_SHIFTS: '/shifts/create',

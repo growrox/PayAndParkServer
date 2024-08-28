@@ -1,7 +1,7 @@
 import ParkingAssistant from '../models/user.model.js'; // Import the ParkingAssistant model
 import ParkingTicket from '../models/parkingTicket.model.js';
 import mongoose from 'mongoose';
-import { getLanguage } from "../utils/helperFunctions.js";
+import { getLanguage, isEmpty } from "../utils/helperFunctions.js";
 import { responses } from '../utils/Translate/assistant.response.js';
 
 // Create a new parking assistant
@@ -214,6 +214,67 @@ export const getTickets = async (req, res) => {
                          .exec();
                }
           }
+
+          const totalCount = await ParkingTicket.find({ parkingAssistant: new mongoose.Types.ObjectId(userid) }).countDocuments();
+
+          if (tickets.length === 0) {
+               return res.status(200).json({ message: responses.messages[language].noTicketsFound, result: { data: [], pagination: { total: 0, limit, pageNumber } } });
+          }
+
+          let responseObj = {
+               message: responses.messages[language].ticketsFetched,
+               result: { data: tickets },
+          };
+          if (!page && page != 'home') {
+               responseObj["result"] = { ...responseObj["result"], pagination: { total: totalCount, limit, pageNumber } }
+          }
+
+          return res.status(200).json(responseObj);
+     } catch (err) {
+          console.error('Error fetching tickets:', err);
+          return res.status(500).json({ error: responses.errors[language].serverError });
+     }
+};
+
+// Controller function to fetch all tickets from any user
+export const getGlobalTickets = async (req, res) => {
+     const language = getLanguage(req, responses);
+     try {
+
+          let { page, userid } = req.headers;
+          let { searchQuery } = req.query;
+          let filter = [];
+
+          if (isEmpty(searchQuery)) {
+               return res.status(404).json({ message: responses.errors[language].FilterIsRequired, result: { data: [], pagination: { total: 0, limit, pageNumber } } });
+          }
+
+          const limit = page && page === 'home' ? 5 : parseInt(req.query.pageSize) || 20;
+          const pageNumber = parseInt(req.query.page) || 1;
+          const skip = (pageNumber - 1) * limit;
+
+          if (searchQuery) {
+               filter.push({ vehicleNumber: { $regex: new RegExp(searchQuery, 'i') } });
+               filter.push({ phoneNumber: { $regex: new RegExp(searchQuery, 'i') } });
+               filter.push({ paymentMode: { $regex: new RegExp(searchQuery, 'i') } });
+               filter.push({ status: { $regex: new RegExp(searchQuery, 'i') } });
+          }
+
+          let tickets = [];
+
+
+
+          tickets = await ParkingTicket.find({})
+               .sort({ createdAt: -1 })
+               .skip(skip)
+               .limit(limit)
+               .populate('supervisor', 'name')
+               .populate('settlementId')
+               .populate('passId')
+               .populate('onlineTransactionId')
+               .exec();
+
+
 
           const totalCount = await ParkingTicket.find({ parkingAssistant: new mongoose.Types.ObjectId(userid) }).countDocuments();
 

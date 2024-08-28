@@ -41,20 +41,23 @@ export const responses = {
                ticketNotFound: "Parking ticket not found",
                wrongSignature: "Signature does not match.",
                paymentNotGenerated: "Payment not generated please try again.",
-               NotFoundOrOnline: "Assistant not found or is not online."
+               NotFoundOrOnline: "Assistant not found or is not online.",
+               FilterIsRequired: "Filter is required field"
           },
           "hi": {
                ticketNotFound: "पार्किंग टिकट नहीं मिला।",
                wrongSignature: "हस्ताक्षर मेल नहीं खाता।",
                paymentNotGenerated: "भुगतान नहीं हुआ, कृपया पुनः प्रयास करें।",
-               NotFoundOrOnline: "सहायक नहीं मिला या ऑनलाइन नहीं है।"
+               NotFoundOrOnline: "सहायक नहीं मिला या ऑनलाइन नहीं है।",
+               FilterIsRequired: "फिल्टर एक आवश्यक क्षेत्र है"
 
           },
           "mr": {
                ticketNotFound: "पार्किंग तिकीट सापडले नाही.",
                wrongSignature: "स्वाक्षरी जुळत नाही.",
                paymentNotGenerated: "भुगतान निर्माण झाले नाही, कृपया पुन्हा प्रयत्न करा.",
-               NotFoundOrOnline: "सहाय्यक सापडला नाही किंवा ऑनलाइन नाही."
+               NotFoundOrOnline: "सहाय्यक सापडला नाही किंवा ऑनलाइन नाही.",
+               FilterIsRequired: "फिल्टर हा आवश्यक फील्ड आहे"
 
           }
      }
