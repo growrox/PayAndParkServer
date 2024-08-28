@@ -720,8 +720,8 @@ export const getUnsettledTicketsForSupervisor = async (req, res) => {
           }, {
                cashComponent: 1,
                totalCollectedAmount: 1,
-               totalFine,
-               totalReward
+               totalFine: 1,
+               totalReward: 1
           });
 
           if (isEmpty(tickets)) {
