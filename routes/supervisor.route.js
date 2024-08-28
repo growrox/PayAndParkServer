@@ -11,7 +11,7 @@ router.post(SETTLE_TICKETS, authMiddleware, settleParkingTickets);
 router.get(GET_ASSISTANTS, authMiddleware, getParkingAssistants);
 router.get(GET_ALL_SETTLE_TICKETS, authMiddleware, getAllSettlementTickets);
 router.get(GET_STATS, authMiddleware, getSupervisorStats);
-router.get(GET_ALL_SUPERVISOR, authMiddleware, getAllSuperVisors)
+router.get(GET_ALL_SUPERVISOR, authMiddleware, getAllSuperVisors);
 
 // router.get('/users/:phone', validateJWT, getUserById);
 // router.put('/users/:phone', updateUser);

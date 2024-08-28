@@ -45,14 +45,14 @@ export const ROUTES = {
     GET_ALL_SETTLE_TICKETS: "/accountant/tickets/settled/:accountantID",
     GET_SUPERVISOR_SETTLE_TICKETS: "/accountant/tickets/supervisor/:supervisorID",
     GET_STATS: "/accountant/stats/:accountantID",
-    GET_STATS_BY_DATE:"/accountant/stats-by-date/:accountantID"
+    GET_STATS_BY_DATE: "/accountant/stats-by-date/:accountantID"
   },
   SUPERVISOR: {
     SETTLE_TICKETS: "/supervisor/settle-tickets/:parkingAssistantID",
     GET_ASSISTANTS: "/supervisor/parkings-assistants/:supervisorID",
     GET_ALL_SETTLE_TICKETS: "/supervisor/tickets/all/:supervisorID",
     GET_STATS: "/supervisor/stats/:supervisorID",
-    GET_ALL_SUPERVISOR:"/supervisor/all"
+    GET_ALL_SUPERVISOR: "/supervisor/all",
   },
   PARKING_TICKETS: {
     UPLOAD_VEHICAL_IMAGE: "/parking-tickets/uploadParkingTicket",

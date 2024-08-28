@@ -8,7 +8,7 @@ import { getLanguage } from '../utils/helperFunctions.js';
 import moment from 'moment-timezone';
 
 export const settleParkingTickets = async (req, res) => {
-     const language = getLanguage(req,responses); // Get user's language preference
+     const language = getLanguage(req, responses); // Get user's language preference
      const { supervisorID, cashComponent, cashCollected, totalCollection, totalCollectedAmount, TotalFine, TotalRewards } = req.body;
      const { parkingAssistantID } = req.params;
 
@@ -271,7 +271,7 @@ export const getParkingAssistantsOld = async (req, res) => {
 export const getParkingAssistants = async (req, res) => {
      const { supervisorID } = req.params;
      const { queryParam, shiftID, page = 1, pageSize = 10 } = req.query; // Extract query parameters including pagination
-     const language = getLanguage(req,responses); // Fallback to English if language is not set
+     const language = getLanguage(req, responses); // Fallback to English if language is not set
 
      try {
           // Find the supervisor by ID
@@ -419,7 +419,7 @@ export const getParkingAssistants = async (req, res) => {
 export const getAllSettlementTickets = async (req, res) => {
      const { supervisorID } = req.params;
      const { page = 1, pageSize = 10, startDate, endDate, searchQuery } = req.query;
-     const language = getLanguage(req,responses); // Fallback to English if language is not set
+     const language = getLanguage(req, responses); // Fallback to English if language is not set
 
      try {
           if (!supervisorID) {
@@ -621,9 +621,40 @@ export const getAllSettlementTicketsOld = async (req, res) => {
 
 export const getSupervisorStats = async (req, res) => {
      const supervisorId = req.params.supervisorID;
-     const language = getLanguage(req,responses); // Fallback to English if language is not set
+     const language = getLanguage(req, responses); // Fallback to English if language is not set
 
      try {
+
+          const tickets = await SupervisorSettlementTicket.find({
+               supervisor: new mongoose.Types.ObjectId(supervisorId),
+               isSettled: false
+          }, {
+               cashComponent: 1,
+          });
+
+          // Initialize totals
+          const denominationTotals = {
+               '500': 0,
+               '200': 0,
+               '100': 0,
+               '50': 0,
+               '20': 0,
+               '10': 0,
+               '5': 0,
+               '2': 0,
+               '1': 0
+          };
+          // Iterate over tickets and calculate totals
+          tickets.forEach(ticket => {
+               ticket.cashComponent.forEach(component => {
+                    const { denomination, count } = component;
+                    if (denominationTotals.hasOwnProperty(denomination)) {
+                         denominationTotals[denomination] += count;
+                    }
+               });
+          });
+
+
           const statsPipeline = [
                {
                     $match: {
@@ -639,7 +670,7 @@ export const getSupervisorStats = async (req, res) => {
                          totalFine: { $sum: '$totalFine' },
                          cashCollected: { $sum: '$cashCollected' },
                          totalReward: { $sum: '$totalReward' },
-                         totalTicketsCount: { $sum: 1 } // Counting the number of tickets
+                         totalTicketsCount: { $sum: 1 }, // Counting the number of tickets
                     }
                }
           ];
@@ -662,6 +693,7 @@ export const getSupervisorStats = async (req, res) => {
                          TotalReward: 0,
                          TotalTicketsCount: 0,
                          cashCollected: 0,
+                         CashComponents: [],
                          LastSettledTicketUpdatedAt: null
                     }
                });
@@ -674,6 +706,7 @@ export const getSupervisorStats = async (req, res) => {
                TotalReward: stats[0]?.totalReward || 0,
                cashCollected: stats[0]?.cashCollected || 0,
                TotalTicketsCount: stats[0]?.totalTicketsCount || 0,
+               CashComponents: denominationTotals || [], // Include the cash components
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
           };
 
@@ -689,7 +722,7 @@ export const getSupervisorStats = async (req, res) => {
 
 
 export const getAllSuperVisors = async (req, res) => {
-     const language = getLanguage(req,responses); // Fallback to English if language is not set
+     const language = getLanguage(req, responses); // Fallback to English if language is not set
 
      try {
           const allSupervisors = await User.find({ role: 'supervisor' }, { _id: 1, code: 1, name: 1 })
@@ -704,3 +737,7 @@ export const getAllSuperVisors = async (req, res) => {
           return res.status(500).json({ error: responses.errors[language].internalServerError });
      }
 };
+
+
+
+
