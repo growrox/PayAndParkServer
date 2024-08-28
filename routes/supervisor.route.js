@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { settleParkingTickets, getParkingAssistants, getAllSettlementTickets, getSupervisorStats, getAllSuperVisors } from "../controllers/supervisor.controller.js"
+import { settleParkingTickets, getParkingAssistants, getAllSettlementTickets, getSupervisorStats, getAllSuperVisors, getUnsettledTicketsForSupervisor } from "../controllers/supervisor.controller.js"
 import { ROUTES } from "../utils/routes.js";
 
 const router = Router();
-const { SUPERVISOR: { GET_ALL_SUPERVISOR, GET_STATS, GET_ALL_SETTLE_TICKETS, GET_ASSISTANTS, SETTLE_TICKETS } } = ROUTES
+const { SUPERVISOR: { GET_ALL_SUPERVISOR, GET_STATS, GET_ALL_SETTLE_TICKETS, GET_ASSISTANTS, SETTLE_TICKETS, GET_CASH_DENOMINATIONS } } = ROUTES
 import authMiddleware from "../middlewares/validateJWT.js";
 
 // Routes for user management
@@ -11,7 +11,8 @@ router.post(SETTLE_TICKETS, authMiddleware, settleParkingTickets);
 router.get(GET_ASSISTANTS, authMiddleware, getParkingAssistants);
 router.get(GET_ALL_SETTLE_TICKETS, authMiddleware, getAllSettlementTickets);
 router.get(GET_STATS, authMiddleware, getSupervisorStats);
-router.get(GET_ALL_SUPERVISOR, authMiddleware, getAllSuperVisors)
+router.get(GET_ALL_SUPERVISOR, authMiddleware, getAllSuperVisors);
+router.get(GET_CASH_DENOMINATIONS, authMiddleware, getUnsettledTicketsForSupervisor)
 
 // router.get('/users/:phone', validateJWT, getUserById);
 // router.put('/users/:phone', updateUser);

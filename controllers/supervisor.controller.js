@@ -8,7 +8,7 @@ import { getLanguage } from '../utils/helperFunctions.js';
 import moment from 'moment-timezone';
 
 export const settleParkingTickets = async (req, res) => {
-     const language = getLanguage(req,responses); // Get user's language preference
+     const language = getLanguage(req, responses); // Get user's language preference
      const { supervisorID, cashComponent, cashCollected, totalCollection, totalCollectedAmount, TotalFine, TotalRewards } = req.body;
      const { parkingAssistantID } = req.params;
 
@@ -271,7 +271,7 @@ export const getParkingAssistantsOld = async (req, res) => {
 export const getParkingAssistants = async (req, res) => {
      const { supervisorID } = req.params;
      const { queryParam, shiftID, page = 1, pageSize = 10 } = req.query; // Extract query parameters including pagination
-     const language = getLanguage(req,responses); // Fallback to English if language is not set
+     const language = getLanguage(req, responses); // Fallback to English if language is not set
 
      try {
           // Find the supervisor by ID
@@ -419,7 +419,7 @@ export const getParkingAssistants = async (req, res) => {
 export const getAllSettlementTickets = async (req, res) => {
      const { supervisorID } = req.params;
      const { page = 1, pageSize = 10, startDate, endDate, searchQuery } = req.query;
-     const language = getLanguage(req,responses); // Fallback to English if language is not set
+     const language = getLanguage(req, responses); // Fallback to English if language is not set
 
      try {
           if (!supervisorID) {
@@ -621,7 +621,7 @@ export const getAllSettlementTicketsOld = async (req, res) => {
 
 export const getSupervisorStats = async (req, res) => {
      const supervisorId = req.params.supervisorID;
-     const language = getLanguage(req,responses); // Fallback to English if language is not set
+     const language = getLanguage(req, responses); // Fallback to English if language is not set
 
      try {
           const statsPipeline = [
@@ -689,7 +689,7 @@ export const getSupervisorStats = async (req, res) => {
 
 
 export const getAllSuperVisors = async (req, res) => {
-     const language = getLanguage(req,responses); // Fallback to English if language is not set
+     const language = getLanguage(req, responses); // Fallback to English if language is not set
 
      try {
           const allSupervisors = await User.find({ role: 'supervisor' }, { _id: 1, code: 1, name: 1 })
@@ -707,14 +707,14 @@ export const getAllSuperVisors = async (req, res) => {
 
 export const getUnsettledTicketsForSupervisor = async (req, res) => {
      const language = getLanguage(req, responses); // Fallback to English if language is not set
-     const { supervisorId } = req.params; // Assuming supervisorId is passed as a URL parameter
+     const { supervisorID } = req.params; // Assuming supervisorId is passed as a URL parameter
 
      try {
 
           const pipeline = [
                {
                     $match: {
-                         supervisor: new mongoose.Types.ObjectId(supervisorId),
+                         supervisor: new mongoose.Types.ObjectId(supervisorID),
                          isSettled: false
                     }
                },

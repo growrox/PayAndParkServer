@@ -53,7 +53,7 @@ export const ROUTES = {
     GET_ALL_SETTLE_TICKETS: "/supervisor/tickets/all/:supervisorID",
     GET_STATS: "/supervisor/stats/:supervisorID",
     GET_ALL_SUPERVISOR: "/supervisor/all",
-    GET_CASH_DENOMINATIONS: "/supervisor/cash-denomination"
+    GET_CASH_DENOMINATIONS: "/supervisor/cash-denomination/:supervisorID"
   },
   PARKING_TICKETS: {
     UPLOAD_VEHICAL_IMAGE: "/parking-tickets/uploadParkingTicket",
