@@ -246,7 +246,7 @@ export const getGlobalTickets = async (req, res) => {
           let filter = [];
 
           if (isEmpty(searchQuery)) {
-               return res.status(404).json({ message: responses.errors[language].FilterIsRequired, result: { data: [], pagination: { total: 0, limit, pageNumber } } });
+               return res.status(404).json({ message: responses.errors[language].FilterIsRequired, result: {} });
           }
 
           const limit = page && page === 'home' ? 5 : parseInt(req.query.pageSize) || 20;
