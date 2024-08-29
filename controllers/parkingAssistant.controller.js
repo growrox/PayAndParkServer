@@ -243,7 +243,6 @@ export const getGlobalTickets = async (req, res) => {
 
           let { page, userid } = req.headers;
           let { searchQuery } = req.query;
-          let filter = [];
 
           if (isEmpty(searchQuery)) {
                return res.status(404).json({ message: responses.errors[language].FilterIsRequired, result: {} });
@@ -253,18 +252,20 @@ export const getGlobalTickets = async (req, res) => {
           const pageNumber = parseInt(req.query.page) || 1;
           const skip = (pageNumber - 1) * limit;
 
+          let filter={};
+
           if (searchQuery) {
-               filter.push({ vehicleNumber: { $regex: new RegExp(searchQuery, 'i') } });
-               filter.push({ phoneNumber: { $regex: new RegExp(searchQuery, 'i') } });
-               filter.push({ paymentMode: { $regex: new RegExp(searchQuery, 'i') } });
-               filter.push({ status: { $regex: new RegExp(searchQuery, 'i') } });
+               filter = {
+                    $or: [
+                         { vehicleNumber: { $regex: new RegExp(searchQuery, 'i') } },
+                         { phoneNumber: { $regex: new RegExp(searchQuery, 'i') } }
+                    ]
+               };
           }
 
           let tickets = [];
 
-
-
-          tickets = await ParkingTicket.find({})
+          tickets = await ParkingTicket.find(filter)
                .sort({ createdAt: -1 })
                .skip(skip)
                .limit(limit)
@@ -273,8 +274,6 @@ export const getGlobalTickets = async (req, res) => {
                .populate('passId')
                .populate('onlineTransactionId')
                .exec();
-
-
 
           const totalCount = await ParkingTicket.find({ parkingAssistant: new mongoose.Types.ObjectId(userid) }).countDocuments();
 
