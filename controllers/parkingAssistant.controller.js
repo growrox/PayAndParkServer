@@ -194,25 +194,25 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
     return res.json(
       ticketStats.length > 0
         ? {
-            message: responses.messages[language].settlementsFetched,
-            result: {
-              ...ticketStats[0],
-              LastSettledDate:
-                lastSettled.length > 0 ? lastSettled[0].LastSettledDate : null,
-              VehicleTypes: vehicleTypes,
-            },
-          }
+          message: responses.messages[language].settlementsFetched,
+          result: {
+            ...ticketStats[0],
+            LastSettledDate:
+              lastSettled.length > 0 ? lastSettled[0].LastSettledDate : null,
+            VehicleTypes: vehicleTypes,
+          },
+        }
         : {
-            message: responses.messages[language].noSettlements,
-            result: {
-              TotalAmount: 0,
-              TotalCash: 0,
-              TotalOnline: 0,
-              TotalTickets: 0,
-              LastSettledDate: null,
-              VehicleTypes: [],
-            },
-          }
+          message: responses.messages[language].noSettlements,
+          result: {
+            TotalAmount: 0,
+            TotalCash: 0,
+            TotalOnline: 0,
+            TotalTickets: 0,
+            LastSettledDate: null,
+            VehicleTypes: [],
+          },
+        }
     );
   } catch (error) {
     return res
@@ -317,7 +317,7 @@ export const getTickets = async (req, res) => {
 export const getParkingTicketsByDateRange = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const onlineUsers = await User.find({isOnline: true})
+    const onlineUsers = await User.find({ isOnline: true })
 
     if (!startDate || !endDate) {
       return res
@@ -412,5 +412,73 @@ export const getParkingTicketsByDateRange = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error", error });
+  }
+};
+
+// Controller function to fetch all tickets from any user
+export const getGlobalTickets = async (req, res) => {
+  const language = getLanguage(req, responses);
+  try {
+
+    let { page, userid } = req.headers;
+    let { searchQuery } = req.query;
+
+    if (isEmpty(searchQuery)) {
+      return res.status(404).json({ message: responses.errors[language].FilterIsRequired, result: {} });
+    }
+
+    const limit = page && page === 'home' ? 5 : parseInt(req.query.pageSize) || 20;
+    const pageNumber = parseInt(req.query.page) || 1;
+    const skip = (pageNumber - 1) * limit;
+
+    let filter = {};
+
+    if (searchQuery) {
+      filter = {
+        $or: [
+          { vehicleNumber: { $regex: new RegExp(searchQuery, 'i') } },
+          { phoneNumber: { $regex: new RegExp(searchQuery, 'i') } }
+        ]
+      };
+    }
+
+    let tickets = [];
+
+    tickets = await ParkingTicket.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('supervisor', 'name')
+      .populate('settlementId')
+      .populate('passId')
+      .populate('onlineTransactionId')
+      .exec();
+
+    const totalCount = await ParkingTicket.find({
+      parkingAssistant: new mongoose.Types.ObjectId(userid),
+    }).countDocuments();
+
+    if (tickets.length === 0) {
+      return res.status(200).json({
+        message: responses.messages[language].noTicketsFound,
+        result: { data: [], pagination: { total: 0, limit, pageNumber } },
+      });
+    }
+
+    let responseObj = {
+      message: responses.messages[language].ticketsFetched,
+      result: { data: tickets },
+    };
+    if (!page && page != "home") {
+      responseObj["result"] = {
+        ...responseObj["result"],
+        pagination: { total: totalCount, limit, pageNumber },
+      };
+    }
+
+    return res.status(200).json(responseObj);
+  } catch (err) {
+    console.error('Error fetching tickets:', err);
+    return res.status(500).json({ error: responses.errors[language].serverError });
   }
 };
