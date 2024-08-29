@@ -9,11 +9,21 @@ import { responses } from "../utils/Translate/attendance.response.js";
 // Clock-In
 export const clockIn = async (req, res) => {
   const { userId } = req.params;
+  const { latitude, longitude } = req.query
   const language = getLanguage(req, responses);
 
   try {
+
+    if (isEmpty(userId)) {
+      return res.status(404).json({ error: responses.errors[language].missingRequired, missing: "user Id" });
+    }
+
+    if (isEmpty(latitude) || isEmpty(longitude)) {
+      return res.status(404).json({ error: responses.errors[language].missingRequired, missing: "Location details." });
+    }
+
     const user = await User.findById(userId);
-    if (!user) {
+    if (isEmpty(user)) {
       return res.status(404).json({ error: responses.errors[language].userNotFound });
     }
 
@@ -23,6 +33,7 @@ export const clockIn = async (req, res) => {
       shiftId: user.shiftId,
       clockInTime: { $gte: new Date(currentDate.setHours(0, 0, 0, 0)) },
     });
+
     if (existingAttendanceToday) {
       return res.status(400).json({ error: responses.errors[language].alreadyClockedOut });
     }
@@ -32,6 +43,7 @@ export const clockIn = async (req, res) => {
       shiftId: user.shiftId,
       clockOutTime: { $exists: false },
     });
+
     if (existingClockIn) {
       return res.status(400).json({ error: responses.errors[language].alreadyClockedIn });
     }
@@ -72,6 +84,7 @@ export const clockIn = async (req, res) => {
       shiftId: user.shiftId,
       clockInTime,
       isLateToday: false,
+      clockInLocation: { latitude, longitude }
     });
     return res.status(200).json({ message: responses.messages[language].clockInSuccess });
   } catch (error) {
@@ -83,9 +96,15 @@ export const clockIn = async (req, res) => {
 // Clock-Out
 export const clockOut = async (req, res) => {
   const { userId } = req.params;
+  const { latitude, longitude } = req.query;
   const language = getLanguage(req, responses);
 
   try {
+
+    if (isEmpty(latitude) || isEmpty(longitude)) {
+      return res.status(404).json({ error: responses.errors[language].missingRequired, missing: "Location details." });
+    }
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: responses.errors[language].userNotFound });
@@ -102,8 +121,12 @@ export const clockOut = async (req, res) => {
 
     const updatedAttendance = await Attendance.findOneAndUpdate(
       { userId, shiftId: user.shiftId },
-      { clockOutTime: new Date() },
-      { new: true }
+      {
+        clockOutTime: new Date(),
+        clockOutLocation: { latitude, longitude }
+
+      },
+      { new: true },
     );
 
     if (!updatedAttendance) {

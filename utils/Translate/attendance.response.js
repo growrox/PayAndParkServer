@@ -28,7 +28,8 @@ export const responses = {
                "clockInOutsideHours": "You can only clock in during your shift hours",
                "notClockedIn": "User has not clocked in for this shift",
                "attendanceNotFound": "Attendance record not found",
-               "serverError": "Server error"
+               "serverError": "Server error",
+               "missingRequired": "Required fields are missing please check."
           },
           "hi": {
                "userNotFound": "उपयोगकर्ता नहीं मिला",
@@ -38,7 +39,9 @@ export const responses = {
                "clockInOutsideHours": "आप केवल अपनी शिफ्ट के घंटे के दौरान ही क्लॉक-इन कर सकते हैं",
                "notClockedIn": "उपयोगकर्ता ने इस शिफ्ट के लिए क्लॉक-इन नहीं किया है",
                "attendanceNotFound": "उपस्थिति रिकॉर्ड नहीं मिला",
-               "serverError": "सर्वर त्रुटि"
+               "serverError": "सर्वर त्रुटि",
+               "missingRequired": "आवश्यक फ़ील्ड्स गायब हैं कृपया जांचें।"
+
           },
           "mr": {
                "userNotFound": "वापरकर्ता सापडला नाही",
@@ -48,7 +51,9 @@ export const responses = {
                "clockInOutsideHours": "तुम्ही फक्त तुमच्या शिफ्टच्या तासांतच क्लॉक-इन करू शकता",
                "notClockedIn": "वापरकर्त्याने या शिफ्टसाठी क्लॉक-इन केलेले नाही",
                "attendanceNotFound": "उपस्थिती रेकॉर्ड सापडला नाही",
-               "serverError": "सर्वर त्रुटी"
+               "serverError": "सर्वर त्रुटी",
+               "missingRequired": "आवश्यक क्षेत्रे गहाळ आहेत कृपया तपासा."
+
           }
      }
 }
