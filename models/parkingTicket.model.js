@@ -6,6 +6,7 @@ const addressSchema = new Schema({
 })
 
 const parkingTicketSchema = new Schema({
+     ticketRefId: { type: String, required: true },
      name: { type: String, required: true },
      parkingAssistant: { type: Schema.Types.ObjectId, ref: 'User', required: true },
      vehicleType: { type: String, required: true },
@@ -23,7 +24,9 @@ const parkingTicketSchema = new Schema({
      passId: { type: Schema.Types.ObjectId, ref: 'Pass' },
      onlineTransactionId: { type: Schema.Types.ObjectId, ref: 'Transaction' },
      address: addressSchema,
-     createdAtClient: { type: Date, required: true }
+     createdAtClient: { type: Date, required: true },
+     ticketExpiry: { type: Date, required: true },
+     siteDetails: { type: Schema.Types.ObjectId, ref: 'Site' }
 }, { timestamps: true, versionKey: false });
 
 const ParkingTicket = model('ParkingTickets', parkingTicketSchema);

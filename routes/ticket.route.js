@@ -57,12 +57,7 @@ router.post(
   uploadTicketImage
 );
 
-router.post(
-  CREATE_TICKET,
-  checkParkingAssistant,
-  createParkingTicket
-);
-
+router.post(CREATE_TICKET, checkParkingAssistant, createParkingTicket);
 router.post(GENERATE_ORDER, authMiddleware, checkParkingAssistant, generatePaymentForTicket);
 router.get(GET_ALL_TICKETS, authMiddleware, getAllTickets);
 router.post(PAYMENT_STATUS, authMiddleware, updatePaymentStatusOnline);

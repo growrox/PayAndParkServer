@@ -1,6 +1,7 @@
 import ParkingTicket from "../models/parkingTicket.model.js"; // Adjust the path based on your project structure
 import {
   __dirname,
+  createRefId,
   isEmpty,
   sendTicketConfirmation,
 } from "../utils/helperFunctions.js";
@@ -37,15 +38,20 @@ export const createParkingTicket = async (req, res) => {
       createdAtClient
     } = req.body;
 
-    console.log("Body ", req.body);
+    // console.log("Body ", req.body);
     const { userId } = req.headers;
     const language = getLanguage(req, responses);
 
     // Check if there is an assistant with the provided phone number and role
 
-    console.log("userid  ", userId);
     const AssistanceAvailable = await User.findOne({ _id: new mongoose.Types.ObjectId(userId), isOnline: true });
     console.log("AssistanceAvailable ", AssistanceAvailable);
+
+    if (isEmpty(AssistanceAvailable.siteId)) {
+      return res.status(200).json({
+        message: responses.messages[language].NotFoundOrOnline,
+      });
+    }
 
     if (isEmpty(AssistanceAvailable)) {
       return res.status(200).json({
@@ -55,7 +61,7 @@ export const createParkingTicket = async (req, res) => {
     // Check if there is already a ticket for the vehicle number created within the last 30 minutes
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
     const existingTicket = await ParkingTicket.findOne({
-      vehicleNumber,
+      vehicleNumber: vehicleNumber.toLocaleUpperCase(),
       createdAt: { $gte: thirtyMinutesAgo },
     });
 
@@ -65,15 +71,33 @@ export const createParkingTicket = async (req, res) => {
       });
     }
 
+    // const nextMonth = new Date("2024/01/31")
+    let ticketExpiry;
+
+    if (isPass) {
+      const now = new Date();
+      ticketExpiry = new Date(now.setDate(now.getDate() + 30))
+      ticketExpiry = new Date(ticketExpiry.setHours(23, 59, 59, 999));
+    }
+    else {
+      const now = new Date();
+      ticketExpiry = new Date(now.getTime() + +duration * 60 * 60 * 1000);
+    }
+
+    const uniqueTicketId = await createRefId(createdAtClient)
+    // console.log({ uniqueTicketId });
+
+
     // Create a new parking ticket
     const newTicket = new ParkingTicket({
-      parkingAssistant: req.headers.userId,
+      ticketRefId: uniqueTicketId,
+      parkingAssistant: userId,
       vehicleType,
       duration,
       paymentMode,
       remark,
       image,
-      vehicleNumber,
+      vehicleNumber: vehicleNumber.toLocaleUpperCase(),
       phoneNumber,
       amount,
       supervisor,
@@ -83,9 +107,11 @@ export const createParkingTicket = async (req, res) => {
       name,
       address,
       createdAtClient,
-      status: paymentMode == "Online" ? "paid" : "created"
+      status: paymentMode == "Online" ? "paid" : "created",
+      ticketExpiry, // Add the passExpireAt field if isPass is true
+      siteDetails: AssistanceAvailable.siteId
     });
-    console.log("newTicket ", newTicket._id);
+    console.log("newTicket ", newTicket);
 
     if (isEmpty(onlineTransactionId)) {
       if (paymentMode == "Online") {
@@ -100,12 +126,13 @@ export const createParkingTicket = async (req, res) => {
     const savedTicket = await newTicket.save();
     const ticketId = savedTicket._id //"666f0e35284b2b8f1707c77b"; // savedTicket._id;
     // sendTicketConfirmation  Date, Time, Name, TicketNumber, VehicalNumber, ParkingAssistant, Duration, Amount, PaymentMode
+
     const smsParams = {
       Name: name,
       DateTime: createdAtClient,
       toNumber: phoneNumber,
       TicketNumber: `PnP${ticketId.toString().slice(5, 9)}`,
-      VehicalNumber: vehicleNumber,
+      VehicalNumber: vehicleNumber.toLocaleUpperCase(),
       ParkingAssistant: AssistanceAvailable.name,
       Duration: duration,
       Amount: amount,
@@ -114,13 +141,7 @@ export const createParkingTicket = async (req, res) => {
 
     console.log("sms Params ", smsParams);
 
-    const sendTicketConfirmationMessage = await sendTicketConfirmation(
-      smsParams
-    );
-    console.log(
-      "sendTicketConfirmationMessage  ",
-      sendTicketConfirmationMessage
-    );
+    const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
 
     return res
       .status(200)
@@ -653,12 +674,26 @@ export const getTicketByVehicleNumber = async (req, res) => {
     }
 
     // Query the database to find tickets with the given vehicle number and optional vehicle type
-    const tickets = await ParkingTicket.find(query, { name: 1, phoneNumber: 1, vehicleNumber: 1, vehicleType: 1 }); // Adjust the query based on your ORM/model
-    console.log("tickets ", tickets);
+    // const tickets = await ParkingTicket.find(query, { name: 1, phoneNumber: 1, vehicleNumber: 1, vehicleType: 1 }); // Adjust the query based on your ORM/model
+    const tickets = await ParkingTicket.aggregate([
+      { $match: query }, // Match tickets based on the query
+      { $addFields: { normalizedVehicleNumber: { $toLower: "$vehicleNumber" } } }, // Normalize vehicleNumber to lower case
+      { $sort: { createdAt: 1 } }, // Sort by date (or any other field you want to use)
+      {
+        $group: {
+          _id: "$normalizedVehicleNumber", // Group by normalizedVehicleNumber
+          ticket: { $first: "$$ROOT" } // Get the first ticket for each normalizedVehicleNumber
+        }
+      },
+      { $replaceRoot: { newRoot: "$ticket" } }, // Replace root with the ticket object
+      { $project: { name: 1, phoneNumber: 1, vehicleNumber: 1, vehicleType: 1 } } // Project only required fields
+    ]);
+
+    console.log({ tickets });
 
     if (isEmpty(tickets)) {
       // If no ticket is found, return a message indicating it's a new vehicle
-      return res.status(404).json({ message: 'This is a new vehicle' });
+      return res.status(200).json({ message: 'This is a new vehicle' });
     } else {
       // If tickets are found, return their details
       return res.status(200).json({

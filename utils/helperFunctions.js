@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import axios from "axios"
 import moment from "moment-timezone";
+import ParkingTicket from "../models/parkingTicket.model.js";
 
 export const isEmpty = (value) => {
   if (value === null || value === undefined) {
@@ -253,4 +254,41 @@ const transactions = [
 // Function to find the corresponding object by amount
 function findTransactionByAmount(GrandTotal) {
   return transactions.find(transaction => transaction.GrandTotal === GrandTotal);
+}
+
+export async function createRefId(date) {
+  try {
+    // Convert date to Asia/Kolkata timezone and format it
+    const kolkataTime = moment.tz(new Date(date), 'Asia/Kolkata').startOf('day')
+    const year = kolkataTime.format('YY'); // Last two digits of the year
+    const month = kolkataTime.format('MM'); // Two-digit month
+    const day = kolkataTime.format('DD');   // Two-digit day
+    const todayKey = `${year}${month}-${day}`;
+
+    // Find the last ticket created today
+    const lastTicket = await ParkingTicket.findOne({ ticketRefId: new RegExp(`^PNP${todayKey}`) })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    let nextSequenceNumber = 1;
+
+    console.log({ lastTicket });
+
+    if (lastTicket) {
+      // Extract the current sequence number from the last ticket's refId
+      const lastSequenceStr = lastTicket.refId.slice(-4);
+      nextSequenceNumber = parseInt(lastSequenceStr, 10) + 1;
+    }
+
+    // Ensure the sequence number is zero-padded to 4 digits
+    const sequenceStr = String(nextSequenceNumber).padStart(4, '0');
+
+    // Format the reference ID
+    const refId = `PNP${todayKey}${sequenceStr}`;
+
+    return refId;
+  } catch (err) {
+    console.error('Error creating reference ID:', err);
+    throw err;
+  }
 }
