@@ -38,15 +38,15 @@ export const clockIn = async (req, res) => {
       return res.status(400).json({ error: responses.errors[language].alreadyClockedOut });
     }
 
-    const existingClockIn = await Attendance.findOne({
-      userId,
-      shiftId: user.shiftId,
-      clockOutTime: { $exists: false },
-    });
+    // const existingClockIn = await Attendance.findOne({
+    //   userId,
+    //   shiftId: user.shiftId,
+    //   clockOutTime: { $exists: false },
+    // });
 
-    if (existingClockIn) {
-      return res.status(400).json({ error: responses.errors[language].alreadyClockedIn });
-    }
+    // if (existingClockIn) {
+    //   return res.status(400).json({ error: responses.errors[language].alreadyClockedIn });
+    // }
 
     const shift = await Shift.findById(user.shiftId);
     if (!shift) {
@@ -109,22 +109,25 @@ export const clockOut = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: responses.errors[language].userNotFound });
     }
+    console.log("user.shiftId ", user.shiftId);
 
-    const attendance = await Attendance.findOne({
+    const attendance = await Attendance.find({
       userId,
       shiftId: user.shiftId,
       clockOutTime: { $exists: false },
-    });
+    }).sort({ clockInTime: -1 }).limit(1);
+
+    console.log({ attendance });
+
     if (!attendance) {
       return res.status(400).json({ error: responses.errors[language].notClockedIn });
     }
 
-    const updatedAttendance = await Attendance.findOneAndUpdate(
-      { userId, shiftId: user.shiftId },
+    const updatedAttendance = await Attendance.findByIdAndUpdate(
+      attendance[0]._id,
       {
         clockOutTime: new Date(),
         clockOutLocation: { latitude, longitude }
-
       },
       { new: true },
     );
@@ -141,27 +144,39 @@ export const clockOut = async (req, res) => {
 };
 
 // Update Attendance
-export const updateAttendance = async (req, res) => {
+export const updateUserAttendance = async (req, res) => {
   const { attendanceId } = req.params;
-  const { isLateToday } = req.body;
+  const { isLateToday = false, removeClockOut = false } = req.body;
   const language = getLanguage(req, responses);
 
   try {
+    console.log("isLateToday ", isLateToday);
+
     const attendanceAvailable = await Attendance.findById(attendanceId);
 
     if (isEmpty(attendanceAvailable)) {
       return res.status(404).json({ error: responses.errors[language].attendanceNotFound });
     }
 
-    if (attendanceAvailable.isLateToday == isLateToday) {
+    if (attendanceAvailable.isLateToday == isLateToday && !removeClockOut) {
       return res.status(202).json({
         message: responses.messages[language].statusUnchanged,
       });
     }
 
-    const updatedDetails = await Attendance.findByIdAndUpdate(attendanceId, {
-      isLateToday,
-    });
+    const updateFields = {
+      isLateToday
+    };
+
+    if (removeClockOut) {
+      updateFields.clockOutTime = null;
+      updateFields.clockOutLocation = null;
+      // attendanceAvailable
+      const UpdateUserStatus = await User.findByIdAndUpdate(attendanceAvailable?.userId, { isOnline: true });
+      console.log({ UpdateUserStatus });
+
+    }
+    const updatedDetails = await Attendance.findByIdAndUpdate(attendanceId, updateFields);
 
     return res.status(200).json({ message: responses.messages[language].attendanceUpdated });
   } catch (error) {

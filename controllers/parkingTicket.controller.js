@@ -16,6 +16,8 @@ import NodeGeocoder from "node-geocoder";
 import { getLanguage } from "../utils/helperFunctions.js";
 import { responses } from "../utils/Translate/parkingTicket.response.js";
 import mongoose from "mongoose";
+import moment from "moment-timezone";
+import TicketSequence  from '../models/ticketSequence.Model.js'; // Adjust the path as necessary
 
 export const createParkingTicket = async (req, res) => {
   try {
@@ -38,8 +40,145 @@ export const createParkingTicket = async (req, res) => {
       createdAtClient
     } = req.body;
 
-    // console.log("Body ", req.body);
     const { userId } = req.headers;
+    const language = getLanguage(req, responses);
+
+    // Check if there is an assistant with the provided phone number and role
+    const AssistanceAvailable = await User.findOne({ _id: new mongoose.Types.ObjectId(userId), isOnline: true });
+
+    if (!AssistanceAvailable || isEmpty(AssistanceAvailable.siteId)) {
+      return res.status(200).json({
+        message: responses.messages[language].NotFoundOrOnline,
+      });
+    }
+
+    // Check if there is already a ticket for the vehicle number created within the last 30 minutes
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
+    const existingTicket = await ParkingTicket.findOne({
+      vehicleNumber: vehicleNumber.toLocaleUpperCase(),
+      createdAt: { $gte: thirtyMinutesAgo },
+    });
+
+    if (existingTicket) {
+      return res.status(200).json({
+        message: responses.messages[language].ticketAlreadyAvailable,
+      });
+    }
+
+    // Generate a unique ticket reference ID
+    const ticketRefId = await generateTicketRefId();
+
+    // Calculate ticket expiry
+    let ticketExpiry;
+    if (isPass) {
+      const now = moment.tz('Asia/Kolkata'); // Current time in Asia/Kolkata timezone
+      ticketExpiry = now.clone().add(30, 'days').endOf('day').toDate();
+    } else {
+      ticketExpiry = moment.tz('Asia/Kolkata').add(duration, 'hours').toDate();
+    }
+
+    // Create a new parking ticket
+    const newTicket = new ParkingTicket({
+      ticketRefId,
+      parkingAssistant: userId,
+      vehicleType,
+      duration,
+      paymentMode,
+      remark,
+      image,
+      vehicleNumber: vehicleNumber.toLocaleUpperCase(),
+      phoneNumber,
+      amount,
+      supervisor,
+      settlementId,
+      isPass,
+      passId,
+      name,
+      address,
+      createdAtClient,
+      status: paymentMode === "Online" ? "paid" : "created",
+      ticketExpiry,
+      siteDetails: AssistanceAvailable.siteId
+    });
+
+    if (onlineTransactionId) {
+      newTicket.onlineTransactionId = onlineTransactionId;
+    } else if (paymentMode === "Online") {
+      return res.status(200).json({ message: responses.messages[language].onlineTransaction });
+    }
+
+    const savedTicket = await newTicket.save();
+    const ticketId = savedTicket._id;
+
+    // Send SMS notification (optional)
+    const smsParams = {
+      Name: name,
+      DateTime: createdAtClient,
+      toNumber: phoneNumber,
+      TicketNumber: ticketRefId,
+      VehicalNumber: vehicleNumber.toLocaleUpperCase(),
+      ParkingAssistant: AssistanceAvailable.name,
+      Duration: duration,
+      Amount: amount,
+      PaymentMode: paymentMode,
+    };
+
+    const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
+
+    return res.status(200).json({ message: responses.messages[language].ticketCreated, result: savedTicket });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map((err) => err.message);
+      return res.status(400).json({ error: "Validation Error", errors });
+    }
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+// Function to generate ticket reference ID
+const generateTicketRefId = async () => {
+  const now = moment.tz("2024-08-02 14:30:00",'Asia/Kolkata'); // Current time in Asia/Kolkata timezone
+  const dateString = now.format('YYYY-MM-DD'); // Format YYYY-MM-DD
+  const year = now.format('YY'); // Last two digits of the year
+  const month = now.format('MM'); // Month with leading zero
+  const day = now.format('DD'); // Day with leading zero
+
+  // Atomic increment operation
+  const sequence = await TicketSequence.findOneAndUpdate(
+    { date: dateString },
+    { $inc: { sequence: 1 } },
+    { new: true, upsert: true }
+  );
+
+  const sequenceNumber = sequence.sequence.toString().padStart(4, '0'); // Sequence number with leading zeros
+
+  return `PnP${year}${month}-${day}${sequenceNumber}`;
+};
+
+
+export const createParkingTicketOld = async (req, res) => {
+  try {
+    const {
+      vehicleType,
+      duration,
+      paymentMode,
+      remark,
+      name,
+      vehicleNumber,
+      phoneNumber,
+      amount,
+      supervisor,
+      settlementId,
+      isPass,
+      passId,
+      onlineTransactionId,
+      image,
+      address,
+      createdAtClient
+    } = req.body;
+
+    // console.log("Body ", req.body);
+    const { userId = "66bbb962af5dbeb885d5318f" } = req.headers;
     const language = getLanguage(req, responses);
 
     // Check if there is an assistant with the provided phone number and role
@@ -141,7 +280,7 @@ export const createParkingTicket = async (req, res) => {
 
     console.log("sms Params ", smsParams);
 
-    const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
+    // const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
 
     return res
       .status(200)
