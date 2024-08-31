@@ -417,7 +417,7 @@ export const getUserStatus = async (req, res) => {
       isOnline: 1,
       role: 1,
       phone: 1,
-    }).populate('shiftId');
+    }).populate('shiftId').populate({ path: 'siteId', select: "name _id" });
 
     if (isEmpty(user)) {
       return res.status(404).json({
@@ -442,8 +442,8 @@ export const getUserStatus = async (req, res) => {
 export const updateUser = async (req, res) => {
   const { id } = req.params;
   const { name, supervisorCode, shiftId, siteId } = req.body;
-  console.log({siteId});
-  
+  console.log({ siteId });
+
   const language = getLanguage(req, responses);
   try {
     const userAvailable = await User.findById(id);
@@ -467,8 +467,8 @@ export const updateUser = async (req, res) => {
     if (!isEmpty(siteId)) {
       updateDetails.siteId = siteId;
     }
-    console.log({updateDetails});
-    
+    console.log({ updateDetails });
+
     const updatedUser = await User.findByIdAndUpdate(id, updateDetails, { new: true });
 
     return res.status(200).json({
