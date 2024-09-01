@@ -753,7 +753,8 @@ export const getLifeTimeStatsBySupervisorId = async (req, res) => {
                          totalCollectedAmount: { $sum: "$totalCollectedAmount" },
                          totalFine: { $sum: "$totalFine" },
                          totalReward: { $sum: "$totalReward" },
-                         totalCashCollected: { $sum: { $size: "$cashCollected" } } // Example to count entries
+                         totalCashCollected: { $sum: { $size: "$cashCollected" } }, // Example to count entries
+                         totalTicketCount: { $sum: 1 }
                     }
                }
           ])
@@ -770,7 +771,8 @@ export const getLifeTimeStatsBySupervisorId = async (req, res) => {
                               "totalCollectedAmount": 0,
                               "totalFine": 0,
                               "totalReward": 0,
-                              "totalCashCollected": 0
+                              "totalCashCollected": 0,
+                              "totalTicketCount": 0
                          }
                     }
                     :
