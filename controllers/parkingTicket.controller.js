@@ -17,8 +17,13 @@ import { getLanguage } from "../utils/helperFunctions.js";
 import { responses } from "../utils/Translate/parkingTicket.response.js";
 import mongoose from "mongoose";
 import moment from "moment-timezone";
+<<<<<<< Updated upstream
 import TicketSequence  from '../models/ticketSequence.Model.js'; // Adjust the path as necessary
 
+=======
+import xlsx from "xlsx";
+import puppeteer from "puppeteer";
+>>>>>>> Stashed changes
 export const createParkingTicket = async (req, res) => {
   try {
     const {
@@ -37,7 +42,7 @@ export const createParkingTicket = async (req, res) => {
       onlineTransactionId,
       image,
       address,
-      createdAtClient
+      createdAtClient,
     } = req.body;
 
     const { userId } = req.headers;
@@ -183,7 +188,10 @@ export const createParkingTicketOld = async (req, res) => {
 
     // Check if there is an assistant with the provided phone number and role
 
-    const AssistanceAvailable = await User.findOne({ _id: new mongoose.Types.ObjectId(userId), isOnline: true });
+    const AssistanceAvailable = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      isOnline: true,
+    });
     console.log("AssistanceAvailable ", AssistanceAvailable);
 
     if (isEmpty(AssistanceAvailable.siteId)) {
@@ -215,17 +223,15 @@ export const createParkingTicketOld = async (req, res) => {
 
     if (isPass) {
       const now = new Date();
-      ticketExpiry = new Date(now.setDate(now.getDate() + 30))
+      ticketExpiry = new Date(now.setDate(now.getDate() + 30));
       ticketExpiry = new Date(ticketExpiry.setHours(23, 59, 59, 999));
-    }
-    else {
+    } else {
       const now = new Date();
       ticketExpiry = new Date(now.getTime() + +duration * 60 * 60 * 1000);
     }
 
-    const uniqueTicketId = await createRefId(createdAtClient)
+    const uniqueTicketId = await createRefId(createdAtClient);
     // console.log({ uniqueTicketId });
-
 
     // Create a new parking ticket
     const newTicket = new ParkingTicket({
@@ -248,7 +254,7 @@ export const createParkingTicketOld = async (req, res) => {
       createdAtClient,
       status: paymentMode == "Online" ? "paid" : "created",
       ticketExpiry, // Add the passExpireAt field if isPass is true
-      siteDetails: AssistanceAvailable.siteId
+      siteDetails: AssistanceAvailable.siteId,
     });
     console.log("newTicket ", newTicket);
 
@@ -263,7 +269,7 @@ export const createParkingTicketOld = async (req, res) => {
     }
 
     const savedTicket = await newTicket.save();
-    const ticketId = savedTicket._id //"666f0e35284b2b8f1707c77b"; // savedTicket._id;
+    const ticketId = savedTicket._id; //"666f0e35284b2b8f1707c77b"; // savedTicket._id;
     // sendTicketConfirmation  Date, Time, Name, TicketNumber, VehicalNumber, ParkingAssistant, Duration, Amount, PaymentMode
 
     const smsParams = {
@@ -280,11 +286,18 @@ export const createParkingTicketOld = async (req, res) => {
 
     console.log("sms Params ", smsParams);
 
+<<<<<<< Updated upstream
     // const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
+=======
+    const sendTicketConfirmationMessage = await sendTicketConfirmation(
+      smsParams
+    );
+>>>>>>> Stashed changes
 
-    return res
-      .status(200)
-      .json({ message: responses.messages[language].ticketCreated, result: savedTicket });
+    return res.status(200).json({
+      message: responses.messages[language].ticketCreated,
+      result: savedTicket,
+    });
   } catch (error) {
     if (error.name === "ValidationError") {
       // Mongoose validation error
@@ -300,11 +313,12 @@ export const getVehicleTypeDetail = async (req, res) => {
   try {
     const language = getLanguage(req, responses);
     const parkingTicket = await ParkingTicket.findById(req.params.id);
-    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${parkingTicket.image
-      }`;
+    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${
+      parkingTicket.image
+    }`;
     if (!parkingTicket)
       return res.status(404).json({
-        error: responses.errors[language].ticketNotFound
+        error: responses.errors[language].ticketNotFound,
         // "Parking ticket not found"
       });
     return res.json({
@@ -354,14 +368,14 @@ export const updatePaymentStatusOnline = async (req, res) => {
 
       console.log("updatingThePaymentDetails", updatingThePaymentDetails);
 
-      return res
-        .status(200)
-        .json({
-          message: responses.messages[language].onlinePaymentCompleted,
-          // "Payment completed successfully"
-        });
+      return res.status(200).json({
+        message: responses.messages[language].onlinePaymentCompleted,
+        // "Payment completed successfully"
+      });
     } else {
-      return res.status(404).json({ error: responses.errors[language].wrongSignature });
+      return res
+        .status(404)
+        .json({ error: responses.errors[language].wrongSignature });
     }
   } catch (error) {
     console.error("Error:", error);
@@ -389,12 +403,10 @@ export const generatePaymentForTicket = async (req, res) => {
       });
     } else {
       console.error("Error message creating payment.", orderPaymentDetails);
-      return res
-        .status(500)
-        .json({
-          error: responses.errors[language].paymentNotGenerated,
-          // "Payment not generated please try again."
-        });
+      return res.status(500).json({
+        error: responses.errors[language].paymentNotGenerated,
+        // "Payment not generated please try again."
+      });
     }
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -458,13 +470,11 @@ export const getParkingTickets = async (req, res) => {
     };
 
     // Return successful response with status 200
-    return res
-      .status(200)
-      .json({
-        message: responses.messages[language].ticketList,
-        // "Here is the parking tickets list",
-        result: response
-      });
+    return res.status(200).json({
+      message: responses.messages[language].ticketList,
+      // "Here is the parking tickets list",
+      result: response,
+    });
   } catch (error) {
     // Handle errors and return status 500 with error message
     return res.status(500).json({ error: error.message });
@@ -618,7 +628,7 @@ export const updateParkingTicketById = async (req, res) => {
     return res.json({
       message: responses.messages[language].ticketUpdated,
       // "Tickets updated.",
-      result: updatedTicket
+      result: updatedTicket,
     });
   } catch (error) {
     if (error.name === "ValidationError") {
@@ -637,19 +647,16 @@ export const deletePaymentOrderById = async (req, res) => {
 
     const deletedTicket = await Transaction.findByIdAndDelete(req.params.id);
     if (!deletedTicket) {
-      return res
-        .status(404)
-        .json({
-          error: responses.errors[language].ticketNotFound,
-          // "Parking payment ticket not found"
-        });
+      return res.status(404).json({
+        error: responses.errors[language].ticketNotFound,
+        // "Parking payment ticket not found"
+      });
     }
     return res.json({
       message: responses.messages[language].deleteTicekt,
 
       // "Parking payment ticket deleted successfully"
     });
-
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -725,7 +732,7 @@ export const deleteTicketImage = async (req, res) => {
       res.status(404).json({ error: "File not does not exist." });
     }
   } catch (error) {
-    console.log("Error in the route ", error);
+    console.error("Error in the route ", error);
     res.status(500).json({ error: error });
   }
 };
@@ -734,34 +741,492 @@ export const getAllTickets = async (req, res) => {
   try {
     const language = getLanguage(req, responses);
 
-    const { search = "" } = req.query;
+    const { search = "", exportFormat } = req.query;
+    const { supervisors = [], assistants = [], startDate, endDate } = req.body;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
-    let query = {};
+
+    let match = {};
+
     if (search) {
-      query.$or = [
+      match.$or = [
         { name: { $regex: search, $options: "i" } },
         { vehicleNumber: { $regex: search, $options: "i" } },
+        { vehicleType: { $regex: search, $options: "i" } },
+        { phoneNumber: { $regex: search, $options: "i" } },
+        { "siteDetails.name": { $regex: search, $options: "i" } },
+        { "parkingAssistantDetails.name": { $regex: search, $options: "i" } },
+        { "parkingAssistantDetails.phone": { $regex: search, $options: "i" } },
+        {
+          "parkingAssistantDetails.supervisorCode": {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        { "supervisorDetails.name": { $regex: search, $options: "i" } },
       ];
     }
-    const parkingTickets = await ParkingTicket.find(query)
-      .populate("parkingAssistant supervisor")
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .exec();
-    const count = await ParkingTicket.countDocuments(query);
+
+    if (supervisors.length > 0) {
+      match.supervisor = {
+        $in: supervisors.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
+
+    if (assistants.length > 0) {
+      match.parkingAssistant = {
+        $in: assistants.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
+
+    if (startDate || endDate) {
+      const dateRange = {};
+      if (startDate) {
+        const LocalStartDate = moment
+          .tz(new Date(startDate), "Asia/Kolkata")
+          .startOf("day")
+          .clone()
+          .utc();
+        dateRange.$gte = new Date(LocalStartDate);
+      }
+      if (endDate) {
+        const LocalEndDate = moment
+          .tz(new Date(endDate), "Asia/Kolkata")
+          .endOf("day")
+          .clone()
+          .utc();
+        const end = new Date(LocalEndDate);
+        dateRange.$lte = end;
+      }
+      match.createdAt = dateRange;
+    }
+
+
+    const aggregateQuery = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "parkingAssistant",
+          foreignField: "_id",
+          as: "parkingAssistantDetails",
+        },
+      },
+      // { $unwind: "$parkingAssistantDetails" },
+      {
+        $unwind: {
+          path: "$parkingAssistantDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "supervisor",
+          foreignField: "_id",
+          as: "supervisorDetails",
+        },
+      },
+      // { $unwind: "$supervisorDetails" },
+      {
+        $unwind: {
+          path: "$supervisorDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "sites",
+          localField: "siteDetails",
+          foreignField: "_id",
+          as: "siteDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$siteDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: match, // Combined match conditions
+      },
+      { $sort: { createdAt: -1 } },
+    ];
+    if (exportFormat !== "excel" && exportFormat !== "pdf") {
+      aggregateQuery.push({ $skip: (page - 1) * limit }, { $limit: limit });
+    }
+
+    const parkingTickets = await ParkingTicket.aggregate(aggregateQuery);
+
+    if (exportFormat === "excel") {
+      return exportToExcel(parkingTickets, res);
+    } else if (exportFormat === "pdf") {
+      return exportToPDF(parkingTickets, res);
+    }
+
+    const countQuery = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "parkingAssistant",
+          foreignField: "_id",
+          as: "parkingAssistantDetails",
+        },
+      },
+      // { $unwind: "$parkingAssistantDetails" },
+      {
+        $unwind: {
+          path: "$parkingAssistantDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "supervisor",
+          foreignField: "_id",
+          as: "supervisorDetails",
+        },
+      },
+      // { $unwind: "$supervisorDetails" },
+      {
+        $unwind: {
+          path: "$supervisorDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "sites",
+          localField: "siteDetails",
+          foreignField: "_id",
+          as: "siteDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$siteDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: match, // Combined match conditions
+      },
+      { $count: "totalCount" },
+    ];
+
+    const countResult = await ParkingTicket.aggregate(countQuery);
+    const count = countResult.length > 0 ? countResult[0].totalCount : 0;
 
     return res.status(200).json({
       result: {
         parkingTickets,
-        totalPages: count,
+        totalPages: Math.ceil(count / limit),
         currentPage: page,
         totalCount: count,
       },
     });
   } catch (err) {
-    res.status(500).json({ message: err });
+    console.log({ err });
+    res.status(500).json({ message: err.message || err });
+  }
+};
+
+// / Helper function to export to Excel
+const exportToExcel = (tickets, res) => {
+  const workbook = xlsx.utils.book_new();
+
+  // Prepare the data for the worksheet
+  const worksheetData = tickets.map((ticket) => ({
+    Name: ticket.name,
+    VehicleNumber: ticket.vehicleNumber,
+    VehicleType: ticket.vehicleType,
+    PhoneNumber: ticket.phoneNumber,
+    Amount: ticket.amount,
+    PaymentMethod: ticket.paymentMode,
+    Status: ticket.status,
+    ParkingAssistant: ticket?.parkingAssistantDetails?.name,
+    Supervisor: ticket?.supervisorDetails?.name,
+    Site: ticket?.siteDetails ? ticket.siteDetails?.name : "",
+    CreatedAt: ticket.createdAt,
+  }));
+
+  // Calculate the total amount
+  const totalAmount = worksheetData.reduce((sum, row) => sum + row.Amount, 0);
+
+  // Add the total amount row at the end
+  worksheetData.push({
+    Name: "Total",
+    VehicleNumber: "",
+    VehicleType: "",
+    PhoneNumber: "",
+    Amount: totalAmount, // The total amount
+    PaymentMethod: "", // The total amount
+    Status: "",
+    ParkingAssistant: "",
+    Supervisor: "",
+    Site: "",
+    CreatedAt: "",
+  });
+
+  // Create the worksheet
+  const worksheet = xlsx.utils.json_to_sheet(worksheetData);
+
+  // Get the total row index (last row)
+  const totalRowIndex = worksheetData.length;
+
+
+  xlsx.utils.book_append_sheet(workbook, worksheet, "Tickets");
+
+  // Generate a dynamic filename
+  const timestamp = moment().format("YYYYMMDD_HHmm");
+  const filename = `KT_ENTERPRISE_Ticket_Details_${timestamp}.xlsx`;
+  const filePath = path.join(__dirname, filename);
+
+  // Write the workbook to a file and send it as a download
+  xlsx.writeFile(workbook, filePath);
+  res.download(filePath, filename, () => {
+    fs.unlinkSync(filePath); // Delete the file after download
+  });
+};
+
+// Helper function to export to PDF using Puppeteer
+const exportToPDF = async (tickets, res) => {
+  const totalAmount = tickets.reduce((sum, ticket) => sum + ticket.amount, 0);
+
+  const htmlContent = generateHTMLContent(tickets, totalAmount);
+
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.setContent(htmlContent);
+  const pdfBuffer = await page.pdf({ format: "A4" });
+
+  await browser.close();
+  const timestamp = moment().format("YYYYMMDD_HHmm");
+  const filename = `KT_ENTERPRISE_Ticket_Details_${timestamp}.pdf`;
+  const filePath = path.join(__dirname, filename);
+  fs.writeFileSync(filePath, pdfBuffer);
+  res.download(filePath, filename, () => {
+    fs.unlinkSync(filePath); // Delete the file after download
+  });
+};
+
+// Function to generate HTML content for PDF
+const generateHTMLContent = (tickets, totalAmount) => {
+  let html = `
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        table, th, td { border: 1px solid black; }
+        th, td { padding: 5px; text-align: left; font-size: 12px}
+        th { background-color: #f2f2f2; }
+        .bold { font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <h1>Parking Tickets Report</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Vehicle Number</th>
+            <th>Vehicle Type</th>
+            <th>Phone Number</th>
+            <th>Amount</th>
+            <th>Payment Method</th>
+            <th>Status</th>
+            <th>Parking Assistant</th>
+            <th>Supervisor</th>
+            <th>Site</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+  tickets.forEach((ticket) => {
+    html += `
+      <tr>
+        <td>${ticket?.name}</td>
+        <td>${ticket?.vehicleNumber}</td>
+        <td>${ticket.vehicleType}</td>
+        <td>${ticket.phoneNumber}</td>
+        <td>${ticket.amount}</td>
+        <td>${ticket.paymentMode}</td>
+        <td>${ticket.status}</td>
+        <td>${ticket?.parkingAssistantDetails?.name}</td>
+        <td>${
+          ticket?.supervisorDetails ? ticket?.supervisorDetails?.name : ""
+        }</td>
+        <td>${ticket?.siteDetails ? ticket?.siteDetails?.name : ""}</td>
+        <td>${new Date(ticket.createdAt).toLocaleString()}</td>
+      </tr>`;
+  });
+
+  // Add total amount row at the end of the table
+  html += `
+      <tr class="bold">
+        <td colspan="4"><strong>Total</strong></td>
+        <td><strong>${totalAmount}</strong></td>
+        <td colspan="5"></td>
+      </tr>`;
+
+  html += `
+        </tbody>
+      </table>
+    </body>
+    </html>`;
+
+  return html;
+};
+
+export const getTicketTotalsByPaymentMode = async (req, res) => {
+  try {
+    const { search = "" } = req.query;
+    const { supervisors = [], assistants = [], startDate, endDate } = req.body;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    let match = {};
+
+    if (search) {
+      match.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { vehicleNumber: { $regex: search, $options: "i" } },
+        { vehicleType: { $regex: search, $options: "i" } },
+        { phoneNumber: { $regex: search, $options: "i" } },
+        { "siteDetails.name": { $regex: search, $options: "i" } },
+        { "parkingAssistantDetails.name": { $regex: search, $options: "i" } },
+        { "parkingAssistantDetails.phone": { $regex: search, $options: "i" } },
+        {
+          "parkingAssistantDetails.supervisorCode": {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        { "supervisorDetails.name": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (supervisors.length > 0) {
+      match.supervisor = {
+        $in: supervisors.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
+
+    if (assistants.length > 0) {
+      match.parkingAssistant = {
+        $in: assistants.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
+
+    if (startDate || endDate) {
+      const dateRange = {};
+      if (startDate) {
+        const LocalStartDate = moment
+          .tz(new Date(startDate), "Asia/Kolkata")
+          .startOf("day")
+          .clone()
+          .utc();
+        dateRange.$gte = new Date(LocalStartDate);
+      }
+      if (endDate) {
+        const LocalEndDate = moment
+          .tz(new Date(endDate), "Asia/Kolkata")
+          .endOf("day")
+          .clone()
+          .utc();
+        const end = new Date(LocalEndDate);
+        dateRange.$lte = end;
+      }
+      match.createdAt = dateRange;
+    }
+
+    const aggregateQuery = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "parkingAssistant",
+          foreignField: "_id",
+          as: "parkingAssistantDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$parkingAssistantDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "supervisor",
+          foreignField: "_id",
+          as: "supervisorDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$supervisorDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "sites",
+          localField: "siteDetails",
+          foreignField: "_id",
+          as: "siteDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$siteDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: match, // Combined match conditions
+      },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: "$paymentMode",
+          totalAmount: { $sum: "$amount" }, // Sum the amount field
+          count: { $sum: 1 }, // Keep the count if needed
+        },
+      },
+    ];
+
+    const totals = await ParkingTicket.aggregate(aggregateQuery);
+
+    // Format the response to include totals for "Online" and "Cash"
+    const result = {
+      online: 0,
+      cash: 0,
+      free: 0,
+      pass: 0,
+    };
+
+    totals.forEach((total) => {
+      if (total._id === "Online") {
+        result.online = total.totalAmount;
+      } else if (total._id === "Cash") {
+        result.cash = total.totalAmount;
+      } else if (total._id === "Free") {
+        result.free = total.totalAmount;
+      } else if (total._id === "Pass") {
+        result.pass = total.totalAmount;
+      }
+    });
+
+    return res.status(200).json({
+      result,
+    });
+  } catch (err) {
+    console.log({ err });
+    res.status(500).json({ message: err.message || err });
   }
 };
 
@@ -802,11 +1267,11 @@ export const getTicketByVehicleNumber = async (req, res) => {
     const { vehicleNumber, vehicleType } = req.query;
 
     if (!vehicleNumber) {
-      return res.status(400).json({ message: 'Vehicle number is required' });
+      return res.status(400).json({ message: "Vehicle number is required" });
     }
 
     // Create the query object based on the presence of vehicleType
-    const query = { vehicleNumber: { $regex: vehicleNumber, $options: 'i' } };
+    const query = { vehicleNumber: { $regex: vehicleNumber, $options: "i" } };
 
     if (vehicleType) {
       query.vehicleType = vehicleType; // Exact match for vehicleType
@@ -816,28 +1281,32 @@ export const getTicketByVehicleNumber = async (req, res) => {
     // const tickets = await ParkingTicket.find(query, { name: 1, phoneNumber: 1, vehicleNumber: 1, vehicleType: 1 }); // Adjust the query based on your ORM/model
     const tickets = await ParkingTicket.aggregate([
       { $match: query }, // Match tickets based on the query
-      { $addFields: { normalizedVehicleNumber: { $toLower: "$vehicleNumber" } } }, // Normalize vehicleNumber to lower case
+      {
+        $addFields: { normalizedVehicleNumber: { $toLower: "$vehicleNumber" } },
+      }, // Normalize vehicleNumber to lower case
       { $sort: { createdAt: 1 } }, // Sort by date (or any other field you want to use)
       {
         $group: {
           _id: "$normalizedVehicleNumber", // Group by normalizedVehicleNumber
-          ticket: { $first: "$$ROOT" } // Get the first ticket for each normalizedVehicleNumber
-        }
+          ticket: { $first: "$$ROOT" }, // Get the first ticket for each normalizedVehicleNumber
+        },
       },
       { $replaceRoot: { newRoot: "$ticket" } }, // Replace root with the ticket object
-      { $project: { name: 1, phoneNumber: 1, vehicleNumber: 1, vehicleType: 1 } } // Project only required fields
+      {
+        $project: { name: 1, phoneNumber: 1, vehicleNumber: 1, vehicleType: 1 },
+      }, // Project only required fields
     ]);
 
     console.log({ tickets });
 
     if (isEmpty(tickets)) {
       // If no ticket is found, return a message indicating it's a new vehicle
-      return res.status(200).json({ message: 'This is a new vehicle' });
+      return res.status(200).json({ message: "This is a new vehicle" });
     } else {
       // If tickets are found, return their details
       return res.status(200).json({
         message: "Here is the matching tickets list.",
-        result: tickets
+        result: tickets,
       });
     }
   } catch (err) {
@@ -845,4 +1314,3 @@ export const getTicketByVehicleNumber = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
-

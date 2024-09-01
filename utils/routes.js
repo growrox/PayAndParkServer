@@ -5,7 +5,8 @@ export const ROUTES = {
     VERIFY_OTP: "/verify-otp",
     GET_USER: "/users",
     GET_USER_STATUS: "/users/status",
-    UPDATE_USER: "/user/:id"
+    UPDATE_USER: "/user/:id",
+    GET_SUPERVISOR_WITH_ASSITANT: "/supervisors-with-assistants"
   },
   VEHICLE_TYPE: {
     CREATE: "/create-vehicle-type/:folderName",
@@ -63,6 +64,7 @@ export const ROUTES = {
     CREATE_TICKET: "/parking-tickets/:folderName",
     GENERATE_ORDER: "/ticket/generate-order",
     GET_ALL_TICKETS: "/admin/parking-tickets",
+    GET_ALL_TICKETS_AMOUNT_TOTAL: "/admin/parking-tickets-cash-total",
     PAYMENT_STATUS: "/ticket/payment-status",
     GET_TOCKET: "/parking-tickets",
     GET_LOCATION: "/parking-ticket/location",
