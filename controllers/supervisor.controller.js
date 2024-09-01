@@ -790,3 +790,62 @@ export const getLifeTimeStatsBySupervisorId = async (req, res) => {
 };
 
 
+export const getAssistantDetailsBySupervisorId = async (req, res) => {
+     try {
+          const { supervisorID } = req.params; // Get userId from request params
+
+          // Step 1: Find the supervisorCode of the given user
+          const user = await User.findById(supervisorID).select('code'); // Adjust field name if necessary
+
+          if (!user) {
+               return res.status(404).json({ message: 'Supervisor not found' });
+          }
+
+          const { code } = user;
+          console.log({ code });
+
+          // Step 2: Aggregate users based on supervisorCode
+          const stats = await User.aggregate([
+               {
+                    $match: {
+                         role: 'assistant',
+                         supervisorCode: code // Filter by supervisorCode obtained from the user
+                    }
+               },
+               {
+                    $group: {
+                         _id: null,
+                         totalCount: { $sum: 1 }, // Total count of users
+                         onlineCount: {
+                              $sum: {
+                                   $cond: [{ $eq: ['$isOnline', true] }, 1, 0] // Count users with isOnline = true
+                              }
+                         },
+                         offlineCount: {
+                              $sum: {
+                                   $cond: [{ $eq: ['$isOnline', false] }, 1, 0] // Count users with isOnline = false
+                              }
+                         }
+                    }
+               },
+               {
+                    $project: {
+                         _id: 0, // Exclude the _id field
+                         totalCount: 1,
+                         onlineCount: 1,
+                         offlineCount: 1
+                    }
+               }
+          ]);
+
+          // Handle the result
+          const result = stats.length > 0 ? stats[0] : { totalCount: 0, onlineCount: 0, offlineCount: 0 };
+
+          return res.status(200).json({
+               message: 'User stats fetched successfully',
+               result
+          });
+     } catch (error) {
+          return res.status(500).json({ message: 'Server error', error: error.message });
+     }
+};

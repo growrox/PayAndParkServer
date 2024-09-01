@@ -56,6 +56,7 @@ export const ROUTES = {
     GET_STATS: "/supervisor/stats/:supervisorID",
     GET_LIFETIME_STATS: "/supervisor/lifetime-stats/:supervisorID",
     GET_ALL_SUPERVISOR: "/supervisor/all",
+    GET_ASSISTANT_STATUS: "/supervisor/parkings-assistants/status/:supervisorID",
   },
   PARKING_TICKETS: {
     UPLOAD_VEHICAL_IMAGE: "/parking-tickets/uploadParkingTicket",
