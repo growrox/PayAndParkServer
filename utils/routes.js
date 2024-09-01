@@ -16,6 +16,7 @@ export const ROUTES = {
   },
   ASSISTANT: {
     STATS: "/parking-assistant/stats",
+    LIFETIME_STATS: "/parking-assistant/lifetime-stats",
     GET_TICKETS: "/parking-assistant/tickets",
     GET_GLOBAL_TICKETS: "/parking-assistant/global/tickets",
   },
@@ -53,6 +54,7 @@ export const ROUTES = {
     GET_ASSISTANTS: "/supervisor/parkings-assistants/:supervisorID",
     GET_ALL_SETTLE_TICKETS: "/supervisor/tickets/all/:supervisorID",
     GET_STATS: "/supervisor/stats/:supervisorID",
+    GET_LIFETIME_STATS: "/supervisor/lifetime-stats/:supervisorID",
     GET_ALL_SUPERVISOR: "/supervisor/all",
   },
   PARKING_TICKETS: {

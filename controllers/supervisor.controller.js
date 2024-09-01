@@ -738,6 +738,53 @@ export const getAllSuperVisors = async (req, res) => {
      }
 };
 
+// Get the stats of the tickets for the assistant
+export const getLifeTimeStatsBySupervisorId = async (req, res) => {
+     const language = getLanguage(req, responses);
+     const supervisorId = req.params.supervisorID;
 
+     try {
+          const tickets = await SupervisorSettlementTicket.aggregate([
+               { $match: { supervisor: new mongoose.Types.ObjectId(supervisorId) } },
+               {
+                    $group: {
+                         _id: null,
+                         totalCollection: { $sum: "$totalCollection" },
+                         totalCollectedAmount: { $sum: "$totalCollectedAmount" },
+                         totalFine: { $sum: "$totalFine" },
+                         totalReward: { $sum: "$totalReward" },
+                         totalCashCollected: { $sum: { $size: "$cashCollected" } } // Example to count entries
+                    }
+               }
+          ])
+
+          console.log({ tickets });
+
+
+          return res.json(
+               isEmpty(tickets) ?
+                    {
+                         message: responses.messages[language].noUnsettledTicketsFound,
+                         result: {
+                              "totalCollection": 0,
+                              "totalCollectedAmount": 0,
+                              "totalFine": 0,
+                              "totalReward": 0,
+                              "totalCashCollected": 0
+                         }
+                    }
+                    :
+                    {
+                         // message: responses.messages[language].settlementsFetched,
+                         message: responses.messages[language].supervisorStatsFetchedSuccessfully,
+                         result: tickets
+                    }
+          );
+     } catch (error) {
+          return res
+               .status(500)
+               .json({ message: responses.errors[language].serverError });
+     }
+};
 
 

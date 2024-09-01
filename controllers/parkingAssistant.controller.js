@@ -1,7 +1,8 @@
 import ParkingAssistant from "../models/user.model.js"; // Import the ParkingAssistant model
 import ParkingTicket from "../models/parkingTicket.model.js";
+import SupervisorSettlementTicket from "../models/settlementTicket.model.js";
 import mongoose from "mongoose";
-import { getLanguage } from "../utils/helperFunctions.js";
+import { getLanguage, isEmpty } from "../utils/helperFunctions.js";
 import { responses } from "../utils/Translate/assistant.response.js";
 import User from "../models/user.model.js";
 
@@ -480,5 +481,53 @@ export const getGlobalTickets = async (req, res) => {
   } catch (err) {
     console.error('Error fetching tickets:', err);
     return res.status(500).json({ error: responses.errors[language].serverError });
+  }
+};
+
+// Get the stats of the tickets for the assistant
+export const getLifeTimeStatsByAssistantId = async (req, res) => {
+  const language = getLanguage(req, responses);
+  const parkingAssistant = req.headers.userid;
+
+  try {
+    const tickets = await SupervisorSettlementTicket.aggregate([
+      { $match: { parkingAssistant: new mongoose.Types.ObjectId(parkingAssistant) } },
+      {
+        $group: {
+          _id: null,
+          totalCollection: { $sum: "$totalCollection" },
+          totalCollectedAmount: { $sum: "$totalCollectedAmount" },
+          totalFine: { $sum: "$totalFine" },
+          totalReward: { $sum: "$totalReward" },
+          totalCashCollected: { $sum: { $size: "$cashCollected" } } // Example to count entries
+        }
+      }
+    ])
+
+    console.log({ tickets });
+
+
+    return res.json(
+      isEmpty(tickets) ?
+        {
+          message: responses.messages[language].noSettlements,
+          result: {
+            "totalCollection": 0,
+            "totalCollectedAmount": 0,
+            "totalFine": 0,
+            "totalReward": 0,
+            "totalCashCollected": 0
+          }
+        }
+        :
+        {
+          message: responses.messages[language].settlementsFetched,
+          result: tickets
+        }
+    );
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: responses.errors[language].serverError });
   }
 };
