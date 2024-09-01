@@ -15,7 +15,9 @@ const supervisorSettlementSchema = new Schema({
      totalReward: { type: Number, required: true },
      cashComponent: [denominationSchema], // Array of denomination objects [{denomination:500,count:5},{denomination:200,count:5}]]
      cashCollected: { type: Number, required: true },
-     accountantId: { type: Schema.Types.ObjectId, ref: 'User'},
+     cashCollection: { type: Number, required: true },
+     onlineCollection: { type: Number, required: true },
+     accountantId: { type: Schema.Types.ObjectId, ref: 'User' },
      settlementId: { type: Schema.Types.ObjectId, ref: 'AccountantSettlement' },
      isSettled: { type: Boolean, default: false }
 }, { timestamps: true, versionKey: false });

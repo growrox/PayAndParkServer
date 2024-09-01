@@ -671,6 +671,8 @@ export const getSupervisorStats = async (req, res) => {
                          cashCollected: { $sum: '$cashCollected' },
                          totalReward: { $sum: '$totalReward' },
                          totalTicketsCount: { $sum: 1 }, // Counting the number of tickets
+                         cashCollection: { $sum: 1 }, // Counting the number of tickets
+                         onlineCollection: { $sum: 1 }, // Counting the number of tickets
                     }
                }
           ];
@@ -693,7 +695,10 @@ export const getSupervisorStats = async (req, res) => {
                          TotalReward: 0,
                          TotalTicketsCount: 0,
                          cashCollected: 0,
+                         CashCollection: 0,
+                         OnlineCollection: 0,
                          CashComponents: [],
+                         TodaysColection: 0,
                          LastSettledTicketUpdatedAt: null
                     }
                });
@@ -705,6 +710,8 @@ export const getSupervisorStats = async (req, res) => {
                TotalFine: stats[0]?.totalFine || 0,
                TotalReward: stats[0]?.totalReward || 0,
                cashCollected: stats[0]?.cashCollected || 0,
+               CashCollection: stats[0]?.cashCollection || 0,
+               OnlineCollection: stats[0]?.onlineCollection || 0,
                TotalTicketsCount: stats[0]?.totalTicketsCount || 0,
                CashComponents: denominationTotals || [], // Include the cash components
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
@@ -712,7 +719,7 @@ export const getSupervisorStats = async (req, res) => {
 
           return res.status(200).json({
                message: responses.messages[language].supervisorStatsFetchedSuccessfully,
-               result: supervisorStats
+               result: { ...supervisorStats, TodaysColection: Math.round(+supervisorStats.CashCollection + +supervisorStats.OnlineCollection) }
           });
      } catch (error) {
           console.error("Error getting the supervisor stats.", error);
