@@ -459,11 +459,7 @@ export const getUserStatus = async (req, res) => {
       isOnline: 1,
       role: 1,
       phone: 1,
-<<<<<<< Updated upstream
     }).populate('shiftId').populate({ path: 'siteId', select: "name _id" });
-=======
-    }).populate("shiftId");
->>>>>>> Stashed changes
 
     if (isEmpty(user)) {
       return res.status(404).json({
@@ -514,13 +510,7 @@ export const updateUser = async (req, res) => {
     }
     console.log({ updateDetails });
 
-<<<<<<< Updated upstream
     const updatedUser = await User.findByIdAndUpdate(id, updateDetails, { new: true });
-=======
-    const updatedUser = await User.findByIdAndUpdate(id, updateDetails, {
-      new: true,
-    });
->>>>>>> Stashed changes
 
     return res.status(200).json({
       message: responses.messages[language].userUpdatedSuccessfully,

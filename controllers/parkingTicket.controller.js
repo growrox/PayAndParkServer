@@ -17,13 +17,10 @@ import { getLanguage } from "../utils/helperFunctions.js";
 import { responses } from "../utils/Translate/parkingTicket.response.js";
 import mongoose from "mongoose";
 import moment from "moment-timezone";
-<<<<<<< Updated upstream
 import TicketSequence  from '../models/ticketSequence.Model.js'; // Adjust the path as necessary
 
-=======
 import xlsx from "xlsx";
 import puppeteer from "puppeteer";
->>>>>>> Stashed changes
 export const createParkingTicket = async (req, res) => {
   try {
     const {
@@ -286,13 +283,9 @@ export const createParkingTicketOld = async (req, res) => {
 
     console.log("sms Params ", smsParams);
 
-<<<<<<< Updated upstream
-    // const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
-=======
     const sendTicketConfirmationMessage = await sendTicketConfirmation(
       smsParams
     );
->>>>>>> Stashed changes
 
     return res.status(200).json({
       message: responses.messages[language].ticketCreated,
