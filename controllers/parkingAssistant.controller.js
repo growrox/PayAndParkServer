@@ -529,6 +529,8 @@ export const getLifeTimeStatsByAssistantId = async (req, res) => {
         }
     );
   } catch (error) {
+    console.log("Server error while getting the life time assistant stats ", error);
+
     return res
       .status(500)
       .json({ message: responses.errors[language].serverError });
