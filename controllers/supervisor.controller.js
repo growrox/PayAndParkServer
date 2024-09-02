@@ -9,7 +9,7 @@ import moment from 'moment-timezone';
 
 export const settleParkingTickets = async (req, res) => {
      const language = getLanguage(req, responses); // Get user's language preference
-     const { supervisorID, cashComponent, cashCollected, totalCollection, totalCollectedAmount, TotalFine, TotalRewards } = req.body;
+     const { supervisorID, cashComponent, cashCollected, totalCollection, totalCollectedAmount, TotalFine, TotalRewards, cashCollection, onlineCollection } = req.body;
      const { parkingAssistantID } = req.params;
 
      try {
@@ -121,6 +121,8 @@ export const settleParkingTickets = async (req, res) => {
                totalReward: TotalRewards,
                cashComponent, // Placeholder for actual logic
                cashCollected,
+               cashCollection,
+               onlineCollection,
                accountantId: parkingAssistantID, // Placeholder, adjust as needed
                isSettled: false, // Will be set to true after updating tickets
           });
