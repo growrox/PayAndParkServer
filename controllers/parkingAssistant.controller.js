@@ -499,7 +499,7 @@ export const getLifeTimeStatsByAssistantId = async (req, res) => {
           totalCollectedAmount: { $sum: "$totalCollectedAmount" },
           totalFine: { $sum: "$totalFine" },
           totalReward: { $sum: "$totalReward" },
-          totalCashCollected: { $sum: { $size: "$cashCollected" } }, // Example to count entries
+          totalCashCollected: { $sum: "$cashCollected" }, // Example to count entries
           totalTicketCount: { $sum: 1 }
         }
       }
