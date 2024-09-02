@@ -672,9 +672,9 @@ export const getSupervisorStats = async (req, res) => {
                          totalFine: { $sum: '$totalFine' },
                          cashCollected: { $sum: '$cashCollected' },
                          totalReward: { $sum: '$totalReward' },
+                         cashCollection: { $sum: '$cashCollection' }, // Counting the number of tickets
+                         onlineCollection: { $sum: '$onlineCollection' }, // Counting the number of tickets
                          totalTicketsCount: { $sum: 1 }, // Counting the number of tickets
-                         cashCollection: { $sum: 1 }, // Counting the number of tickets
-                         onlineCollection: { $sum: 1 }, // Counting the number of tickets
                     }
                }
           ];
