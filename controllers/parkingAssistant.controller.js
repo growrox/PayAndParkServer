@@ -500,7 +500,9 @@ export const getLifeTimeStatsByAssistantId = async (req, res) => {
           totalFine: { $sum: "$totalFine" },
           totalReward: { $sum: "$totalReward" },
           totalCashCollected: { $sum: "$cashCollected" }, // Example to count entries
-          totalTicketCount: { $sum: 1 }
+          totalTicketCount: { $sum: 1 },
+          cashCollection: { $sum: "$cashCollection" },
+          onlineCollection: { $sum: "$onlineCollection" },
         }
       }
     ])
@@ -518,8 +520,9 @@ export const getLifeTimeStatsByAssistantId = async (req, res) => {
             "totalFine": 0,
             "totalReward": 0,
             "totalCashCollected": 0,
-            "totalTicketCount": 0
-
+            "totalTicketCount": 0,
+            "cashCollection": 0,
+            "onlineCollection": 0
           }
         }
         :
