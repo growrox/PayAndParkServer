@@ -790,7 +790,7 @@ export const getLifeTimeStatsBySupervisorId = async (req, res) => {
                     {
                          // message: responses.messages[language].settlementsFetched,
                          message: responses.messages[language].supervisorStatsFetchedSuccessfully,
-                         result: tickets
+                         result: tickets[0]
                     }
           );
      } catch (error) {
