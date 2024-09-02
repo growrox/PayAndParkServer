@@ -525,7 +525,7 @@ export const getLifeTimeStatsByAssistantId = async (req, res) => {
         :
         {
           message: responses.messages[language].settlementsFetched,
-          result: tickets
+          result: tickets[0]
         }
     );
   } catch (error) {
