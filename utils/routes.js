@@ -82,6 +82,7 @@ export const ROUTES = {
     CREATE: "/create-site",
     GET_DETAIL: "/get-site/:id",
     GET_ALL: "/get-all-sites",
+    GET_PARKING_TICKET_BY_SITE_AND_SUPERVISOR: "/site-summary",
     UPDATE: "/update-site/:id",
     DELETE: "/delete-site/:id",
   }
