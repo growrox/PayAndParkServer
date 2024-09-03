@@ -9,7 +9,7 @@ import moment from 'moment-timezone';
 
 export const settleParkingTickets = async (req, res) => {
      const language = getLanguage(req, responses); // Get user's language preference
-     const { supervisorID, cashComponent, cashCollected, totalCollection, totalCollectedAmount, TotalFine, TotalRewards } = req.body;
+     const { supervisorID, cashComponent, cashCollected, totalCollection, totalCollectedAmount, TotalFine, TotalRewards, cashCollection, onlineCollection } = req.body;
      const { parkingAssistantID } = req.params;
 
      try {
@@ -121,6 +121,8 @@ export const settleParkingTickets = async (req, res) => {
                totalReward: TotalRewards,
                cashComponent, // Placeholder for actual logic
                cashCollected,
+               cashCollection,
+               onlineCollection,
                accountantId: parkingAssistantID, // Placeholder, adjust as needed
                isSettled: false, // Will be set to true after updating tickets
           });
@@ -670,6 +672,8 @@ export const getSupervisorStats = async (req, res) => {
                          totalFine: { $sum: '$totalFine' },
                          cashCollected: { $sum: '$cashCollected' },
                          totalReward: { $sum: '$totalReward' },
+                         cashCollection: { $sum: '$cashCollection' }, // Counting the number of tickets
+                         onlineCollection: { $sum: '$onlineCollection' }, // Counting the number of tickets
                          totalTicketsCount: { $sum: 1 }, // Counting the number of tickets
                     }
                }
@@ -693,7 +697,10 @@ export const getSupervisorStats = async (req, res) => {
                          TotalReward: 0,
                          TotalTicketsCount: 0,
                          cashCollected: 0,
+                         CashCollection: 0,
+                         OnlineCollection: 0,
                          CashComponents: [],
+                         TodaysColection: 0,
                          LastSettledTicketUpdatedAt: null
                     }
                });
@@ -705,6 +712,8 @@ export const getSupervisorStats = async (req, res) => {
                TotalFine: stats[0]?.totalFine || 0,
                TotalReward: stats[0]?.totalReward || 0,
                cashCollected: stats[0]?.cashCollected || 0,
+               CashCollection: stats[0]?.cashCollection || 0,
+               OnlineCollection: stats[0]?.onlineCollection || 0,
                TotalTicketsCount: stats[0]?.totalTicketsCount || 0,
                CashComponents: denominationTotals || [], // Include the cash components
                LastSettledTicketUpdatedAt: lastSettledTicket ? lastSettledTicket.updatedAt : null
@@ -712,7 +721,7 @@ export const getSupervisorStats = async (req, res) => {
 
           return res.status(200).json({
                message: responses.messages[language].supervisorStatsFetchedSuccessfully,
-               result: supervisorStats
+               result: { ...supervisorStats, TodaysColection: Math.round(+supervisorStats.CashCollection + +supervisorStats.OnlineCollection) }
           });
      } catch (error) {
           console.error("Error getting the supervisor stats.", error);
@@ -753,7 +762,9 @@ export const getLifeTimeStatsBySupervisorId = async (req, res) => {
                          totalCollectedAmount: { $sum: "$totalCollectedAmount" },
                          totalFine: { $sum: "$totalFine" },
                          totalReward: { $sum: "$totalReward" },
-                         totalCashCollected: { $sum: { $size: "$cashCollected" } }, // Example to count entries
+                         cashCollection: { $sum: "$cashCollection" },
+                         onlineCollection: { $sum: "$onlineCollection" },
+                         totalCashCollected: { $sum: "$cashCollected" }, // Example to count entries
                          totalTicketCount: { $sum: 1 }
                     }
                }
@@ -779,7 +790,7 @@ export const getLifeTimeStatsBySupervisorId = async (req, res) => {
                     {
                          // message: responses.messages[language].settlementsFetched,
                          message: responses.messages[language].supervisorStatsFetchedSuccessfully,
-                         result: tickets
+                         result: tickets[0]
                     }
           );
      } catch (error) {

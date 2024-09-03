@@ -42,11 +42,14 @@ export const createParkingTicket = async (req, res) => {
       createdAtClient,
     } = req.body;
 
-    const { userId } = req.headers;
+    const { userId = "66bbb962af5dbeb885d5318f" } = req.headers;
+    console.log({ userId });
+    
     const language = getLanguage(req, responses);
 
     // Check if there is an assistant with the provided phone number and role
     const AssistanceAvailable = await User.findOne({ _id: new mongoose.Types.ObjectId(userId), isOnline: true });
+    console.log({ AssistanceAvailable });
 
     if (!AssistanceAvailable || isEmpty(AssistanceAvailable.siteId)) {
       return res.status(200).json({

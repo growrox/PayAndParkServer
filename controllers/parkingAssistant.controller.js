@@ -499,8 +499,10 @@ export const getLifeTimeStatsByAssistantId = async (req, res) => {
           totalCollectedAmount: { $sum: "$totalCollectedAmount" },
           totalFine: { $sum: "$totalFine" },
           totalReward: { $sum: "$totalReward" },
-          totalCashCollected: { $sum: { $size: "$cashCollected" } }, // Example to count entries
-          totalTicketCount: { $sum: 1 }
+          totalCashCollected: { $sum: "$cashCollected" }, // Example to count entries
+          totalTicketCount: { $sum: 1 },
+          cashCollection: { $sum: "$cashCollection" },
+          onlineCollection: { $sum: "$onlineCollection" },
         }
       }
     ])
@@ -518,17 +520,20 @@ export const getLifeTimeStatsByAssistantId = async (req, res) => {
             "totalFine": 0,
             "totalReward": 0,
             "totalCashCollected": 0,
-            "totalTicketCount": 0
-
+            "totalTicketCount": 0,
+            "cashCollection": 0,
+            "onlineCollection": 0
           }
         }
         :
         {
           message: responses.messages[language].settlementsFetched,
-          result: tickets
+          result: tickets[0]
         }
     );
   } catch (error) {
+    console.log("Server error while getting the life time assistant stats ", error);
+
     return res
       .status(500)
       .json({ message: responses.errors[language].serverError });
