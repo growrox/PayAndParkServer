@@ -82,5 +82,7 @@ export const ROUTES = {
     GET_ALL: "/get-all-sites",
     UPDATE: "/update-site/:id",
     DELETE: "/delete-site/:id",
+    GET_SUPERVISOR_SITES: "/site/supervisor/:supervisorID",
+    GET_SITE_TICKETSTATS:"/site/tickets-stats/:siteID"
   }
 };
