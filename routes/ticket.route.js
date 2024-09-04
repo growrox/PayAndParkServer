@@ -97,8 +97,8 @@ router.get(GET_QUERY_TICKET, authMiddleware, getParkingTicketByQuery);
 router.get(GET_TICKET_FOR_ASSISTANT, authMiddleware, getTicketsByAssistantId);
 router.delete(DELETE_PAYMENT_ORDER, authMiddleware, deletePaymentOrderById);
 router.get(GET_VEHICAL_TYPE_DETAILS, authMiddleware, getVehicleTypeDetail);
-router.get(GET_PREVIOUS_TICKET_DETAILS, getTicketByVehicleNumber);
-router.get(GET_PARKING_TICKETS_IN_DATE_RANGE, getParkingTicketsByDateRange);
+router.get(GET_PREVIOUS_TICKET_DETAILS, authMiddleware, getTicketByVehicleNumber);
+router.get(GET_PARKING_TICKETS_IN_DATE_RANGE, getParkingTicketsByDateRange)
 // router.get('/parking-tickets/stats/:assistantId', getTicketsByAssistantId);
 
 router.delete(DELETE_TICEKT_IMAGE, authMiddleware, deleteTicketImage);
