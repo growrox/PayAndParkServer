@@ -111,6 +111,14 @@ export const getSitesBySupervisorCode = async (req, res) => {
       return res.json({ result: [] });
     }
 
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0); // Start of today in UTC
+
+    const endOfToday = new Date();
+    endOfToday.setUTCHours(23, 59, 59, 999); // End of today in UTC
+
+    // Use aggregation to count occurrences of each vehicle type
+
     const uniqueSiteIds = uniqueSiteIdsResult[0].siteIds;
 
     // Step 2: Lookup site details based on unique siteIds
@@ -118,9 +126,18 @@ export const getSitesBySupervisorCode = async (req, res) => {
       _id: { $in: uniqueSiteIds }
     }).select('_id name'); // Adjust field selection as needed
 
-    res.json({ result: sites });
+    const totalTickets = await Ticket.find(
+      {
+        siteDetails: { $in: sites.map(site => site._id) },
+        createdAt: { $gte: startOfToday, $lte: endOfToday }
+      }).countDocuments();
+
+    res.json({
+      message: "Here is the all sites details and total ticekt count.",
+      result: { sites, totalTickets }
+    });
   } catch (error) {
-    console.error("Error getting sites by supervisor.",error);
+    console.error("Error getting sites by supervisor.", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -185,9 +202,89 @@ export const getSiteDetailsAndTickets = async (req, res) => {
 
     res.json({ result: { site, vehicleTypeCounts: vehicleTypeCountsArray } });
   } catch (error) {
-    console.error("Error getting ticket stats by sites.",error);
+    console.error("Error getting ticket stats by sites.", error);
     res.status(500).json({ message: error.message });
   }
 };
 
+
+export const getAllSitesBySupervisorCode = async (req, res) => {
+  try {
+    const { supervisorID } = req.params;
+
+    // Step 1: Get supervisor details
+    const supervisorDetails = await User.findById(supervisorID);
+    if (!supervisorDetails) {
+      return res.status(400).json({ message: 'Supervisor details not found.' });
+    }
+
+    // Step 2: Find assistants mapped to this supervisor
+    const assistants = await User.find({
+      supervisorCode: supervisorDetails.code,
+      role: 'assistant'
+    });
+
+    // Get unique siteIds from assistants
+    const uniqueSiteIds = assistants.map(assistant => assistant.siteId);
+
+    // Step 3: Retrieve tickets created today for these siteIds
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0); // Start of today in UTC
+
+    const endOfToday = new Date();
+    endOfToday.setUTCHours(23, 59, 59, 999); // End of today in UTC
+
+    // Use aggregation to count occurrences of each vehicle type per site
+    const ticketsBySite = await Ticket.aggregate([
+      {
+        $match: {
+          siteDetails: { $in: uniqueSiteIds },
+          createdAt: { $gte: startOfToday, $lte: endOfToday }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            siteId: "$siteDetails",
+            vehicleType: "$vehicleType"
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: "$_id.siteId",
+          vehicleTypeCounts: {
+            $push: {
+              vehicleType: "$_id.vehicleType",
+              count: "$count"
+            }
+          }
+        }
+      }
+    ]);
+
+    // Step 4: Lookup site details for each siteId
+    const sites = await Site.find({
+      _id: { $in: uniqueSiteIds }
+    }).select('_id name');
+
+    // Create a map of siteId to site name for easy lookup
+    const siteMap = new Map(sites.map(site => [site._id.toString(), site.name]));
+
+    // Format the results
+    const results = ticketsBySite.map(ticketSite => ({
+      site: {
+        _id: ticketSite._id,
+        name: siteMap.get(ticketSite._id.toString())
+      },
+      vehicleTypeCounts: ticketSite.vehicleTypeCounts
+    }));
+
+    res.json({ message: "Here is teh site details for the supervisor.", result: results });
+  } catch (error) {
+    console.error("Error getting sites by supervisor code and tickets.", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
