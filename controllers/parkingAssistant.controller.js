@@ -539,3 +539,54 @@ export const getLifeTimeStatsByAssistantId = async (req, res) => {
       .json({ message: responses.errors[language].serverError });
   }
 };
+
+export const getUserDetailsAndSupervisorInfo = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const dateQuery = req.query.date;
+
+    if (!userId || !dateQuery) {
+      return res.status(400).json({ message: 'User ID and date are required.' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Assistant not found.' });
+    }
+
+    const date = new Date(dateQuery);
+    if (isNaN(date.getTime())) {
+      return res.status(400).json({ message: 'Invalid date format.' });
+    }
+
+    const supervisorRecord = await SupervisorSettlementTicket.findOne({
+      parkingAssistant: userId,
+      createdAt: {
+        $gte: startOfDay(date),
+        $lte: endOfDay(date)
+      }
+    }).populate("accountantId", "name phone").populate("supervisor", "phone name code").populate("parkingAssistant","name phone isOnline supervisorCode");
+
+    if (supervisorRecord) {
+      return res.json({ message: "Here is the details of the ticket.", result: supervisorRecord });
+    } else {
+      return res.status(404).json({ message: 'No details found. Assistant might be absent on that day.' });
+    }
+  } catch (error) {
+    console.error("Error retrieving user and supervisor information.", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Helper functions to get the start and end of the day for a given date
+function startOfDay(date) {
+  const start = new Date(date);
+  start.setUTCHours(0, 0, 0, 0);
+  return start;
+}
+
+function endOfDay(date) {
+  const end = new Date(date);
+  end.setUTCHours(23, 59, 59, 999);
+  return end;
+}

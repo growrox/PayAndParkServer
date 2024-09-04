@@ -19,6 +19,8 @@ export const ROUTES = {
     LIFETIME_STATS: "/parking-assistant/lifetime-stats",
     GET_TICKETS: "/parking-assistant/tickets",
     GET_GLOBAL_TICKETS: "/parking-assistant/global/tickets",
+    GET_SETTLEMENT_SPECIFIC_DATE: "/parking-assistant/settlement/:userId",
+
   },
   SHIFT: {
     CREATE_SHIFTS: '/shifts/create',
@@ -84,6 +86,6 @@ export const ROUTES = {
     DELETE: "/delete-site/:id",
     GET_SUPERVISOR_SITES: "/site/supervisor/:supervisorID",
     GET_SITE_TICKETSTATS: "/site/tickets-stats/:siteID",
-    GET_SUPERVISOR_ALL_SITES:"/site/all/supervisor/:supervisorID"
+    GET_SUPERVISOR_ALL_SITES: "/site/all/supervisor/:supervisorID"
   }
 };
