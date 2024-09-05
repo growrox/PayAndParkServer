@@ -74,9 +74,10 @@ export const ROUTES = {
     GET_VEHICAL_TYPE_DETAILS: "/ticket/detail/:id",
     DELETE_TICEKT_IMAGE: "/parking-tickets/:filename",
     UPDATE_TICKET_BY_ID: "/parking-tickets/:id",
-    DELTE_TICEKT_BY_ID: "/parking-tickets/:id",
     GET_PREVIOUS_TICKET_DETAILS: "/ticket/previous",
-    GET_PARKING_TICKETS_IN_DATE_RANGE: "/parking-tickets-by-date-range"
+    GET_PARKING_TICKETS_IN_DATE_RANGE: "/parking-tickets-by-date-range",
+    DELTE_TICEKT_BY_ID: "/parking-tickets/delete/:ticketId",
+    RESTORE_TICEKT_BY_ID:"/parking-tickets/restore/:ticketId"
   },
   SITE: {
     CREATE: "/create-site",

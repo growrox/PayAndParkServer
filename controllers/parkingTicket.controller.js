@@ -18,6 +18,7 @@ import { responses } from "../utils/Translate/parkingTicket.response.js";
 import mongoose from "mongoose";
 import moment from "moment-timezone";
 import TicketSequence  from '../models/ticketSequence.Model.js'; // Adjust the path as necessary
+import DeletedParkingTicket from "../models/parkingTicketDeleted.model.js";
 
 export const createParkingTicket = async (req, res) => {
   try {
@@ -658,27 +659,6 @@ export const deletePaymentOrderById = async (req, res) => {
   }
 };
 
-// Controller to delete a parking ticket by ID
-export const deleteParkingTicketById = async (req, res) => {
-  try {
-    const language = getLanguage(req, responses);
-
-    const deletedTicket = await ParkingTicket.findByIdAndRemove(req.params.id);
-    if (!deletedTicket) {
-      return res.status(404).json({
-        error: responses.errors[language].ticketNotFound,
-        // "Parking ticket not found"
-      });
-    }
-    return res.json({
-      message: responses.messages[language].deleteTicket,
-      // "Parking ticket deleted successfully"
-    });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-};
-
 export const uploadTicketImage = async (req, res) => {
   try {
     const file = req.file;
@@ -849,3 +829,63 @@ export const getTicketByVehicleNumber = async (req, res) => {
   }
 };
 
+
+
+// Delete Ticket From the collection.
+// Restore Ticket From the collection.
+
+export const moveTicketToDeleted = async (req, res) => {
+  const { ticketId } = req.params; // Assuming ticketId is passed as a URL parameter
+  console.log("This route is different ", ticketId);
+
+  try {
+
+    // Find the ticket in the live collection
+    const ticket = await ParkingTicket.findById(ticketId);
+
+    if (!ticket) {
+      return res.status(404).json({ message: 'Ticket not found' });
+    }
+
+    // Create a new DeletedParkingTicket document
+    const deletedTicket = new DeletedParkingTicket(ticket.toObject());
+
+    // Save the new DeletedParkingTicket document
+    await deletedTicket.save();
+
+    // Remove the ticket from the live collection
+    await ParkingTicket.findByIdAndDelete(ticketId);
+
+    res.status(200).json({ message: 'Ticket moved to deleted collection successfully' });
+  } catch (error) {
+    console.error('Error moving ticket:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const restoreTicketFromDeleted = async (req, res) => {
+  const { ticketId } = req.params; // Assuming ticketId is passed as a URL parameter
+
+  try {
+    // Find the ticket in the deleted collection
+    const deletedTicket = await DeletedParkingTicket.findById(ticketId);
+
+    if (!deletedTicket) {
+      return res.status(404).json({ message: 'Ticket not found in deleted collection' });
+    }
+
+    // Create a new ParkingTicket document
+    const parkingTicket = new ParkingTicket(deletedTicket.toObject());
+
+    // Save the new ParkingTicket document
+    await parkingTicket.save();
+
+    // Remove the ticket from the deleted collection
+    await DeletedParkingTicket.findByIdAndDelete(ticketId );
+
+    res.status(200).json({ message: 'Ticket restored to live collection successfully' });
+  } catch (error) {
+    console.error('Error restoring ticket:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
