@@ -4,13 +4,14 @@ import {
      getTickets,
      getGlobalTickets,
      getLifeTimeStatsByAssistantId,
-     getUserDetailsAndSupervisorInfo
+     getUserDetailsAndSupervisorInfo,
+     getUserDetailsAndSupervisorInfoBetweenDates
 } from '../controllers/parkingAssistant.controller.js'
 import { ROUTES } from '../utils/routes.js';
 import authMiddleware from '../middlewares/validateJWT.js';
 
 const {
-     ASSISTANT: { STATS, LIFETIME_STATS, GET_TICKETS, GET_GLOBAL_TICKETS, GET_SETTLEMENT_SPECIFIC_DATE }
+     ASSISTANT: { STATS, LIFETIME_STATS, GET_TICKETS, GET_GLOBAL_TICKETS, GET_SETTLEMENT_SPECIFIC_DATE, GET_SETTLEMENT_BETWEEN_DATES }
 } = ROUTES;
 const router = express.Router();
 
@@ -19,6 +20,7 @@ router.get(LIFETIME_STATS, authMiddleware, getLifeTimeStatsByAssistantId);
 router.get(GET_TICKETS, authMiddleware, getTickets);
 router.get(GET_GLOBAL_TICKETS, authMiddleware, getGlobalTickets);
 router.get(GET_SETTLEMENT_SPECIFIC_DATE, getUserDetailsAndSupervisorInfo);
+router.get(GET_SETTLEMENT_BETWEEN_DATES, getUserDetailsAndSupervisorInfoBetweenDates);
 
 
 

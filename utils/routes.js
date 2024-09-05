@@ -20,7 +20,7 @@ export const ROUTES = {
     GET_TICKETS: "/parking-assistant/tickets",
     GET_GLOBAL_TICKETS: "/parking-assistant/global/tickets",
     GET_SETTLEMENT_SPECIFIC_DATE: "/parking-assistant/settlement/:userId",
-
+    GET_SETTLEMENT_BETWEEN_DATES: "/parking-assistant/settlement/all/:userId"
   },
   SHIFT: {
     CREATE_SHIFTS: '/shifts/create',

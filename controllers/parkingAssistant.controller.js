@@ -5,6 +5,8 @@ import mongoose from "mongoose";
 import { getLanguage, isEmpty } from "../utils/helperFunctions.js";
 import { responses } from "../utils/Translate/assistant.response.js";
 import User from "../models/user.model.js";
+import moment from "moment-timezone";
+import Attendance from "../models/attendance.model.js";
 
 // Create a new parking assistant
 export const createParkingAssistant = async (req, res) => {
@@ -565,7 +567,7 @@ export const getUserDetailsAndSupervisorInfo = async (req, res) => {
         $gte: startOfDay(date),
         $lte: endOfDay(date)
       }
-    }).populate("accountantId", "name phone").populate("supervisor", "phone name code").populate("parkingAssistant","name phone isOnline supervisorCode");
+    }).populate("accountantId", "name phone").populate("supervisor", "phone name code").populate("parkingAssistant", "name phone isOnline supervisorCode");
 
     if (supervisorRecord) {
       return res.json({ message: "Here is the details of the ticket.", result: supervisorRecord });
@@ -577,6 +579,103 @@ export const getUserDetailsAndSupervisorInfo = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+export const getUserDetailsAndSupervisorInfoBetweenDates = async (req, res) => {
+  try {
+    const { userId } = req.params; // User ID from URL params
+    const { startDate, endDate } = req.query; // Dates from query parameters
+
+    if (!userId || !startDate || !endDate) {
+      return res.status(400).json({ message: 'User ID, start date, and end date are required.' });
+    }
+
+    // Validate and parse dates using moment
+    const start = moment(startDate, 'YYYY-MM-DD');
+    const end = moment(endDate, 'YYYY-MM-DD');
+
+    if (!start.isValid() || !end.isValid()) {
+      return res.status(400).json({ message: 'Invalid date format.' });
+    }
+
+    if (end.isBefore(start)) {
+      return res.status(400).json({ message: 'End date must be after start date.' });
+    }
+
+    // Step 1: Fetch attendance records for the specified date range
+    const attendanceRecords = await Attendance.find({
+      userId: userId,
+      clockInTime: {
+        $gte: start.startOf('day').toDate(),
+        $lte: end.endOf('day').toDate()
+      }
+    });
+
+    // Step 2: Generate a list of all dates in the range
+    const dates = [];
+    let currentDate = start.clone();
+    while (currentDate.isSameOrBefore(end)) {
+      dates.push(currentDate.clone().format('YYYY-MM-DD')); // Format date as YYYY-MM-DD
+      currentDate.add(1, 'days');
+    }
+
+    const attendanceStatus = dates.map(date => {
+      const record = attendanceRecords.find(r => moment(r.clockInTime).format('YYYY-MM-DD') === date);
+      console.log({ record });
+
+      return {
+        date,
+        status: record ? 'Present' : 'Absent',
+        details: record || {} // Include attendance details if present
+      };
+    });
+    // console.log({ attendanceStatus });
+    
+
+    // Step 3: Fetch ticket information for each day
+    const ticketDataPromises = attendanceStatus.map(async status => {
+      if (status.status === 'Present') {
+        console.log(" moment(status.date).startOf('day').toDate(), ", moment(status.date).startOf('day').toDate(),);
+        
+        const tickets = await ParkingTicket.aggregate([
+          {
+            $match: {
+              parkingAssistant: userId,
+              createdAt: {
+                $gte: moment(status.date).startOf('day').toDate(),
+                $lte: moment(status.date).endOf('day').toDate()
+              }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+              totalAmount: { $sum: "$amount" }
+            }
+          }
+        ]);
+
+        status.ticketCount = tickets[0] ? tickets[0].count : 0;
+        status.totalAmount = tickets[0] ? tickets[0].totalAmount : 0;
+      } else {
+        status.ticketCount = 0;
+        status.totalAmount = 0;
+      }
+
+      return status;
+    });
+
+    // Wait for all ticket data promises to resolve
+    const attendanceWithTickets = await Promise.all(ticketDataPromises);
+
+    res.json({ result: attendanceWithTickets });
+  } catch (error) {
+    console.error("Error checking user attendance and tickets.", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
 // Helper functions to get the start and end of the day for a given date
 function startOfDay(date) {
