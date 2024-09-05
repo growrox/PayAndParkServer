@@ -243,23 +243,35 @@ function parseTime(startTime, endTime) {
   return { shiftStartTime, shiftEndTime };
 }
 
-// Auto Clock-Out User Function
 export async function AutoClockOutUser(shiftId) {
   try {
-    await Attendance.updateMany(
-      { shiftId: new mongoose.Types.ObjectId(shiftId) },
-      { clockOutTime: new Date() }
+    const now = new Date();
+    const startOfYesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    startOfYesterday.setUTCDate(startOfYesterday.getUTCDate() - 1);
+
+    const shiftObjectId = new mongoose.Types.ObjectId(shiftId);
+
+    const updateResult = await Attendance.updateMany(
+      {
+        shiftId: shiftObjectId,
+        clockOutTime: { $exists: false },
+        createdAt: { $gte: startOfYesterday }
+      },
+      { $set: { clockOutTime: now } }
     );
+
     await User.updateMany(
-      { shiftId: new mongoose.Types.ObjectId(shiftId) },
+      { shiftId: shiftObjectId },
       { isOnline: false }
     );
-    return true;
+
+    return updateResult.modifiedCount > 0;
   } catch (error) {
     console.log("Error clocking out the users. ", error);
     return false;
   }
 }
+
 
 // Get Attendance by Month
 export const getAttendanceByMonth = async (req, res) => {
