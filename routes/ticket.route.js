@@ -15,7 +15,8 @@ import {
   getTicketByVehicleNumber,
   getTicketTotalsByPaymentMode,
   moveTicketToDeleted,
-  restoreTicketFromDeleted
+  restoreTicketFromDeleted,
+  getAllDeletedTickets
 } from "../controllers/parkingTicket.controller.js";
 import multer from "multer";
 import path from "path";
@@ -46,7 +47,9 @@ const { PARKING_TICKETS: {
   UPLOAD_VEHICAL_IMAGE,
   GET_PARKING_TICKETS_IN_DATE_RANGE,
   DELTE_TICEKT_BY_ID,
-  RESTORE_TICEKT_BY_ID
+  RESTORE_TICEKT_BY_ID,
+  GET_ALL_DELETED_TICKETS,
+  GET_ALL_TICKETS_AMOUNT_TOTAL
 } } = ROUTES
 
 const storage = multer.diskStorage({
@@ -86,6 +89,7 @@ router.post(
   generatePaymentForTicket
 );
 router.post(GET_ALL_TICKETS, authMiddleware, getAllTickets);
+router.get(GET_ALL_DELETED_TICKETS, getAllDeletedTickets);
 router.post(GET_ALL_TICKETS_AMOUNT_TOTAL, authMiddleware, getTicketTotalsByPaymentMode);
 router.post(PAYMENT_STATUS, authMiddleware, updatePaymentStatusOnline);
 router.get(GET_TOCKET, authMiddleware, getParkingTickets);

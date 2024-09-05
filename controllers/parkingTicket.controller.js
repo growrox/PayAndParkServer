@@ -1320,3 +1320,198 @@ export const restoreTicketFromDeleted = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+export const getAllDeletedTickets = async (req, res) => {
+  try {
+    const language = getLanguage(req, responses);
+
+    const { search = "", exportFormat } = req.query;
+    const { supervisors = [], assistants = [], startDate, endDate } = req.body;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    let match = {};
+
+    if (search) {
+      match.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { vehicleNumber: { $regex: search, $options: "i" } },
+        { vehicleType: { $regex: search, $options: "i" } },
+        { phoneNumber: { $regex: search, $options: "i" } },
+        { "siteDetails.name": { $regex: search, $options: "i" } },
+        { "parkingAssistantDetails.name": { $regex: search, $options: "i" } },
+        { "parkingAssistantDetails.phone": { $regex: search, $options: "i" } },
+        {
+          "parkingAssistantDetails.supervisorCode": {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        { "supervisorDetails.name": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (supervisors.length > 0) {
+      match.supervisor = {
+        $in: supervisors.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
+
+    if (assistants.length > 0) {
+      match.parkingAssistant = {
+        $in: assistants.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
+
+    if (startDate || endDate) {
+      const dateRange = {};
+      if (startDate) {
+        const LocalStartDate = moment
+          .tz(new Date(startDate), "Asia/Kolkata")
+          .startOf("day")
+          .clone()
+          .utc();
+        dateRange.$gte = new Date(LocalStartDate);
+      }
+      if (endDate) {
+        const LocalEndDate = moment
+          .tz(new Date(endDate), "Asia/Kolkata")
+          .endOf("day")
+          .clone()
+          .utc();
+        const end = new Date(LocalEndDate);
+        dateRange.$lte = end;
+      }
+      match.createdAt = dateRange;
+    }
+
+
+    const aggregateQuery = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "parkingAssistant",
+          foreignField: "_id",
+          as: "parkingAssistantDetails",
+        },
+      },
+      // { $unwind: "$parkingAssistantDetails" },
+      {
+        $unwind: {
+          path: "$parkingAssistantDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "supervisor",
+          foreignField: "_id",
+          as: "supervisorDetails",
+        },
+      },
+      // { $unwind: "$supervisorDetails" },
+      {
+        $unwind: {
+          path: "$supervisorDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "sites",
+          localField: "siteDetails",
+          foreignField: "_id",
+          as: "siteDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$siteDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: match, // Combined match conditions
+      },
+      { $sort: { createdAt: -1 } },
+    ];
+    if (exportFormat !== "excel" && exportFormat !== "pdf") {
+      aggregateQuery.push({ $skip: (page - 1) * limit }, { $limit: limit });
+    }
+
+    const parkingTickets = await DeletedParkingTicket.aggregate(aggregateQuery);
+
+    if (exportFormat === "excel") {
+      return exportToExcel(parkingTickets, res);
+    } else if (exportFormat === "pdf") {
+      return exportToPDF(parkingTickets, res);
+    }
+
+    const countQuery = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "parkingAssistant",
+          foreignField: "_id",
+          as: "parkingAssistantDetails",
+        },
+      },
+      // { $unwind: "$parkingAssistantDetails" },
+      {
+        $unwind: {
+          path: "$parkingAssistantDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "supervisor",
+          foreignField: "_id",
+          as: "supervisorDetails",
+        },
+      },
+      // { $unwind: "$supervisorDetails" },
+      {
+        $unwind: {
+          path: "$supervisorDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "sites",
+          localField: "siteDetails",
+          foreignField: "_id",
+          as: "siteDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$siteDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: match, // Combined match conditions
+      },
+      { $count: "totalCount" },
+    ];
+
+    const countResult = await DeletedParkingTicket.aggregate(countQuery);
+    const count = countResult.length > 0 ? countResult[0].totalCount : 0;
+
+    return res.status(200).json({
+      result: {
+        parkingTickets,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+        totalCount: count,
+      },
+    });
+  } catch (err) {
+    console.log({ err });
+    res.status(500).json({ message: err.message || err });
+  }
+};
