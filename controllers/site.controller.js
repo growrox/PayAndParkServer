@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+import ParkingTicket from "../models/parkingTicket.model.js";
 import Site from "../models/site.model.js";
 import User from "../models/user.model.js";
 import { isEmpty } from "../utils/helperFunctions.js";

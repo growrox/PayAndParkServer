@@ -20,28 +20,38 @@ export const createUser = async (req, res) => {
 
   try {
     if (isEmpty(name)) {
-      return res.status(400).json({ error: responses.errors[language].nameRequired });
+      return res
+        .status(400)
+        .json({ error: responses.errors[language].nameRequired });
     }
     if (isEmpty(phone)) {
-      return res.status(400).json({ error: responses.errors[language].phoneRequired });
+      return res
+        .status(400)
+        .json({ error: responses.errors[language].phoneRequired });
     }
 
     const existingUser = await User.findOne({ phone: phone });
     if (existingUser) {
       console.log("User Already Present ", existingUser);
-      return res.status(400).json({ error: responses.errors[language].userAlreadyExists });
+      return res
+        .status(400)
+        .json({ error: responses.errors[language].userAlreadyExists });
     }
 
     let newUser;
 
     if (source === "app") {
       if (isEmpty(supervisorCode)) {
-        return res.status(400).json({ error: responses.errors[language].supervisorCodeRequired });
+        return res
+          .status(400)
+          .json({ error: responses.errors[language].supervisorCodeRequired });
       }
 
       const FindSupervisor = await User.findOne({ code: supervisorCode });
       if (isEmpty(FindSupervisor)) {
-        return res.status(404).json({ error: responses.errors[language].invalidSupervisorCode });
+        return res
+          .status(404)
+          .json({ error: responses.errors[language].invalidSupervisorCode });
       }
 
       newUser = new User({
@@ -58,7 +68,9 @@ export const createUser = async (req, res) => {
       const otpSent = await generateOTP(newUser._id, phone);
       console.log("otpSent ", otpSent);
 
-      return res.status(200).json({ message: responses.messages[language].verifyOtp });
+      return res
+        .status(200)
+        .json({ message: responses.messages[language].verifyOtp });
     } else if (source === "web") {
       if (role === "accountant") {
         newUser = new User({
@@ -84,19 +96,21 @@ export const createUser = async (req, res) => {
           password: hashedPassword,
         });
       } else {
-        return res.status(400).json({ error: responses.errors[language].invalidRole });
+        return res
+          .status(400)
+          .json({ error: responses.errors[language].invalidRole });
       }
 
       await newUser.save();
       const token = jwt.sign(
         { userId: newUser._id, role: newUser.role, source: "web" },
         process.env.JWT_SECRET,
-        { expiresIn: '24h' }
+        { expiresIn: "24h" }
       );
 
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.SECURE_COOKIE === 'true',
+        secure: process.env.SECURE_COOKIE === "true",
         sameSite: process.env.SAME_SITE,
         maxAge: 24 * 60 * 60 * 1000,
       });
@@ -106,7 +120,9 @@ export const createUser = async (req, res) => {
         result: { name: newUser.name, phone: newUser.phone },
       });
     } else {
-      return res.status(400).json({ error: responses.errors[language].invalidClientSource });
+      return res
+        .status(400)
+        .json({ error: responses.errors[language].invalidClientSource });
     }
   } catch (err) {
     console.error("Error creating user:", err);
@@ -116,10 +132,14 @@ export const createUser = async (req, res) => {
         code: err.code,
       });
     }
-    return res.status(500).json({ error: responses.errors[language].internalServerError, code: err.code });
+    return res
+      .status(500)
+      .json({
+        error: responses.errors[language].internalServerError,
+        code: err.code,
+      });
   }
 };
-
 
 export const loginUser = async (req, res) => {
   const { phone, password } = req.body;
@@ -133,7 +153,9 @@ export const loginUser = async (req, res) => {
         console.log("Found User ", user);
 
         if (isEmpty(user) || user?.role === "superadmin") {
-          return res.status(404).json({ error: responses.errors[language].userNotFound });
+          return res
+            .status(404)
+            .json({ error: responses.errors[language].userNotFound });
         }
 
         const otpResult = await generateOTP(user._id, phone);
@@ -145,30 +167,42 @@ export const loginUser = async (req, res) => {
             OTP: otpResult.OTP,
           });
         } else {
-          return res.status(500).json({ error: responses.errors[language].otpGenerationError });
+          return res
+            .status(500)
+            .json({ error: responses.errors[language].otpGenerationError });
         }
       } catch (error) {
         console.error("Error generating OTP:", error);
-        return res.status(500).json({ error: responses.errors[language].otpGenerationError });
+        return res
+          .status(500)
+          .json({ error: responses.errors[language].otpGenerationError });
       }
     } else if (source === "web") {
       const user = await User.findOne({ phone: phone });
 
       if (!user) {
-        return res.status(404).json({ error: responses.errors[language].userNotFound });
+        return res
+          .status(404)
+          .json({ error: responses.errors[language].userNotFound });
       }
 
       if (!password) {
-        return res.status(401).json({ error: responses.errors[language].passwordRequired });
+        return res
+          .status(401)
+          .json({ error: responses.errors[language].passwordRequired });
       }
 
       if (user.role !== "superadmin") {
-        return res.status(401).json({ error: responses.errors[language].invalidRole });
+        return res
+          .status(401)
+          .json({ error: responses.errors[language].invalidRole });
       }
 
       const passwordMatch = await bcrypt.compare(password, user.password);
       if (!passwordMatch) {
-        return res.status(401).json({ error: responses.errors[language].invalidCredentials });
+        return res
+          .status(401)
+          .json({ error: responses.errors[language].invalidCredentials });
       }
 
       const token = jwt.sign(
@@ -179,15 +213,20 @@ export const loginUser = async (req, res) => {
 
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.SECURE_COOKIE === 'true',
+        secure: process.env.SECURE_COOKIE === "true",
         sameSite: process.env.SAME_SITE,
         maxAge: 24 * 60 * 60 * 1000,
       });
 
       user.password = undefined; // Remove password from response
-      return res.json({ result: user, message: responses.messages[language].loginSuccessful });
+      return res.json({
+        result: user,
+        message: responses.messages[language].loginSuccessful,
+      });
     } else {
-      return res.status(400).json({ error: responses.errors[language].invalidClientSource });
+      return res
+        .status(400)
+        .json({ error: responses.errors[language].invalidClientSource });
     }
   } catch (err) {
     console.error("Error during login:", err);
@@ -247,7 +286,7 @@ export const validateOTP = async (req, res) => {
         role: newUser.role,
         userId: newUser._id,
         code: newUser?.code,
-        supervisorCode: newUser?.supervisorCode
+        supervisorCode: newUser?.supervisorCode,
       });
     } else {
       if (!getOTPDetails?.attempts) {
@@ -259,10 +298,11 @@ export const validateOTP = async (req, res) => {
         );
       }
       return res.status(300).json({
-        message: `${getOTPDetails?.attempts
-          ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
-          : "Maximum attempts reached generate new OTP."
-          }`,
+        message: `${
+          getOTPDetails?.attempts
+            ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
+            : "Maximum attempts reached generate new OTP."
+        }`,
         attempts: getOTPDetails?.attempts,
       });
     }
@@ -291,7 +331,9 @@ export const getUsers = async (req, res) => {
   }
 
   // Apply a specific role filter if role is not empty
-  const roleCondition = !isEmpty(role) ? { role: { $regex: role.trim(), $options: "i" } } : null;
+  const roleCondition = !isEmpty(role)
+    ? { role: { $regex: role.trim(), $options: "i" } }
+    : null;
 
   // Construct the query with $and if both filter and role are provided
   if (orConditions.length > 0 || roleCondition) {
@@ -313,12 +355,14 @@ export const getUsers = async (req, res) => {
 
     // Return 404 if no users found
     if (totalCount === 0) {
-      return res.status(404).json({ error: responses.errors[language].noUsersFound });
+      return res
+        .status(404)
+        .json({ error: responses.errors[language].noUsersFound });
     }
 
     if (page > totalPages) {
       return res.status(400).json({
-        error: responses.errors[language].pageExceeded
+        error: responses.errors[language].pageExceeded,
       });
     }
 
@@ -363,14 +407,13 @@ export const getUsers = async (req, res) => {
     // Return successful response with status 200
     return res.status(200).json({
       message: responses.messages[language].usersList,
-      result: response
+      result: response,
     });
   } catch (err) {
     // Handle errors and return status 500 with error message
     return res.status(500).json({ error: err.message });
   }
 };
-
 
 // Get a single user by ID
 export const getUserById = async (req, res) => {
@@ -391,21 +434,20 @@ export const getUserById = async (req, res) => {
     );
     if (isEmpty(user)) {
       return res.status(404).json({
-        error: responses.errors[language].noUsersFound
+        error: responses.errors[language].noUsersFound,
       });
     }
     return res.status(200).json({
       message: responses.messages[language].userFound,
-      result: user
+      result: user,
     });
   } catch (err) {
     return res.status(500).json({
       error: responses.errors[language].internalServerError,
-      details: err.message
+      details: err.message,
     });
   }
 };
-
 
 // GEt user status
 export const getUserStatus = async (req, res) => {
@@ -421,22 +463,21 @@ export const getUserStatus = async (req, res) => {
 
     if (isEmpty(user)) {
       return res.status(404).json({
-        error: responses.errors[language].noUsersFound
+        error: responses.errors[language].noUsersFound,
       });
     }
 
     return res.status(200).json({
       message: responses.messages[language].userDetailsFetched,
-      result: user
+      result: user,
     });
   } catch (err) {
     return res.status(500).json({
       error: responses.errors[language].internalServerError,
-      details: err.message
+      details: err.message,
     });
   }
 };
-
 
 // Update a user
 export const updateUser = async (req, res) => {
@@ -450,7 +491,7 @@ export const updateUser = async (req, res) => {
 
     if (isEmpty(userAvailable)) {
       return res.status(404).json({
-        error: responses.errors[language].noUsersFound
+        error: responses.errors[language].noUsersFound,
       });
     }
 
@@ -473,16 +514,15 @@ export const updateUser = async (req, res) => {
 
     return res.status(200).json({
       message: responses.messages[language].userUpdatedSuccessfully,
-      result: updatedUser
+      result: updatedUser,
     });
   } catch (err) {
     return res.status(500).json({
       error: responses.errors[language].internalServerError,
-      details: err.message
+      details: err.message,
     });
   }
 };
-
 
 // --------------- For now thsese two routes are not being used.
 
@@ -498,5 +538,33 @@ export const deleteUser = async (req, res) => {
     return res.json({ message: "User deleted successfully" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
+  }
+};
+
+export const getSupervisorWithAssitant = async (req, res) => {
+  try {
+    const supervisors = await User.find(
+      { role: "supervisor" },
+      "name code"
+    ).lean();
+
+    const supervisorCodes = supervisors.map((s) => s.code);
+    const assistants = await User.find(
+      { supervisorCode: { $in: supervisorCodes }, role: "assistant" },
+      "name supervisorCode"
+    ).lean();
+
+    const supervisorMap = supervisors.map((supervisor) => ({
+      ...supervisor,
+      assistants: assistants.filter(
+        (assistant) => assistant.supervisorCode === supervisor.code
+      ),
+    }));
+
+    res.json({result: supervisorMap});
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: "Failed to fetch supervisors and assistants" });
   }
 };
