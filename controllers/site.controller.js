@@ -211,6 +211,7 @@ export const getSiteDetailsAndTickets = async (req, res) => {
 export const getAllSitesBySupervisorCode = async (req, res) => {
   try {
     const { supervisorID } = req.params;
+    const { startDate, endDate } = req.query;
 
     // Step 1: Get supervisor details
     const supervisorDetails = await User.findById(supervisorID);
@@ -227,19 +228,41 @@ export const getAllSitesBySupervisorCode = async (req, res) => {
     // Get unique siteIds from assistants
     const uniqueSiteIds = assistants.map(assistant => assistant.siteId);
 
-    // Step 3: Retrieve tickets created today for these siteIds
-    const startOfToday = new Date();
-    startOfToday.setUTCHours(0, 0, 0, 0); // Start of today in UTC
+    // Step 3: Validate and parse date parameters
+    let startOfDay, endOfDay;
 
-    const endOfToday = new Date();
-    endOfToday.setUTCHours(23, 59, 59, 999); // End of today in UTC
+    if (startDate) {
+      startOfDay = new Date(startDate);
+      if (isNaN(startOfDay.getTime())) {
+        return res.status(400).json({ message: 'Invalid start date format.' });
+      }
+    } else {
+      // Default to the start of today if no startDate is provided
+      startOfDay = new Date();
+      startOfDay.setUTCHours(0, 0, 0, 0);
+    }
 
-    // Use aggregation to count occurrences of each vehicle type per site
+    if (endDate) {
+      endOfDay = new Date(endDate);
+      if (isNaN(endOfDay.getTime())) {
+        return res.status(400).json({ message: 'Invalid end date format.' });
+      }
+    } else {
+      // Default to the end of today if no endDate is provided
+      endOfDay = new Date();
+      endOfDay.setUTCHours(23, 59, 59, 999);
+    }
+
+    if (startOfDay > endOfDay) {
+      return res.status(400).json({ message: 'Start date cannot be after end date.' });
+    }
+
+    // Retrieve tickets within the date range
     const ticketsBySite = await Ticket.aggregate([
       {
         $match: {
           siteDetails: { $in: uniqueSiteIds },
-          createdAt: { $gte: startOfToday, $lte: endOfToday }
+          createdAt: { $gte: startOfDay, $lte: endOfDay }
         }
       },
       {
@@ -281,7 +304,7 @@ export const getAllSitesBySupervisorCode = async (req, res) => {
       vehicleTypeCounts: ticketSite.vehicleTypeCounts
     }));
 
-    res.json({ message: "Here is teh site details for the supervisor.", result: results });
+    res.json({ message: "Here are the site details for the supervisor.", result: results });
   } catch (error) {
     console.error("Error getting sites by supervisor code and tickets.", error);
     res.status(500).json({ message: error.message });
