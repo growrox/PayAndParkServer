@@ -7,8 +7,8 @@ export const ROUTES = {
     GET_USER_STATUS: "/users/status",
     UPDATE_USER: "/user/:id",
     GET_SUPERVISOR_WITH_ASSITANT: "/supervisors-with-assistants",
-    FOGOT_PASSWORD: "/user/forgot-password/:id",
-    UPDATE_PASSWORD: "/user/update-password/:id"
+    FOGOT_PASSWORD: "/user/forgot-password/:phone",
+    UPDATE_PASSWORD: "/user/update-password"
   },
   VEHICLE_TYPE: {
     CREATE: "/create-vehicle-type/:folderName",

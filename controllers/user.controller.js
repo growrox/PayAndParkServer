@@ -615,10 +615,10 @@ export const getSupervisorWithAssitant = async (req, res) => {
 
 // Forgot Password.
 export const forgotPassword = async (req, res) => {
-  const { id } = req.params;
+  const { phone } = req.params;
 
   try {
-    const findUser = await User.findById(id);
+    const findUser = await User.findOne({ phone });
     if (!findUser) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -637,11 +637,10 @@ export const forgotPassword = async (req, res) => {
 };
 
 export const updateUserPassword = async () => {
-  const { id } = req.params;
-  const { password, confirmPassword, OTP } = req.body;
+  const { password, confirmPassword, OTP, phone } = req.body;
 
   try {
-    const findUser = await User.findById(id);
+    const findUser = await User.findOne({ phone });
     if (!findUser) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -676,7 +675,7 @@ export const updateUserPassword = async () => {
     if (OTP == getOTPDetails.OTP) {
       await Otp.findByIdAndDelete(getOTPDetails._id);
       const hashedPassword = await bcrypt.hash(password, 10);
-      const findUser = await User.findByIdAndUpdate(id,
+      const findUser = await User.findByIdAndUpdate(findUser._id,
         {
           password: hashedPassword
         });
@@ -701,8 +700,8 @@ export const updateUserPassword = async () => {
     }
 
   } catch (error) {
-    console.error("Error updating the password.",error);
-    
+    console.error("Error updating the password.", error);
+
     return res.status(500).json({ error: err.message });
   }
 }

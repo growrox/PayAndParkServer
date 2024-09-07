@@ -33,7 +33,7 @@ router.put(UPDATE_USER, authMiddleware, updateUser);
 router.get(GET_SUPERVISOR_WITH_ASSITANT, authMiddleware, getSupervisorWithAssitant);
 
 router.get(FOGOT_PASSWORD, authMiddleware, forgotPassword);
-router.post(UPDATE_PASSWORD, authMiddleware, updateUserPassword);
+router.patch(UPDATE_PASSWORD, authMiddleware, updateUserPassword);
 
 // router.get('/users/:phone', validateJWT, getUserById);
 // router.delete('/users/:phone', deleteUser);
