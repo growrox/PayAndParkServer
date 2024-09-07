@@ -300,7 +300,7 @@ export const validateOTP = async (req, res) => {
           result: newUser,
           message: "Login sucessful.",
         });
-        
+
       }
       else if (source == "app") {
         await User.findByIdAndUpdate(newUser._id, {
@@ -630,7 +630,8 @@ export const forgotPassword = async (req, res) => {
 
     return res.status(200).json({ message: "OTP generated successfully." });
 
-  } catch (err) {
+  } catch (error) {
+    console.error("Error generating otp for reset password.", error);
     return res.status(500).json({ error: err.message });
   }
 };
@@ -699,7 +700,9 @@ export const updateUserPassword = async () => {
       });
     }
 
-  } catch (err) {
+  } catch (error) {
+    console.error("Error updating the password.",error);
+    
     return res.status(500).json({ error: err.message });
   }
 }
