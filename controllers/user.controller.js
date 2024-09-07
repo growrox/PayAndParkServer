@@ -623,7 +623,6 @@ export const forgotPassword = async (req, res) => {
     if (!findUser) {
       return res.status(404).json({ error: "User not found" });
     }
-    console.log("role ",findUser.role)
     console.log(findUser.role != "accountant", findUser.role != "superadmin", "  ", findUser.role != "accountant" && findUser.role != "superadmin");
 
 
@@ -641,7 +640,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-export const updateUserPassword = async (req,res) => {
+export const updateUserPassword = async (req, res) => {
   const { password, confirmPassword, OTP, phone } = req.body;
 
   try {
@@ -653,14 +652,14 @@ export const updateUserPassword = async (req,res) => {
     if (isEmpty(password) || isEmpty(confirmPassword) || password != confirmPassword) {
       return res.status(404).json({ message: "Please check the password and try again." });
     }
-    console.log( findUser.role != "accountant", findUser.role != "superadmin","  ",findUser.role != "accountant" && findUser.role != "superadmin");
+    console.log(findUser.role != "accountant", findUser.role != "superadmin", "  ", findUser.role != "accountant" && findUser.role != "superadmin");
 
     if (findUser.role != "accountant" && findUser.role != "superadmin") {
       return res.status(404).json({ message: "Not allowed to reset passowrd." });
     }
 
     // const otpSent = await generateOTP(findUser._id, findUser.phone);
-    const getOTPDetails = await Otp.findOne({ phoneNumber:phone });
+    const getOTPDetails = await Otp.findOne({ phoneNumber: phone });
     // console.log("getOTPDetails ", getOTPDetails);
 
     if (isEmpty(getOTPDetails)) {
@@ -686,7 +685,7 @@ export const updateUserPassword = async (req,res) => {
           password: hashedPassword
         });
 
-      return res.status(200).json({ message: "Password Updated Successfully." });
+      return res.status(200).json({ result: { _id: findUser._id, name: findUser.name, role: findUser.role, phone: findUser.phone }, message: "Password Updated Successfully." });
     }
     else {
       if (!getOTPDetails?.attempts) {
