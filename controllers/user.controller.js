@@ -11,6 +11,7 @@ import bcrypt from "bcryptjs";
 import Otp from "../models/otp.model.js";
 import { responses } from "../utils/Translate/user.response.js";
 import { getLanguage } from "../utils/helperFunctions.js";
+import mongoose from "mongoose";
 
 // Create a new user
 export const createUser = async (req, res) => {
@@ -194,7 +195,7 @@ export const loginUser = async (req, res) => {
           .json({ error: responses.errors[language].passwordRequired });
       }
 
-      if (user.role !== "superadmin") {
+      if (user.role !== "superadmin" && user.role !== "accountant") {
         return res
           .status(401)
           .json({ error: responses.errors[language].invalidRole });
@@ -223,7 +224,7 @@ export const loginUser = async (req, res) => {
 
       user.password = undefined; // Remove password from response
       return res.json({
-        result: user,
+        result: {},
         message: responses.messages[language].otpSent,
       });
     } else {
@@ -622,6 +623,10 @@ export const forgotPassword = async (req, res) => {
     if (!findUser) {
       return res.status(404).json({ error: "User not found" });
     }
+    console.log("role ",findUser.role)
+    console.log(findUser.role != "accountant", findUser.role != "superadmin", "  ", findUser.role != "accountant" && findUser.role != "superadmin");
+
+
     if (findUser.role != "accountant" && findUser.role != "superadmin") {
       return res.status(404).json({ message: "Not allowed to reset passowrd." });
     }
@@ -636,7 +641,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-export const updateUserPassword = async () => {
+export const updateUserPassword = async (req,res) => {
   const { password, confirmPassword, OTP, phone } = req.body;
 
   try {
@@ -648,13 +653,14 @@ export const updateUserPassword = async () => {
     if (isEmpty(password) || isEmpty(confirmPassword) || password != confirmPassword) {
       return res.status(404).json({ message: "Please check the password and try again." });
     }
+    console.log( findUser.role != "accountant", findUser.role != "superadmin","  ",findUser.role != "accountant" && findUser.role != "superadmin");
 
     if (findUser.role != "accountant" && findUser.role != "superadmin") {
       return res.status(404).json({ message: "Not allowed to reset passowrd." });
     }
 
     // const otpSent = await generateOTP(findUser._id, findUser.phone);
-    const getOTPDetails = await Otp.findOne({ userID: new mongoose.Types.ObjectId(id) });
+    const getOTPDetails = await Otp.findOne({ phoneNumber:phone });
     // console.log("getOTPDetails ", getOTPDetails);
 
     if (isEmpty(getOTPDetails)) {
@@ -675,7 +681,7 @@ export const updateUserPassword = async () => {
     if (OTP == getOTPDetails.OTP) {
       await Otp.findByIdAndDelete(getOTPDetails._id);
       const hashedPassword = await bcrypt.hash(password, 10);
-      const findUser = await User.findByIdAndUpdate(findUser._id,
+      await User.findByIdAndUpdate(findUser._id,
         {
           password: hashedPassword
         });
