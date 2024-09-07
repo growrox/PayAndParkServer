@@ -73,10 +73,12 @@ export const createUser = async (req, res) => {
         .json({ message: responses.messages[language].verifyOtp });
     } else if (source === "web") {
       if (role === "accountant") {
+        const hashedPassword = await bcrypt.hash(password, 10);
         newUser = new User({
           name,
           phone,
           role,
+          password: hashedPassword,
         });
       } else if (role === "supervisor") {
         const newUserCode = generateCode(6);
@@ -610,3 +612,94 @@ export const getSupervisorWithAssitant = async (req, res) => {
       .json({ error: "Failed to fetch supervisors and assistants" });
   }
 };
+
+// Forgot Password.
+export const forgotPassword = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const findUser = await User.findById(id);
+    if (!findUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (findUser.role != "accountant" && findUser.role != "superadmin") {
+      return res.status(404).json({ message: "Not allowed to reset passowrd." });
+    }
+
+    const otpSent = await generateOTP(findUser._id, findUser.phone);
+
+    return res.status(200).json({ message: "OTP generated successfully." });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateUserPassword = async () => {
+  const { id } = req.params;
+  const { password, confirmPassword, OTP } = req.body;
+
+  try {
+    const findUser = await User.findById(id);
+    if (!findUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (isEmpty(password) || isEmpty(confirmPassword) || password != confirmPassword) {
+      return res.status(404).json({ message: "Please check the password and try again." });
+    }
+
+    if (findUser.role != "accountant" && findUser.role != "superadmin") {
+      return res.status(404).json({ message: "Not allowed to reset passowrd." });
+    }
+
+    // const otpSent = await generateOTP(findUser._id, findUser.phone);
+    const getOTPDetails = await Otp.findOne({ userID: new mongoose.Types.ObjectId(id) });
+    // console.log("getOTPDetails ", getOTPDetails);
+
+    if (isEmpty(getOTPDetails)) {
+      return res
+        .status(404)
+        .json({ error: "No OTP found. Please generate new one." });
+    }
+
+    // Check if OTP is expired (more than 5 minutes old)
+    if (new Date().getTime() > new Date(getOTPDetails.expires_on).getTime()) {
+      await Otp.findByIdAndDelete(getOTPDetails._id);
+      return res
+        .status(404)
+        .json({ error: "OTP expired please generate new one." });
+    }
+
+    console.log(OTP, getOTPDetails.OTP, OTP == getOTPDetails.OTP);
+    if (OTP == getOTPDetails.OTP) {
+      await Otp.findByIdAndDelete(getOTPDetails._id);
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const findUser = await User.findByIdAndUpdate(id,
+        {
+          password: hashedPassword
+        });
+
+      return res.status(200).json({ message: "Password Updated Successfully." });
+    }
+    else {
+      if (!getOTPDetails?.attempts) {
+        await Otp.findByIdAndDelete(getOTPDetails._id);
+      } else {
+        await Otp.findByIdAndUpdate(
+          getOTPDetails._id, { attempts: getOTPDetails?.attempts - 1 }
+        );
+      }
+      return res.status(300).json({
+        message: `${getOTPDetails?.attempts
+          ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
+          : "Maximum attempts reached generate new OTP."
+          }`,
+        attempts: getOTPDetails?.attempts,
+      });
+    }
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}

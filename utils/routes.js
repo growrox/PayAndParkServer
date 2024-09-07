@@ -6,7 +6,9 @@ export const ROUTES = {
     GET_USER: "/users",
     GET_USER_STATUS: "/users/status",
     UPDATE_USER: "/user/:id",
-    GET_SUPERVISOR_WITH_ASSITANT: "/supervisors-with-assistants"
+    GET_SUPERVISOR_WITH_ASSITANT: "/supervisors-with-assistants",
+    FOGOT_PASSWORD: "/user/forgot-password/:id",
+    UPDATE_PASSWORD: "/user/update-password/:id"
   },
   VEHICLE_TYPE: {
     CREATE: "/create-vehicle-type/:folderName",
