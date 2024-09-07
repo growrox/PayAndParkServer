@@ -158,7 +158,7 @@ export const loginUser = async (req, res) => {
             .json({ error: responses.errors[language].userNotFound });
         }
 
-        const otpResult = await generateOTP(user._id, phone);
+        const otpResult = await generateOTP(user._id, phone, source);
         console.log("OTP Result ", otpResult);
 
         if (otpResult.status === "success") {
@@ -204,24 +204,25 @@ export const loginUser = async (req, res) => {
           .status(401)
           .json({ error: responses.errors[language].invalidCredentials });
       }
+      const otpResult = await generateOTP(user._id, phone, source);
 
-      const token = jwt.sign(
-        { role: "superadmin", userId: user._id, source: "web" },
-        process.env.JWT_SECRET,
-        { expiresIn: "24h" }
-      );
+      // const token = jwt.sign(
+      //   { role: "superadmin", userId: user._id, source: "web" },
+      //   process.env.JWT_SECRET,
+      //   { expiresIn: "24h" }
+      // );
 
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.SECURE_COOKIE === "true",
-        sameSite: process.env.SAME_SITE,
-        maxAge: 24 * 60 * 60 * 1000,
-      });
+      // res.cookie("token", token, {
+      //   httpOnly: true,
+      //   secure: process.env.SECURE_COOKIE === "true",
+      //   sameSite: process.env.SAME_SITE,
+      //   maxAge: 24 * 60 * 60 * 1000,
+      // });
 
       user.password = undefined; // Remove password from response
       return res.json({
         result: user,
-        message: responses.messages[language].loginSuccessful,
+        message: responses.messages[language].otpSent,
       });
     } else {
       return res
@@ -239,13 +240,19 @@ export const loginUser = async (req, res) => {
 
 export const validateOTP = async (req, res) => {
   const { phone, OTP } = req.body;
-  // const source = req.headers["x-client-source"]; // This will not be required as this can only be called for app.
+  const source = req.headers["x-client-source"]; // This will not be required as this can only be called for app.
 
   try {
+    if (isEmpty(source) || (source != "app" && source != "web")) {
+      return res
+        .status(404)
+        .json({ error: "Invalid source." });
+    }
+
     const newUser = await User.findOne({ phone: phone });
     // console.log("new User ", newUser);
 
-    if (isEmpty(newUser) || newUser?.role == "superadmin") {
+    if (isEmpty(newUser)) {
       return res
         .status(404)
         .json({ error: "User not found. Please register." });
@@ -267,27 +274,60 @@ export const validateOTP = async (req, res) => {
         .status(404)
         .json({ error: "OTP expired please generate new one." });
     }
+
     console.log(OTP, getOTPDetails.OTP, OTP == getOTPDetails.OTP);
     if (OTP == getOTPDetails.OTP) {
       await Otp.deleteOne({ phoneNumber: phone });
-      await User.findByIdAndUpdate(newUser._id, {
-        $set: { isActivated: true },
-      });
-      const token = jwt.sign(
-        { userId: newUser._id, role: newUser.role, source: "app" },
-        process.env.JWT_SECRET, // Your JWT secret key
-        { expiresIn: "12h" } // Token expiration time
-      );
+      if (source === "web") {
+        const token = jwt.sign(
+          { role: "superadmin", userId: getOTPDetails.userID, source: "web" },
+          process.env.JWT_SECRET,
+          { expiresIn: "24h" }
+        );
 
-      return res.status(200).json({
-        message: "OTP validated successfully.",
-        token,
-        name: newUser.name,
-        role: newUser.role,
-        userId: newUser._id,
-        code: newUser?.code,
-        supervisorCode: newUser?.supervisorCode,
-      });
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.SECURE_COOKIE === "true",
+          sameSite: process.env.SAME_SITE,
+          maxAge: 24 * 60 * 60 * 1000,
+        });
+
+        return res.json({
+          result: {},
+          message: responses.messages[language].loginSuccessful,
+        });
+      }
+      else if (source == "app") {
+        await User.findByIdAndUpdate(newUser._id, {
+          $set: { isActivated: true },
+        });
+        const token = jwt.sign(
+          { userId: newUser._id, role: newUser.role, source: "app" },
+          process.env.JWT_SECRET, // Your JWT secret key
+          { expiresIn: "12h" } // Token expiration time
+        );
+
+        return res.status(200).json({
+          message: "OTP validated successfully.",
+          token,
+          name: newUser.name,
+          role: newUser.role,
+          userId: newUser._id,
+          code: newUser?.code,
+          supervisorCode: newUser?.supervisorCode,
+        });
+      }
+      else {
+        return res.status(200).json({
+          message: "OTP validated successfully.",
+          token,
+          name: newUser.name,
+          role: newUser.role,
+          userId: newUser._id,
+          code: newUser?.code,
+          supervisorCode: newUser?.supervisorCode,
+        });
+      }
     } else {
       if (!getOTPDetails?.attempts) {
         await Otp.deleteOne({ phoneNumber: phone });
@@ -298,11 +338,10 @@ export const validateOTP = async (req, res) => {
         );
       }
       return res.status(300).json({
-        message: `${
-          getOTPDetails?.attempts
-            ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
-            : "Maximum attempts reached generate new OTP."
-        }`,
+        message: `${getOTPDetails?.attempts
+          ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
+          : "Maximum attempts reached generate new OTP."
+          }`,
         attempts: getOTPDetails?.attempts,
       });
     }
@@ -561,7 +600,7 @@ export const getSupervisorWithAssitant = async (req, res) => {
       ),
     }));
 
-    res.json({result: supervisorMap});
+    res.json({ result: supervisorMap });
   } catch (err) {
     res
       .status(500)
