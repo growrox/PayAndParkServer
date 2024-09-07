@@ -278,7 +278,9 @@ export const validateOTP = async (req, res) => {
     console.log(OTP, getOTPDetails.OTP, OTP == getOTPDetails.OTP);
     if (OTP == getOTPDetails.OTP) {
       await Otp.deleteOne({ phoneNumber: phone });
+
       if (source === "web") {
+
         const token = jwt.sign(
           { role: "superadmin", userId: getOTPDetails.userID, source: "web" },
           process.env.JWT_SECRET,
@@ -293,9 +295,10 @@ export const validateOTP = async (req, res) => {
         });
 
         return res.json({
-          result: {},
-          message: responses.messages[language].loginSuccessful,
+          result: newUser,
+          message: "Login sucessful.",
         });
+        
       }
       else if (source == "app") {
         await User.findByIdAndUpdate(newUser._id, {
