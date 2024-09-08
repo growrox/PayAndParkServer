@@ -801,30 +801,54 @@ const exportToExcel = (tickets, res) => {
   // Prepare the data for the worksheet
   const worksheetData = tickets.map((ticket) => ({
     Name: ticket.name,
-    VehicleNumber: ticket.vehicleNumber,
     TicketId: ticket.ticketRefId,
+    VehicleNumber: ticket.vehicleNumber,
     TicketOrPass: ticket.isPass ? "Pass" : "Ticket",
     VehicleType: ticket.vehicleType,
     PhoneNumber: ticket.phoneNumber,
     Amount: ticket.amount,
+    BaseAmount: ticket.baseAmount || 0,
+    CGST: ticket.cgst || 0,
+    SGST: ticket.sgst || 0,
     PaymentMethod: ticket.paymentMode,
     Status: ticket.status,
     ParkingAssistant: ticket?.parkingAssistantDetails?.name,
     Supervisor: ticket?.supervisorDetails?.name,
     Site: ticket?.siteDetails ? ticket.siteDetails?.name : "",
     CreatedAt: ticket.createdAt,
+    ExpiringAt: ticket.ticketExpiry,
   }));
 
   // Calculate the total amount
   const totalAmount = worksheetData.reduce((sum, row) => sum + row.Amount, 0);
+  const totalBaseAmount = worksheetData.reduce(
+    (sum, row) => sum + (row.BaseAmount ? Number(row.BaseAmount) : 0), 
+    0
+  );
+
+  const totalSgstAmount = worksheetData.reduce(
+    (sum, row) => sum + (row.SGST ? Number(row.SGST) : 0), 
+    0
+  );
+
+  const totalCgstAmount = worksheetData.reduce(
+    (sum, row) => sum + (row.CGST ? Number(row.CGST) : 0), 
+    0
+  );
+  
 
   // Add the total amount row at the end
   worksheetData.push({
     Name: "Total",
     VehicleNumber: "",
+    TicketId: "",
+    TicketOrPass: "",
     VehicleType: "",
     PhoneNumber: "",
     Amount: totalAmount, // The total amount
+    BaseAmount: totalBaseAmount,
+    CGST: totalCgstAmount,
+    SGST: totalSgstAmount,
     PaymentMethod: "", // The total amount
     Status: "",
     ParkingAssistant: "",
@@ -885,7 +909,7 @@ const generateHTMLContent = (tickets, totalAmount) => {
     <html>
     <head>
       <style>
-        body { font-family: Arial, sans-serif; margin: 10px; }
+        body { font-family: Arial, sans-serif; margin: 8px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         table, th, td { border: 1px solid black; }
         th, td { padding: 5px; text-align: left; font-size: 10px}
@@ -898,39 +922,49 @@ const generateHTMLContent = (tickets, totalAmount) => {
       <table>
         <thead>
           <tr>
+            <th>Sr No.</th>
             <th>Name</th>
             <th>Ticket Id </th>
             <th>Vehicle Number</th>
-            <th>Vehicle Type</th>
             <th>Ticket / Pass</th>
+            <th>Vehicle Type</th>
             <th>Phone Number</th>
             <th>Amount</th>
+            <th>Base Amount</th>
+            <th>CGST</th>
+            <th>SGST</th>
             <th>Payment Method</th>
             <th>Status</th>
             <th>Parking Assistant</th>
             <th>Supervisor</th>
             <th>Site</th>
             <th>Created At</th>
+            <th>Expiring At</th>
           </tr>
         </thead>
         <tbody>`;
 
-  tickets.forEach((ticket) => {
+  tickets.forEach((ticket,index) => {
     html += `
       <tr>
+        <td>${index + 1}</td>
         <td>${ticket?.name}</td>
         <td>${ticket?.ticketRefId || ""}</td>
         <td>${ticket?.vehicleNumber}</td>
-        <td>${ticket.vehicleType}</td>
         <td>${ticket.isPass ? "Pass" : "Ticket"}</td>
+        <td>${ticket.vehicleType}</td>
         <td>${ticket.phoneNumber}</td>
         <td>${ticket.amount}</td>
+        <td>${ticket.baseAmount || 0}</td>
+        <td>${ticket.cgst || 0}</td>
+        <td>${ticket.sgst || 0}</td>
         <td>${ticket.paymentMode}</td>
         <td>${ticket.status}</td>
         <td>${ticket?.parkingAssistantDetails?.name}</td>
         <td>${ticket?.supervisorDetails ? ticket?.supervisorDetails?.name : ""}</td>
         <td>${ticket?.siteDetails ? ticket?.siteDetails?.name : ""}</td>
-        <td>${new Date(ticket.createdAt).toLocaleString()}</td>
+        <td>${moment(ticket.createdAt).format("MMMM Do YYYY, h:mm:ss a")}</td>
+        <td>${moment(ticket.ticketExpiry).format("MMMM Do YYYY, h:mm:ss a")}</td>
       </tr>`;
   });
 
