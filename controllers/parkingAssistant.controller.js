@@ -569,11 +569,9 @@ export const getUserDetailsAndSupervisorInfo = async (req, res) => {
       }
     }).populate("accountantId", "name phone").populate("supervisor", "phone name code").populate("parkingAssistant", "name phone isOnline supervisorCode");
 
-    if (supervisorRecord) {
-      return res.json({ message: "Here is the details of the ticket.", result: supervisorRecord });
-    } else {
-      return res.status(404).json({ message: 'No details found. Assistant might be absent on that day.' });
-    }
+
+    return res.status(200).json({ message: "Here is the details of the ticket.", result: supervisorRecord });
+
   } catch (error) {
     console.error("Error retrieving user and supervisor information.", error);
     res.status(500).json({ message: error.message });
@@ -630,13 +628,13 @@ export const getUserDetailsAndSupervisorInfoBetweenDates = async (req, res) => {
       };
     });
     // console.log({ attendanceStatus });
-    
+
 
     // Step 3: Fetch ticket information for each day
     const ticketDataPromises = attendanceStatus.map(async status => {
       if (status.status === 'Present') {
         console.log(" moment(status.date).startOf('day').toDate(), ", moment(status.date).startOf('day').toDate(),);
-        
+
         const tickets = await ParkingTicket.aggregate([
           {
             $match: {
