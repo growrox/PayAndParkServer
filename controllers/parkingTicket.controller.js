@@ -161,7 +161,7 @@ export const createParkingTicket = async (req, res) => {
     }
 
     const savedTicket = await newTicket.save();
-  
+
     // Send SMS notification (optional)
     const smsParams = {
       Name: name,
@@ -171,7 +171,7 @@ export const createParkingTicket = async (req, res) => {
       VehicalNumber: vehicleNumber.toLocaleUpperCase(),
       ParkingAssistant: AssistanceAvailable.name,
       Duration: duration,
-      Amount: amount,
+      Amount,
       PaymentMode: paymentMode,
     };
 
@@ -184,6 +184,8 @@ export const createParkingTicket = async (req, res) => {
       result: savedTicket,
     });
   } catch (error) {
+    console.ERROR("eRROR CREATING THE TICKET ", error);
+    
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({ error: "Validation Error", errors });
