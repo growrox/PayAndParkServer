@@ -17,8 +17,9 @@ import { getLanguage } from "../utils/helperFunctions.js";
 import { responses } from "../utils/Translate/parkingTicket.response.js";
 import mongoose from "mongoose";
 import moment from "moment-timezone";
-import TicketSequence  from '../models/ticketSequence.Model.js'; // Adjust the path as necessary
+import TicketSequence from '../models/ticketSequence.Model.js'; // Adjust the path as necessary
 import DeletedParkingTicket from "../models/parkingTicketDeleted.model.js";
+import VehicleType from "../models/vehicleType.model.js";
 
 import xlsx from "xlsx";
 import puppeteer from "puppeteer";
@@ -41,11 +42,13 @@ export const createParkingTicket = async (req, res) => {
       image,
       address,
       createdAtClient,
+      vehicleID,
+      priceID
     } = req.body;
 
-    const { userId = "66bbb962af5dbeb885d5318f" } = req.headers;
+    const { userId } = req.headers;
     console.log({ userId });
-    
+
     const language = getLanguage(req, responses);
 
     // Check if there is an assistant with the provided phone number and role
@@ -53,8 +56,8 @@ export const createParkingTicket = async (req, res) => {
     console.log({ AssistanceAvailable });
 
     if (!AssistanceAvailable || isEmpty(AssistanceAvailable.siteId)) {
-      return res.status(200).json({
-        message: responses.messages[language].NotFoundOrOnline,
+      return res.status(404).json({
+        error: responses.errors[language].NotFoundOrOnline,
       });
     }
 
@@ -71,6 +74,38 @@ export const createParkingTicket = async (req, res) => {
       });
     }
 
+    if (isEmpty(vehicleID) || isEmpty(priceID)) {
+      return res.status(404).json({
+        error: responses.messages[language].paymentDetailsRequired,
+      });
+    }
+
+    const vehicalDetails = await VehicleType.aggregate([
+      {
+        $match: { _id: new mongoose.Types.ObjectId(vehicleID) } // Match the vehicle type by its ID
+      },
+      {
+        $unwind: "$hourlyPrices" // Unwind the hourlyPrices array to process each entry individually
+      },
+      {
+        $match: { "hourlyPrices._id": new mongoose.Types.ObjectId(priceID) } // Match the hourly price by its ID
+      },
+      {
+        $project: { // Project only the hour and price fields
+          _id: 0,
+          hour: "$hourlyPrices.hour",
+          price: "$hourlyPrices.price",
+          gstPercentage: 1
+        }
+      }
+    ])
+
+    if (isEmpty(vehicalDetails)) {
+      return res.status(404).json({
+        error: responses.messages[language].paymentDetailsRequired + " NOT_FOUND",
+      });
+    }
+
     // Generate a unique ticket reference ID
     const ticketRefId = await generateTicketRefId();
 
@@ -80,25 +115,32 @@ export const createParkingTicket = async (req, res) => {
       const now = moment.tz('Asia/Kolkata'); // Current time in Asia/Kolkata timezone
       ticketExpiry = now.clone().add(30, 'days').endOf('day').toDate();
     } else {
-      ticketExpiry = moment.tz('Asia/Kolkata').add(duration, 'hours').toDate();
+      ticketExpiry = moment.tz('Asia/Kolkata').add(vehicalDetails[0].hour, 'hours').toDate();
     }
+
+    const Amount = vehicalDetails[0].price;
+    const ninePercent = +(Amount * 0.09).toFixed(2);
+    const GrandTotal = Math.ceil(Amount + (ninePercent * 2))
 
     // Create a new parking ticket
     const newTicket = new ParkingTicket({
       ticketRefId,
       parkingAssistant: userId,
       vehicleType,
-      duration,
+      duration: vehicalDetails[0].hour,
       paymentMode,
       remark,
       image,
       vehicleNumber: vehicleNumber.toLocaleUpperCase(),
       phoneNumber,
-      amount,
+      amount: GrandTotal,
+      cgst: ninePercent,
+      sgst: ninePercent,
+      roundOff: (GrandTotal - ((ninePercent * 2) + Amount)).toFixed(2),
+      baseAmount: Amount,
       supervisor,
       settlementId,
       isPass,
-      passId,
       name,
       address,
       createdAtClient,
@@ -114,8 +156,7 @@ export const createParkingTicket = async (req, res) => {
     }
 
     const savedTicket = await newTicket.save();
-    const ticketId = savedTicket._id;
-
+  
     // Send SMS notification (optional)
     const smsParams = {
       Name: name,
@@ -143,7 +184,7 @@ export const createParkingTicket = async (req, res) => {
 
 // Function to generate ticket reference ID
 const generateTicketRefId = async () => {
-  const now = moment.tz("2024-08-02 14:30:00",'Asia/Kolkata'); // Current time in Asia/Kolkata timezone
+  const now = moment.tz("2024-08-02 14:30:00", 'Asia/Kolkata'); // Current time in Asia/Kolkata timezone
   const dateString = now.format('YYYY-MM-DD'); // Format YYYY-MM-DD
   const year = now.format('YY'); // Last two digits of the year
   const month = now.format('MM'); // Month with leading zero
@@ -310,9 +351,7 @@ export const getVehicleTypeDetail = async (req, res) => {
   try {
     const language = getLanguage(req, responses);
     const parkingTicket = await ParkingTicket.findById(req.params.id);
-    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${
-      parkingTicket.image
-    }`;
+    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${parkingTicket.image}`;
     if (!parkingTicket)
       return res.status(404).json({
         error: responses.errors[language].ticketNotFound,
@@ -1001,9 +1040,7 @@ const generateHTMLContent = (tickets, totalAmount) => {
         <td>${ticket.paymentMode}</td>
         <td>${ticket.status}</td>
         <td>${ticket?.parkingAssistantDetails?.name}</td>
-        <td>${
-          ticket?.supervisorDetails ? ticket?.supervisorDetails?.name : ""
-        }</td>
+        <td>${ticket?.supervisorDetails ? ticket?.supervisorDetails?.name : ""}</td>
         <td>${ticket?.siteDetails ? ticket?.siteDetails?.name : ""}</td>
         <td>${new Date(ticket.createdAt).toLocaleString()}</td>
       </tr>`;
@@ -1312,7 +1349,7 @@ export const restoreTicketFromDeleted = async (req, res) => {
     await parkingTicket.save();
 
     // Remove the ticket from the deleted collection
-    await DeletedParkingTicket.findByIdAndDelete(ticketId );
+    await DeletedParkingTicket.findByIdAndDelete(ticketId);
 
     res.status(200).json({ message: 'Ticket restored to live collection successfully' });
   } catch (error) {

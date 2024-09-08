@@ -16,17 +16,20 @@ const parkingTicketSchema = new Schema({
      image: { type: String },
      vehicleNumber: { type: String, required: true },
      phoneNumber: { type: String, required: true },
-     amount: { type: Number, required: true },
      status: { type: String, enum: ['created', 'paid', 'settled'], default: 'created' },
      supervisor: { type: Schema.Types.ObjectId, ref: 'User' },
      settlementId: { type: Schema.Types.ObjectId, ref: "SupervisorSettlementTicket" },
      isPass: { type: Boolean, default: false },
-     passId: { type: Schema.Types.ObjectId, ref: 'Pass' },
      onlineTransactionId: { type: Schema.Types.ObjectId, ref: 'Transaction' },
      address: addressSchema,
      createdAtClient: { type: Date, required: true },
      ticketExpiry: { type: Date, required: true },
-     siteDetails: { type: Schema.Types.ObjectId, ref: 'Site' }
+     siteDetails: { type: Schema.Types.ObjectId, ref: 'Site' },
+     cgst: { type: Number, required: true },
+     sgst: { type: Number, required: true },
+     baseAmount: { type: Number, required: true },
+     roundOff: { type: Number, required: true },
+     amount: { type: Number, required: true },
 }, { timestamps: true, versionKey: false });
 
 const ParkingTicket = model('ParkingTickets', parkingTicketSchema);
