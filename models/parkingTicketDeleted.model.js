@@ -5,7 +5,7 @@ const addressSchema = new Schema({
      longitude: { type: String, required: true }
 })
 
-const parkingTicketSchema = new Schema({
+const deletedParkingTicketSchema = new Schema({
      ticketRefId: { type: String, required: true },
      name: { type: String, required: true },
      parkingAssistant: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -32,6 +32,6 @@ const parkingTicketSchema = new Schema({
      amount: { type: Number, required: true },
 }, { timestamps: true, versionKey: false });
 
-const ParkingTicket = model('ParkingTickets', parkingTicketSchema);
+const DeletedParkingTicket = model('DeletedParkingTickets', deletedParkingTicketSchema);
 
-export default ParkingTicket
+export default DeletedParkingTicket
