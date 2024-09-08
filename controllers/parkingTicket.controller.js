@@ -63,8 +63,7 @@ export const createParkingTicket = async (req, res) => {
       });
     }
 
-    if (isEmpty(AssistanceAvailable.siteId))
-    {
+    if (isEmpty(AssistanceAvailable.siteId)) {
       return res.status(404).json({
         error: responses.errors[language].SiteNotFound,
       });
@@ -191,7 +190,7 @@ export const createParkingTicket = async (req, res) => {
     });
   } catch (error) {
     console.error("eRROR CREATING THE TICKET ", error);
-    
+
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({ error: "Validation Error", errors });
@@ -860,7 +859,12 @@ const exportToPDF = async (tickets, res) => {
 
   const htmlContent = generateHTMLContent(tickets, totalAmount);
 
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch(
+    {
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true,
+    }
+  );
   const page = await browser.newPage();
   await page.setContent(htmlContent);
   const pdfBuffer = await page.pdf({ format: "A4" });
