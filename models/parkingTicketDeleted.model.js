@@ -21,7 +21,6 @@ const deletedParkingTicketSchema = new Schema({
      supervisor: { type: Schema.Types.ObjectId, ref: 'User' },
      settlementId: { type: Schema.Types.ObjectId, ref: "SupervisorSettlementTicket" },
      isPass: { type: Boolean, default: false },
-     passId: { type: Schema.Types.ObjectId, ref: 'Pass' },
      onlineTransactionId: { type: Schema.Types.ObjectId, ref: 'Transaction' },
      address: addressSchema,
      createdAtClient: { type: Date, required: true },

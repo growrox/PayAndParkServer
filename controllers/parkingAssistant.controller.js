@@ -254,7 +254,6 @@ export const getTickets = async (req, res) => {
         .limit(5)
         .populate("supervisor", "name")
         .populate("settlementId")
-        .populate("passId")
         .populate("onlineTransactionId")
         .exec();
     } else {
@@ -268,7 +267,6 @@ export const getTickets = async (req, res) => {
           .limit(limit)
           .populate("supervisor", "name")
           .populate("settlementId")
-          .populate("passId")
           .populate("onlineTransactionId")
           .exec();
       } else {
@@ -280,7 +278,6 @@ export const getTickets = async (req, res) => {
           .limit(limit)
           .populate("supervisor", "name")
           .populate("settlementId")
-          .populate("passId")
           .populate("onlineTransactionId")
           .exec();
       }
@@ -453,7 +450,6 @@ export const getGlobalTickets = async (req, res) => {
       .limit(limit)
       .populate('supervisor', 'name')
       .populate('settlementId')
-      .populate('passId')
       .populate('onlineTransactionId')
       .exec();
 

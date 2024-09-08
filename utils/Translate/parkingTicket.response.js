@@ -9,7 +9,8 @@ export const responses = {
                orderGenerated: "Order generated for the ticket.",
                ticketList: "Here is the parking tickets list",
                ticketUpdated: "Tickets updated successfully",
-               deleteTicket: "Parking payment ticket deleted successfully."
+               deleteTicket: "Parking payment ticket deleted successfully.",
+               paymentDetailsRequired: "Payment details are required field.",
           },
           "hi": {
                ticketAlreadyAvailable: "इस वाहन के लिए एक टिकट पहले ही पिछले 30 मिनट में बना दिया गया था।",
@@ -20,7 +21,8 @@ export const responses = {
                orderGenerated: "टिकट के लिए आदेश उत्पन्न किया गया।",
                ticketList: "यहाँ पार्किंग टिकटों की सूची है",
                ticketUpdated: "टिकट सफलतापूर्वक अपडेट किए गए।",
-               deleteTicket: "पार्किंग भुगतान टिकट सफलतापूर्वक हटा दिया गया।"
+               deleteTicket: "पार्किंग भुगतान टिकट सफलतापूर्वक हटा दिया गया।",
+               paymentDetailsRequired: "Payment details are required field.",
 
           },
           "mr": {
@@ -32,8 +34,8 @@ export const responses = {
                orderGenerated: "तिकीटसाठी आदेश तयार करण्यात आले आहे.",
                ticketList: "येथे पार्किंग तिकिटांची यादी आहे",
                ticketUpdated: "तिकीट यशस्वीरित्या अपडेट केले गेले.",
-               deleteTicket: "पार्किंग पेमेंट तिकीट यशस्वीरित्या हटवले गेले."
-
+               deleteTicket: "पार्किंग पेमेंट तिकीट यशस्वीरित्या हटवले गेले.",
+               paymentDetailsRequired: "Payment details are required field.",
           }
      },
      "errors": {
