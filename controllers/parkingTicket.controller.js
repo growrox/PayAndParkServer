@@ -52,7 +52,10 @@ export const createParkingTicket = async (req, res) => {
     const language = getLanguage(req, responses);
 
     // Check if there is an assistant with the provided phone number and role
-    const AssistanceAvailable = await User.findOne({ _id: new mongoose.Types.ObjectId(userId), isOnline: true });
+    const AssistanceAvailable = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      isOnline: true,
+    });
     console.log({ AssistanceAvailable });
 
     if (!AssistanceAvailable || isEmpty(AssistanceAvailable.siteId)) {
@@ -112,8 +115,8 @@ export const createParkingTicket = async (req, res) => {
     // Calculate ticket expiry
     let ticketExpiry;
     if (isPass) {
-      const now = moment.tz('Asia/Kolkata'); // Current time in Asia/Kolkata timezone
-      ticketExpiry = now.clone().add(30, 'days').endOf('day').toDate();
+      const now = moment.tz("Asia/Kolkata"); // Current time in Asia/Kolkata timezone
+      ticketExpiry = now.clone().add(30, "days").endOf("day").toDate();
     } else {
       ticketExpiry = moment.tz('Asia/Kolkata').add(vehicalDetails[0].hour, 'hours').toDate();
     }
@@ -146,13 +149,15 @@ export const createParkingTicket = async (req, res) => {
       createdAtClient,
       status: paymentMode === "Online" ? "paid" : "created",
       ticketExpiry,
-      siteDetails: AssistanceAvailable.siteId
+      siteDetails: AssistanceAvailable.siteId,
     });
 
     if (onlineTransactionId) {
       newTicket.onlineTransactionId = onlineTransactionId;
     } else if (paymentMode === "Online") {
-      return res.status(200).json({ message: responses.messages[language].onlineTransaction });
+      return res
+        .status(200)
+        .json({ message: responses.messages[language].onlineTransaction });
     }
 
     const savedTicket = await newTicket.save();
@@ -170,9 +175,14 @@ export const createParkingTicket = async (req, res) => {
       PaymentMode: paymentMode,
     };
 
-    const sendTicketConfirmationMessage = await sendTicketConfirmation(smsParams);
+    const sendTicketConfirmationMessage = await sendTicketConfirmation(
+      smsParams
+    );
 
-    return res.status(200).json({ message: responses.messages[language].ticketCreated, result: savedTicket });
+    return res.status(200).json({
+      message: responses.messages[language].ticketCreated,
+      result: savedTicket,
+    });
   } catch (error) {
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((err) => err.message);
@@ -197,11 +207,10 @@ const generateTicketRefId = async () => {
     { new: true, upsert: true }
   );
 
-  const sequenceNumber = sequence.sequence.toString().padStart(4, '0'); // Sequence number with leading zeros
+  const sequenceNumber = sequence.sequence.toString().padStart(4, "0"); // Sequence number with leading zeros
 
   return `PnP${year}${month}-${day}${sequenceNumber}`;
 };
-
 
 export const createParkingTicketOld = async (req, res) => {
   try {
@@ -221,7 +230,7 @@ export const createParkingTicketOld = async (req, res) => {
       onlineTransactionId,
       image,
       address,
-      createdAtClient
+      createdAtClient,
     } = req.body;
 
     // console.log("Body ", req.body);
@@ -725,7 +734,7 @@ export const getAllTickets = async (req, res) => {
   try {
     const language = getLanguage(req, responses);
 
-    const { search = "", exportFormat } = req.query;
+    const { search = "", exportFormat, isPass } = req.query;
     const { supervisors = [], assistants = [], startDate, endDate } = req.body;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
@@ -751,6 +760,11 @@ export const getAllTickets = async (req, res) => {
       ];
     }
 
+    if (isPass === "pass") {
+      match.isPass = true;
+    } else if (isPass === "ticket") {
+      match.isPass = false;
+    }
     if (supervisors.length > 0) {
       match.supervisor = {
         $in: supervisors.map((id) => new mongoose.Types.ObjectId(id)),
@@ -784,7 +798,6 @@ export const getAllTickets = async (req, res) => {
       }
       match.createdAt = dateRange;
     }
-
 
     const aggregateQuery = [
       {
@@ -924,6 +937,8 @@ const exportToExcel = (tickets, res) => {
   const worksheetData = tickets.map((ticket) => ({
     Name: ticket.name,
     VehicleNumber: ticket.vehicleNumber,
+    TicketId: ticket.ticketRefId,
+    TicketOrPass: ticket.isPass ? "Pass" : "Ticket",
     VehicleType: ticket.vehicleType,
     PhoneNumber: ticket.phoneNumber,
     Amount: ticket.amount,
@@ -958,7 +973,6 @@ const exportToExcel = (tickets, res) => {
 
   // Get the total row index (last row)
   const totalRowIndex = worksheetData.length;
-
 
   xlsx.utils.book_append_sheet(workbook, worksheet, "Tickets");
 
@@ -1004,7 +1018,7 @@ const generateHTMLContent = (tickets, totalAmount) => {
         body { font-family: Arial, sans-serif; margin: 10px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         table, th, td { border: 1px solid black; }
-        th, td { padding: 5px; text-align: left; font-size: 12px}
+        th, td { padding: 5px; text-align: left; font-size: 10px}
         th { background-color: #f2f2f2; }
         .bold { font-weight: bold; }
       </style>
@@ -1015,8 +1029,10 @@ const generateHTMLContent = (tickets, totalAmount) => {
         <thead>
           <tr>
             <th>Name</th>
+            <th>Ticket Id </th>
             <th>Vehicle Number</th>
             <th>Vehicle Type</th>
+            <th>Ticket / Pass</th>
             <th>Phone Number</th>
             <th>Amount</th>
             <th>Payment Method</th>
@@ -1033,8 +1049,10 @@ const generateHTMLContent = (tickets, totalAmount) => {
     html += `
       <tr>
         <td>${ticket?.name}</td>
+        <td>${ticket?.ticketRefId || ""}</td>
         <td>${ticket?.vehicleNumber}</td>
         <td>${ticket.vehicleType}</td>
+        <td>${ticket.isPass ? "Pass" : "Ticket"}</td>
         <td>${ticket.phoneNumber}</td>
         <td>${ticket.amount}</td>
         <td>${ticket.paymentMode}</td>
@@ -1297,8 +1315,6 @@ export const getTicketByVehicleNumber = async (req, res) => {
   }
 };
 
-
-
 // Delete Ticket From the collection.
 // Restore Ticket From the collection.
 
@@ -1307,12 +1323,11 @@ export const moveTicketToDeleted = async (req, res) => {
   console.log("This route is different ", ticketId);
 
   try {
-
     // Find the ticket in the live collection
     const ticket = await ParkingTicket.findById(ticketId);
 
     if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+      return res.status(404).json({ message: "Ticket not found" });
     }
 
     // Create a new DeletedParkingTicket document
@@ -1324,10 +1339,12 @@ export const moveTicketToDeleted = async (req, res) => {
     // Remove the ticket from the live collection
     await ParkingTicket.findByIdAndDelete(ticketId);
 
-    res.status(200).json({ message: 'Ticket moved to deleted collection successfully' });
+    res
+      .status(200)
+      .json({ message: "Ticket moved to deleted collection successfully" });
   } catch (error) {
-    console.error('Error moving ticket:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error moving ticket:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -1339,7 +1356,9 @@ export const restoreTicketFromDeleted = async (req, res) => {
     const deletedTicket = await DeletedParkingTicket.findById(ticketId);
 
     if (!deletedTicket) {
-      return res.status(404).json({ message: 'Ticket not found in deleted collection' });
+      return res
+        .status(404)
+        .json({ message: "Ticket not found in deleted collection" });
     }
 
     // Create a new ParkingTicket document
@@ -1351,10 +1370,12 @@ export const restoreTicketFromDeleted = async (req, res) => {
     // Remove the ticket from the deleted collection
     await DeletedParkingTicket.findByIdAndDelete(ticketId);
 
-    res.status(200).json({ message: 'Ticket restored to live collection successfully' });
+    res
+      .status(200)
+      .json({ message: "Ticket restored to live collection successfully" });
   } catch (error) {
-    console.error('Error restoring ticket:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error restoring ticket:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -1421,7 +1442,6 @@ export const getAllDeletedTickets = async (req, res) => {
       }
       match.createdAt = dateRange;
     }
-
 
     const aggregateQuery = [
       {
