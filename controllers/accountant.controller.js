@@ -453,7 +453,9 @@ export const getAccountantStats = async (req, res) => {
                          totalCollectedAmount: { $sum: '$totalCollectedAmount' },
                          totalFine: { $sum: '$totalFine' },
                          totalReward: { $sum: '$totalReward' },
-                         cashCollected: { $sum: '$cashCollected' }
+                         cashCollected: { $sum: '$cashCollected' },
+                         cashCollection: { $sum: '$cashCollection' },
+                         onlineCollection: { $sum: '$onlineCollection' },
                     }
                }
           ];
@@ -466,6 +468,9 @@ export const getAccountantStats = async (req, res) => {
           const totalFine = supervisorStats[0]?.totalFine || 0;
           const totalReward = supervisorStats[0]?.totalReward || 0;
           const cashCollected = supervisorStats[0]?.cashCollected || 0;
+          const cashCollection = supervisorStats[0]?.cashCollection || 0;
+          const onlineCollection = supervisorStats[0]?.onlineCollection || 0;
+
 
           // Prepare response
           const response = {
@@ -474,6 +479,8 @@ export const getAccountantStats = async (req, res) => {
                totalFine,
                totalReward,
                cashCollected,
+               cashCollection,
+               onlineCollection,
                LastSettledTicketUpdatedAt: todayAccountantSettlementTicket[todayAccountantSettlementTicket.length - 1].updatedAt // Assuming updatedAt field provides the last settled time
           };
 
