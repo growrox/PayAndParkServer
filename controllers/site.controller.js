@@ -152,7 +152,7 @@ export const getSitesBySupervisorCode = async (req, res) => {
     const sitesWithTicketCounts = sites.map(site => ({
       _id: site._id,
       name: site.name,
-      ticketCount: ticketCountMap[site._id.toString()] || 0
+      totalCount: ticketCountMap[site._id.toString()] || 0
     }));
 
     // Step 5: Respond with both total tickets and detailed site information
