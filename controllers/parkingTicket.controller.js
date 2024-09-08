@@ -190,7 +190,7 @@ export const createParkingTicket = async (req, res) => {
       result: savedTicket,
     });
   } catch (error) {
-    console.ERROR("eRROR CREATING THE TICKET ", error);
+    console.error("eRROR CREATING THE TICKET ", error);
     
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((err) => err.message);
