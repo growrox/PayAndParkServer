@@ -33,9 +33,9 @@ router.post(CREATE, authMiddleware, createSite);
 router.put(UPDATE, authMiddleware, updateSite);
 router.get(GET_ALL, authMiddleware, getAllSites);
 router.delete(DELETE, authMiddleware, deleteSite);
-router.get(GET_SUPERVISOR_SITES, getSitesBySupervisorCode);
-router.get(GET_SITE_TICKETSTATS, getSiteDetailsAndTickets);
-router.get(GET_SUPERVISOR_ALL_SITES, getAllSitesBySupervisorCode);
+router.get(GET_SUPERVISOR_SITES, authMiddleware, getSitesBySupervisorCode);
+router.get(GET_SITE_TICKETSTATS, authMiddleware, getSiteDetailsAndTickets);
+router.get(GET_SUPERVISOR_ALL_SITES, authMiddleware, getAllSitesBySupervisorCode);
 
 
 export default router;

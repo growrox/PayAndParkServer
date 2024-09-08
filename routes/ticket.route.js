@@ -99,13 +99,13 @@ router.get(GET_TICKET_FOR_ASSISTANT, authMiddleware, getTicketsByAssistantId);
 router.delete(DELETE_PAYMENT_ORDER, authMiddleware, deletePaymentOrderById);
 router.get(GET_VEHICAL_TYPE_DETAILS, authMiddleware, getVehicleTypeDetail);
 router.get(GET_PREVIOUS_TICKET_DETAILS, authMiddleware, getTicketByVehicleNumber);
-router.get(GET_PARKING_TICKETS_IN_DATE_RANGE, getParkingTicketsByDateRange)
+router.get(GET_PARKING_TICKETS_IN_DATE_RANGE, authMiddleware, getParkingTicketsByDateRange)
 // router.get('/parking-tickets/stats/:assistantId', getTicketsByAssistantId);
 
 router.delete(DELETE_TICEKT_IMAGE, authMiddleware, deleteTicketImage);
 
 // Bellow two routes will not be used yet.
-router.delete(DELTE_TICEKT_BY_ID, moveTicketToDeleted);
-router.get(RESTORE_TICEKT_BY_ID, restoreTicketFromDeleted);
+router.delete(DELTE_TICEKT_BY_ID, authMiddleware, moveTicketToDeleted);
+router.get(RESTORE_TICEKT_BY_ID, authMiddleware, restoreTicketFromDeleted);
 
 export default router;

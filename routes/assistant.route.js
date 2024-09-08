@@ -19,8 +19,8 @@ router.get(STATS, authMiddleware, getTicketsStatsByAssistantId);
 router.get(LIFETIME_STATS, authMiddleware, getLifeTimeStatsByAssistantId);
 router.get(GET_TICKETS, authMiddleware, getTickets);
 router.get(GET_GLOBAL_TICKETS, authMiddleware, getGlobalTickets);
-router.get(GET_SETTLEMENT_SPECIFIC_DATE, getUserDetailsAndSupervisorInfo);
-router.get(GET_SETTLEMENT_BETWEEN_DATES, getUserDetailsAndSupervisorInfoBetweenDates);
+router.get(GET_SETTLEMENT_SPECIFIC_DATE, authMiddleware, getUserDetailsAndSupervisorInfo);
+router.get(GET_SETTLEMENT_BETWEEN_DATES, authMiddleware, getUserDetailsAndSupervisorInfoBetweenDates);
 
 
 
