@@ -57,9 +57,16 @@ export const createParkingTicket = async (req, res) => {
     });
     console.log({ AssistanceAvailable });
 
-    if (!AssistanceAvailable || isEmpty(AssistanceAvailable.siteId)) {
+    if (isEmpty(AssistanceAvailable)) {
       return res.status(404).json({
         error: responses.errors[language].NotFoundOrOnline,
+      });
+    }
+
+    if (isEmpty(AssistanceAvailable.siteId))
+    {
+      return res.status(404).json({
+        error: responses.errors[language].SiteNotFound,
       });
     }
 

@@ -44,14 +44,16 @@ export const responses = {
                wrongSignature: "Signature does not match.",
                paymentNotGenerated: "Payment not generated please try again.",
                NotFoundOrOnline: "Assistant not found or is not online.",
-               FilterIsRequired: "Filter is required field"
+               FilterIsRequired: "Filter is required field",
+               SiteNotFound: "Site missing in your account please connect to supervisor."
           },
           "hi": {
                ticketNotFound: "पार्किंग टिकट नहीं मिला।",
                wrongSignature: "हस्ताक्षर मेल नहीं खाता।",
                paymentNotGenerated: "भुगतान नहीं हुआ, कृपया पुनः प्रयास करें।",
                NotFoundOrOnline: "सहायक नहीं मिला या ऑनलाइन नहीं है।",
-               FilterIsRequired: "फिल्टर एक आवश्यक क्षेत्र है"
+               FilterIsRequired: "फिल्टर एक आवश्यक क्षेत्र है",
+               SiteNotFound: "Site missing in your account please connect to supervisor."
 
           },
           "mr": {
@@ -59,7 +61,8 @@ export const responses = {
                wrongSignature: "स्वाक्षरी जुळत नाही.",
                paymentNotGenerated: "भुगतान निर्माण झाले नाही, कृपया पुन्हा प्रयत्न करा.",
                NotFoundOrOnline: "सहाय्यक सापडला नाही किंवा ऑनलाइन नाही.",
-               FilterIsRequired: "फिल्टर हा आवश्यक फील्ड आहे"
+               FilterIsRequired: "फिल्टर हा आवश्यक फील्ड आहे",
+               SiteNotFound: "Site missing in your account please connect to supervisor."
 
           }
      }
