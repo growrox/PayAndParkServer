@@ -451,9 +451,24 @@ export const getAccountantStats = async (req, res) => {
                          _id: null,
                          totalCollection: { $sum: '$totalCollection' },
                          totalCollectedAmount: { $sum: '$totalCollectedAmount' },
-                         totalFine: { $sum: '$totalFine' },
-                         totalReward: { $sum: '$totalReward' },
                          cashCollected: { $sum: '$cashCollected' },
+                         totalReward: { $sum: '$totalReward' },
+                         totalFine: { $sum: '$totalFine' },
+                         cashCollection: { $sum: '$cashCollection' },
+                         onlineCollection: { $sum: '$onlineCollection' },
+                    }
+               }
+          ];
+
+          const statsPipeline2 = [
+               {
+                    $match: {
+                         settlementId: { $in: settlementIds },
+                    }
+               },
+               {
+                    $group: {
+                         _id: null,
                          cashCollection: { $sum: '$cashCollection' },
                          onlineCollection: { $sum: '$onlineCollection' },
                     }
@@ -461,6 +476,7 @@ export const getAccountantStats = async (req, res) => {
           ];
 
           const supervisorStats = await SupervisorSettlementTicket.aggregate(statsPipeline);
+          const supervisorStats2 = await SupervisorSettlementTicket.aggregate(statsPipeline2);
 
           // Extracting values from the aggregation result
           const totalCollection = supervisorStats[0]?.totalCollection || 0;
@@ -468,8 +484,8 @@ export const getAccountantStats = async (req, res) => {
           const totalFine = supervisorStats[0]?.totalFine || 0;
           const totalReward = supervisorStats[0]?.totalReward || 0;
           const cashCollected = supervisorStats[0]?.cashCollected || 0;
-          const cashCollection = supervisorStats[0]?.cashCollection || 0;
-          const onlineCollection = supervisorStats[0]?.onlineCollection || 0;
+          const cashCollection = supervisorStats2[0]?.cashCollection || 0;
+          const onlineCollection = supervisorStats2[0]?.onlineCollection || 0;
 
 
           // Prepare response
