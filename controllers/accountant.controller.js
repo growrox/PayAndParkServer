@@ -481,6 +481,7 @@ export const getAccountantStats = async (req, res) => {
                cashCollected,
                cashCollection,
                onlineCollection,
+               todaysCollection: Math.round(cashCollection + onlineCollection),
                LastSettledTicketUpdatedAt: todayAccountantSettlementTicket[todayAccountantSettlementTicket.length - 1].updatedAt // Assuming updatedAt field provides the last settled time
           };
 
