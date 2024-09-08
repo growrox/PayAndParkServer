@@ -82,17 +82,17 @@ export const getSitesBySupervisorCode = async (req, res) => {
   try {
     const { supervisorID } = req.params;
 
+    // Step 1: Get Supervisor Details
     const supervisorDetails = await User.findById(supervisorID);
 
-    if (isEmpty(supervisorDetails)) {
+    if (!supervisorDetails) {
       return res.status(400).json({ message: 'Supervisor details not found.' });
     }
 
+    // Step 2: Get Unique Site IDs for the Supervisor
     const uniqueSiteIdsResult = await User.aggregate([
       {
-        $match: {
-          supervisorCode: supervisorDetails.code
-        }
+        $match: { supervisorCode: supervisorDetails.code }
       },
       {
         $group: {
@@ -108,10 +108,11 @@ export const getSitesBySupervisorCode = async (req, res) => {
       }
     ]);
 
-    // If no siteIds are found
     if (uniqueSiteIdsResult.length === 0 || !uniqueSiteIdsResult[0].siteIds.length) {
-      return res.json({ result: [] });
+      return res.json({ result: { totalTickets: 0, sites: [] } });
     }
+
+    const uniqueSiteIds = uniqueSiteIdsResult[0].siteIds;
 
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0); // Start of today in UTC
@@ -119,30 +120,56 @@ export const getSitesBySupervisorCode = async (req, res) => {
     const endOfToday = new Date();
     endOfToday.setUTCHours(23, 59, 59, 999); // End of today in UTC
 
-    // Use aggregation to count occurrences of each vehicle type
-
-    const uniqueSiteIds = uniqueSiteIdsResult[0].siteIds;
-
-    // Step 2: Lookup site details based on unique siteIds
-    const sites = await Site.find({
-      _id: { $in: uniqueSiteIds }
-    }).select('_id name'); // Adjust field selection as needed
-
-    const totalTickets = await Ticket.find(
+    // Step 3: Aggregate Ticket Counts by Site
+    const ticketCounts = await Ticket.aggregate([
       {
-        siteDetails: { $in: sites.map(site => site._id) },
-        createdAt: { $gte: startOfToday, $lte: endOfToday }
-      }).countDocuments();
+        $match: {
+          siteDetails: { $in: uniqueSiteIds },
+          createdAt: { $gte: startOfToday, $lte: endOfToday }
+        }
+      },
+      {
+        $group: {
+          _id: "$siteDetails",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
 
+    // Calculate total ticket count
+    const totalTickets = ticketCounts.reduce((sum, item) => sum + item.count, 0);
+
+    // Convert ticket counts to a map for easy lookup
+    const ticketCountMap = ticketCounts.reduce((map, item) => {
+      map[item._id.toString()] = item.count;
+      return map;
+    }, {});
+
+    // Step 4: Get Site Details
+    const sites = await Site.find({ _id: { $in: uniqueSiteIds } }).select('_id name');
+
+    // Add ticket count to site details
+    const sitesWithTicketCounts = sites.map(site => ({
+      _id: site._id,
+      name: site.name,
+      ticketCount: ticketCountMap[site._id.toString()] || 0
+    }));
+
+    // Step 5: Respond with both total tickets and detailed site information
     res.json({
-      message: "Here is the all sites details and total ticekt count.",
-      result: { sites, totalTickets }
+      message: "Here are the site details and ticket counts.",
+      result: {
+        totalTickets,
+        sites: sitesWithTicketCounts
+      }
     });
   } catch (error) {
     console.error("Error getting sites by supervisor.", error);
     res.status(500).json({ message: error.message });
   }
 };
+
+
 
 
 export const getSiteDetailsAndTickets = async (req, res) => {
