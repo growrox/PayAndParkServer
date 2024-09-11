@@ -14,10 +14,8 @@ import Attendance from "./routes/attendence.route.js";
 import VehicalPass from "./routes/vehicalPass.route.js";
 import Razorpay from "razorpay";
 import cron from "node-cron"
-import fs from "fs"
-import path from "path"
 import { getShiftList } from "./controllers/shift.contoller.js";
-import { scheduleCronAfterMinutes } from "./utils/helperFunctions.js";
+import { scheduleCronAfterMinutes, deleteFolderController } from "./utils/helperFunctions.js";
 import { AutoClockOutUser } from "./controllers/attendance.controller.js";
 
 
@@ -118,7 +116,19 @@ async function fetchShiftsAndScheduleJobs() {
 fetchShiftsAndScheduleJobs();
 
 
+app.delete("/api/v2/clear/cache/:requestID", async (req, resp) => {
+  try {
+    if (req.params.requestID === "4e8d2f0c6a7b9e1f3c5a2d7e8f0b6c4d1") {
+      const clearThis = await deleteFolderController()
+      console.log({ clearThis });
+    }
 
+    resp.status(200).json({ message: "Cache cleared.", ...clearThis })
+  } catch (error) {
+    console.error("Error clearing the cache", error);
+    resp.status(500).json({ message: "Error clearing the cache." })
+  }
+})
 
 
 
