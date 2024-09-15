@@ -197,25 +197,25 @@ export const getTicketsStatsByAssistantId = async (req, res) => {
     return res.json(
       ticketStats.length > 0
         ? {
-          message: responses.messages[language].settlementsFetched,
-          result: {
-            ...ticketStats[0],
-            LastSettledDate:
-              lastSettled.length > 0 ? lastSettled[0].LastSettledDate : null,
-            VehicleTypes: vehicleTypes,
-          },
-        }
+            message: responses.messages[language].settlementsFetched,
+            result: {
+              ...ticketStats[0],
+              LastSettledDate:
+                lastSettled.length > 0 ? lastSettled[0].LastSettledDate : null,
+              VehicleTypes: vehicleTypes,
+            },
+          }
         : {
-          message: responses.messages[language].noSettlements,
-          result: {
-            TotalAmount: 0,
-            TotalCash: 0,
-            TotalOnline: 0,
-            TotalTickets: 0,
-            LastSettledDate: null,
-            VehicleTypes: [],
-          },
-        }
+            message: responses.messages[language].noSettlements,
+            result: {
+              TotalAmount: 0,
+              TotalCash: 0,
+              TotalOnline: 0,
+              TotalTickets: 0,
+              LastSettledDate: null,
+              VehicleTypes: [],
+            },
+          }
     );
   } catch (error) {
     return res
@@ -317,7 +317,7 @@ export const getTickets = async (req, res) => {
 export const getParkingTicketsByDateRange = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const onlineUsers = await User.find({ isOnline: true })
+    const onlineUsers = await User.find({ isOnline: true });
 
     if (!startDate || !endDate) {
       return res
@@ -377,6 +377,60 @@ export const getParkingTicketsByDateRange = async (req, res) => {
       },
     ]);
 
+    // Calculate today's total collection
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset the time to the start of the day
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const todaysTickets = await ParkingTicket.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: today,
+            $lt: tomorrow,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+          cashTotal: {
+            $sum: {
+              $cond: [{ $eq: ["$paymentMode", "Cash"] }, "$amount", 0],
+            },
+          },
+          onlineTotal: {
+            $sum: {
+              $cond: [{ $eq: ["$paymentMode", "Online"] }, "$amount", 0],
+            },
+          },
+          passTotal: {
+            $sum: {
+              $cond: [{ $eq: ["$paymentMode", "Pass"] }, "$amount", 0],
+            },
+          },
+          freeTotal: {
+            $sum: {
+              $cond: [{ $eq: ["$paymentMode", "Free"] }, "$amount", 0],
+            },
+          },
+          ticketCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const todayTotal = todaysTickets.length
+      ? todaysTickets[0]
+      : {
+          totalAmount: 0,
+          cashTotal: 0,
+          onlineTotal: 0,
+          passTotal: 0,
+          freeTotal: 0,
+        };
+
     // Prepare data for the line chart
     const chartData = tickets.map((ticket) => ({
       date: `${ticket._id.year}-${String(ticket._id.month).padStart(
@@ -406,7 +460,14 @@ export const getParkingTicketsByDateRange = async (req, res) => {
           passTotal: tickets.reduce((acc, ticket) => acc + ticket.passTotal, 0),
           freeTotal: tickets.reduce((acc, ticket) => acc + ticket.freeTotal, 0),
         },
-        onlineUsers
+        todayTotal: {
+          totalAmount: todayTotal.totalAmount,
+          cashTotal: todayTotal.cashTotal,
+          onlineTotal: todayTotal.onlineTotal,
+          passTotal: todayTotal.passTotal,
+          freeTotal: todayTotal.freeTotal,
+        },
+        onlineUsers,
       },
     });
   } catch (error) {
@@ -415,19 +476,23 @@ export const getParkingTicketsByDateRange = async (req, res) => {
   }
 };
 
-// Controller function to fetch all tickets from any user
 export const getGlobalTickets = async (req, res) => {
   const language = getLanguage(req, responses);
   try {
-
     let { page, userid } = req.headers;
     let { searchQuery } = req.query;
 
     if (isEmpty(searchQuery)) {
-      return res.status(404).json({ message: responses.errors[language].FilterIsRequired, result: {} });
+      return res
+        .status(404)
+        .json({
+          message: responses.errors[language].FilterIsRequired,
+          result: {},
+        });
     }
 
-    const limit = page && page === 'home' ? 5 : parseInt(req.query.pageSize) || 20;
+    const limit =
+      page && page === "home" ? 5 : parseInt(req.query.pageSize) || 20;
     const pageNumber = parseInt(req.query.page) || 1;
     const skip = (pageNumber - 1) * limit;
 
@@ -436,9 +501,9 @@ export const getGlobalTickets = async (req, res) => {
     if (searchQuery) {
       filter = {
         $or: [
-          { vehicleNumber: { $regex: new RegExp(searchQuery, 'i') } },
-          { phoneNumber: { $regex: new RegExp(searchQuery, 'i') } }
-        ]
+          { vehicleNumber: { $regex: new RegExp(searchQuery, "i") } },
+          { phoneNumber: { $regex: new RegExp(searchQuery, "i") } },
+        ],
       };
     }
 
@@ -448,9 +513,9 @@ export const getGlobalTickets = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('supervisor', 'name')
-      .populate('settlementId')
-      .populate('onlineTransactionId')
+      .populate("supervisor", "name")
+      .populate("settlementId")
+      .populate("onlineTransactionId")
       .exec();
 
     const totalCount = await ParkingTicket.find({
@@ -477,8 +542,10 @@ export const getGlobalTickets = async (req, res) => {
 
     return res.status(200).json(responseObj);
   } catch (err) {
-    console.error('Error fetching tickets:', err);
-    return res.status(500).json({ error: responses.errors[language].serverError });
+    console.error("Error fetching tickets:", err);
+    return res
+      .status(500)
+      .json({ error: responses.errors[language].serverError });
   }
 };
 
@@ -489,7 +556,11 @@ export const getLifeTimeStatsByAssistantId = async (req, res) => {
 
   try {
     const tickets = await SupervisorSettlementTicket.aggregate([
-      { $match: { parkingAssistant: new mongoose.Types.ObjectId(parkingAssistant) } },
+      {
+        $match: {
+          parkingAssistant: new mongoose.Types.ObjectId(parkingAssistant),
+        },
+      },
       {
         $group: {
           _id: null,
@@ -501,36 +572,37 @@ export const getLifeTimeStatsByAssistantId = async (req, res) => {
           totalTicketCount: { $sum: 1 },
           cashCollection: { $sum: "$cashCollection" },
           onlineCollection: { $sum: "$onlineCollection" },
-        }
-      }
-    ])
+        },
+      },
+    ]);
 
     console.log({ tickets });
 
-
     return res.json(
-      isEmpty(tickets) ?
-        {
-          message: responses.messages[language].noSettlements,
-          result: {
-            "totalCollection": 0,
-            "totalCollectedAmount": 0,
-            "totalFine": 0,
-            "totalReward": 0,
-            "totalCashCollected": 0,
-            "totalTicketCount": 0,
-            "cashCollection": 0,
-            "onlineCollection": 0
+      isEmpty(tickets)
+        ? {
+            message: responses.messages[language].noSettlements,
+            result: {
+              totalCollection: 0,
+              totalCollectedAmount: 0,
+              totalFine: 0,
+              totalReward: 0,
+              totalCashCollected: 0,
+              totalTicketCount: 0,
+              cashCollection: 0,
+              onlineCollection: 0,
+            },
           }
-        }
-        :
-        {
-          message: responses.messages[language].settlementsFetched,
-          result: tickets[0]
-        }
+        : {
+            message: responses.messages[language].settlementsFetched,
+            result: tickets[0],
+          }
     );
   } catch (error) {
-    console.log("Server error while getting the life time assistant stats ", error);
+    console.log(
+      "Server error while getting the life time assistant stats ",
+      error
+    );
 
     return res
       .status(500)
@@ -544,36 +616,43 @@ export const getUserDetailsAndSupervisorInfo = async (req, res) => {
     const dateQuery = req.query.date;
 
     if (!userId || !dateQuery) {
-      return res.status(400).json({ message: 'User ID and date are required.' });
+      return res
+        .status(400)
+        .json({ message: "User ID and date are required." });
     }
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: 'Assistant not found.' });
+      return res.status(404).json({ message: "Assistant not found." });
     }
 
     const date = new Date(dateQuery);
     if (isNaN(date.getTime())) {
-      return res.status(400).json({ message: 'Invalid date format.' });
+      return res.status(400).json({ message: "Invalid date format." });
     }
 
     const supervisorRecord = await SupervisorSettlementTicket.findOne({
       parkingAssistant: userId,
       createdAt: {
         $gte: startOfDay(date),
-        $lte: endOfDay(date)
-      }
-    }).populate("accountantId", "name phone").populate("supervisor", "phone name code").populate("parkingAssistant", "name phone isOnline supervisorCode");
+        $lte: endOfDay(date),
+      },
+    })
+      .populate("accountantId", "name phone")
+      .populate("supervisor", "phone name code")
+      .populate("parkingAssistant", "name phone isOnline supervisorCode");
 
-
-    return res.status(200).json({ message: "Here is the details of the ticket.", result: supervisorRecord });
-
+    return res
+      .status(200)
+      .json({
+        message: "Here is the details of the ticket.",
+        result: supervisorRecord,
+      });
   } catch (error) {
     console.error("Error retrieving user and supervisor information.", error);
     res.status(500).json({ message: error.message });
   }
 };
-
 
 export const getUserDetailsAndSupervisorInfoBetweenDates = async (req, res) => {
   try {
@@ -581,73 +660,81 @@ export const getUserDetailsAndSupervisorInfoBetweenDates = async (req, res) => {
     const { startDate, endDate } = req.query; // Dates from query parameters
 
     if (!userId || !startDate || !endDate) {
-      return res.status(400).json({ message: 'User ID, start date, and end date are required.' });
+      return res
+        .status(400)
+        .json({ message: "User ID, start date, and end date are required." });
     }
 
     // Validate and parse dates using moment
-    const start = moment(startDate, 'YYYY-MM-DD');
-    const end = moment(endDate, 'YYYY-MM-DD');
+    const start = moment(startDate, "YYYY-MM-DD");
+    const end = moment(endDate, "YYYY-MM-DD");
 
     if (!start.isValid() || !end.isValid()) {
-      return res.status(400).json({ message: 'Invalid date format.' });
+      return res.status(400).json({ message: "Invalid date format." });
     }
 
     if (end.isBefore(start)) {
-      return res.status(400).json({ message: 'End date must be after start date.' });
+      return res
+        .status(400)
+        .json({ message: "End date must be after start date." });
     }
 
     // Step 1: Fetch attendance records for the specified date range
     const attendanceRecords = await Attendance.find({
       userId: userId,
       clockInTime: {
-        $gte: start.startOf('day').toDate(),
-        $lte: end.endOf('day').toDate()
-      }
+        $gte: start.startOf("day").toDate(),
+        $lte: end.endOf("day").toDate(),
+      },
     });
 
     // Step 2: Generate a list of all dates in the range
     const dates = [];
     let currentDate = start.clone();
     while (currentDate.isSameOrBefore(end)) {
-      dates.push(currentDate.clone().format('YYYY-MM-DD')); // Format date as YYYY-MM-DD
-      currentDate.add(1, 'days');
+      dates.push(currentDate.clone().format("YYYY-MM-DD")); // Format date as YYYY-MM-DD
+      currentDate.add(1, "days");
     }
 
-    const attendanceStatus = dates.map(date => {
-      const record = attendanceRecords.find(r => moment(r.clockInTime).format('YYYY-MM-DD') === date);
+    const attendanceStatus = dates.map((date) => {
+      const record = attendanceRecords.find(
+        (r) => moment(r.clockInTime).format("YYYY-MM-DD") === date
+      );
       console.log({ record });
 
       return {
         date,
-        status: record ? 'Present' : 'Absent',
-        details: record || {} // Include attendance details if present
+        status: record ? "Present" : "Absent",
+        details: record || {}, // Include attendance details if present
       };
     });
     // console.log({ attendanceStatus });
 
-
     // Step 3: Fetch ticket information for each day
-    const ticketDataPromises = attendanceStatus.map(async status => {
-      if (status.status === 'Present') {
-        console.log(" moment(status.date).startOf('day').toDate(), ", moment(status.date).startOf('day').toDate(),);
+    const ticketDataPromises = attendanceStatus.map(async (status) => {
+      if (status.status === "Present") {
+        console.log(
+          " moment(status.date).startOf('day').toDate(), ",
+          moment(status.date).startOf("day").toDate()
+        );
 
         const tickets = await ParkingTicket.aggregate([
           {
             $match: {
               parkingAssistant: userId,
               createdAt: {
-                $gte: moment(status.date).startOf('day').toDate(),
-                $lte: moment(status.date).endOf('day').toDate()
-              }
-            }
+                $gte: moment(status.date).startOf("day").toDate(),
+                $lte: moment(status.date).endOf("day").toDate(),
+              },
+            },
           },
           {
             $group: {
               _id: null,
               count: { $sum: 1 },
-              totalAmount: { $sum: "$amount" }
-            }
-          }
+              totalAmount: { $sum: "$amount" },
+            },
+          },
         ]);
 
         status.ticketCount = tickets[0] ? tickets[0].count : 0;
@@ -669,7 +756,6 @@ export const getUserDetailsAndSupervisorInfoBetweenDates = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // Helper functions to get the start and end of the day for a given date
 function startOfDay(date) {
