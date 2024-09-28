@@ -17,7 +17,7 @@ import { getLanguage } from "../utils/helperFunctions.js";
 import { responses } from "../utils/Translate/parkingTicket.response.js";
 import mongoose from "mongoose";
 import moment from "moment-timezone";
-import TicketSequence from '../models/ticketSequence.Model.js'; // Adjust the path as necessary
+import TicketSequence from "../models/ticketSequence.Model.js"; // Adjust the path as necessary
 import DeletedParkingTicket from "../models/parkingTicketDeleted.model.js";
 import VehicleType from "../models/vehicleType.model.js";
 
@@ -42,7 +42,7 @@ export const createParkingTicket = async (req, res) => {
       address,
       createdAtClient,
       vehicleID,
-      priceID
+      priceID,
     } = req.body;
 
     const { userId } = req.headers;
@@ -90,27 +90,29 @@ export const createParkingTicket = async (req, res) => {
 
     const vehicalDetails = await VehicleType.aggregate([
       {
-        $match: { _id: new mongoose.Types.ObjectId(vehicleID) } // Match the vehicle type by its ID
+        $match: { _id: new mongoose.Types.ObjectId(vehicleID) }, // Match the vehicle type by its ID
       },
       {
-        $unwind: "$hourlyPrices" // Unwind the hourlyPrices array to process each entry individually
+        $unwind: "$hourlyPrices", // Unwind the hourlyPrices array to process each entry individually
       },
       {
-        $match: { "hourlyPrices._id": new mongoose.Types.ObjectId(priceID) } // Match the hourly price by its ID
+        $match: { "hourlyPrices._id": new mongoose.Types.ObjectId(priceID) }, // Match the hourly price by its ID
       },
       {
-        $project: { // Project only the hour and price fields
+        $project: {
+          // Project only the hour and price fields
           _id: 0,
           hour: "$hourlyPrices.hour",
           price: "$hourlyPrices.price",
-          gstPercentage: 1
-        }
-      }
-    ])
+          gstPercentage: 1,
+        },
+      },
+    ]);
 
     if (isEmpty(vehicalDetails)) {
       return res.status(404).json({
-        error: responses.messages[language].paymentDetailsRequired + " NOT_FOUND",
+        error:
+          responses.messages[language].paymentDetailsRequired + " NOT_FOUND",
       });
     }
 
@@ -123,12 +125,15 @@ export const createParkingTicket = async (req, res) => {
       const now = moment.tz("Asia/Kolkata"); // Current time in Asia/Kolkata timezone
       ticketExpiry = now.clone().add(30, "days").endOf("day").toDate();
     } else {
-      ticketExpiry = moment.tz('Asia/Kolkata').add(vehicalDetails[0].hour, 'hours').toDate();
+      ticketExpiry = moment
+        .tz("Asia/Kolkata")
+        .add(vehicalDetails[0].hour, "hours")
+        .toDate();
     }
 
     const Amount = vehicalDetails[0].price;
     const ninePercent = +(Amount * 0.09).toFixed(2);
-    const GrandTotal = Math.ceil(Amount + (ninePercent * 2))
+    const GrandTotal = Math.ceil(Amount + ninePercent * 2);
 
     // Create a new parking ticket
     const newTicket = new ParkingTicket({
@@ -144,7 +149,7 @@ export const createParkingTicket = async (req, res) => {
       amount: GrandTotal,
       cgst: ninePercent,
       sgst: ninePercent,
-      roundOff: (GrandTotal - ((ninePercent * 2) + Amount)).toFixed(2),
+      roundOff: (GrandTotal - (ninePercent * 2 + Amount)).toFixed(2),
       baseAmount: Amount,
       supervisor,
       settlementId,
@@ -201,11 +206,11 @@ export const createParkingTicket = async (req, res) => {
 
 // Function to generate ticket reference ID
 const generateTicketRefId = async () => {
-  const now = moment.tz("2024-08-02 14:30:00", 'Asia/Kolkata'); // Current time in Asia/Kolkata timezone
-  const dateString = now.format('YYYY-MM-DD'); // Format YYYY-MM-DD
-  const year = now.format('YY'); // Last two digits of the year
-  const month = now.format('MM'); // Month with leading zero
-  const day = now.format('DD'); // Day with leading zero
+  const now = moment.tz("2024-08-02 14:30:00", "Asia/Kolkata"); // Current time in Asia/Kolkata timezone
+  const dateString = now.format("YYYY-MM-DD"); // Format YYYY-MM-DD
+  const year = now.format("YY"); // Last two digits of the year
+  const month = now.format("MM"); // Month with leading zero
+  const day = now.format("DD"); // Day with leading zero
 
   // Atomic increment operation
   const sequence = await TicketSequence.findOneAndUpdate(
@@ -219,13 +224,14 @@ const generateTicketRefId = async () => {
   return `PnP${year}${month}-${day}${sequenceNumber}`;
 };
 
-
 // controller to get ticket details
 export const getVehicleTypeDetail = async (req, res) => {
   try {
     const language = getLanguage(req, responses);
     const parkingTicket = await ParkingTicket.findById(req.params.id);
-    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${parkingTicket.image}`;
+    parkingTicket.image = `${req.protocol}://${req.get("host")}/api/v1${
+      parkingTicket.image
+    }`;
     if (!parkingTicket)
       return res.status(404).json({
         error: responses.errors[language].ticketNotFound,
@@ -822,20 +828,19 @@ const exportToExcel = (tickets, res) => {
   // Calculate the total amount
   const totalAmount = worksheetData.reduce((sum, row) => sum + row.Amount, 0);
   const totalBaseAmount = worksheetData.reduce(
-    (sum, row) => sum + (row.BaseAmount ? Number(row.BaseAmount) : 0), 
+    (sum, row) => sum + (row.BaseAmount ? Number(row.BaseAmount) : 0),
     0
   );
 
   const totalSgstAmount = worksheetData.reduce(
-    (sum, row) => sum + (row.SGST ? Number(row.SGST) : 0), 
+    (sum, row) => sum + (row.SGST ? Number(row.SGST) : 0),
     0
   );
 
   const totalCgstAmount = worksheetData.reduce(
-    (sum, row) => sum + (row.CGST ? Number(row.CGST) : 0), 
+    (sum, row) => sum + (row.CGST ? Number(row.CGST) : 0),
     0
   );
-  
 
   // Add the total amount row at the end
   worksheetData.push({
@@ -883,12 +888,10 @@ const exportToPDF = async (tickets, res) => {
 
   const htmlContent = generateHTMLContent(tickets, totalAmount);
 
-  const browser = await puppeteer.launch(
-    {
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      headless: true,
-    }
-  );
+  const browser = await puppeteer.launch({
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless: true,
+  });
   const page = await browser.newPage();
   await page.setContent(htmlContent);
   const pdfBuffer = await page.pdf({ format: "A4" });
@@ -944,7 +947,7 @@ const generateHTMLContent = (tickets, totalAmount) => {
         </thead>
         <tbody>`;
 
-  tickets.forEach((ticket,index) => {
+  tickets.forEach((ticket, index) => {
     html += `
       <tr>
         <td>${index + 1}</td>
@@ -961,10 +964,14 @@ const generateHTMLContent = (tickets, totalAmount) => {
         <td>${ticket.paymentMode}</td>
         <td>${ticket.status}</td>
         <td>${ticket?.parkingAssistantDetails?.name}</td>
-        <td>${ticket?.supervisorDetails ? ticket?.supervisorDetails?.name : ""}</td>
+        <td>${
+          ticket?.supervisorDetails ? ticket?.supervisorDetails?.name : ""
+        }</td>
         <td>${ticket?.siteDetails ? ticket?.siteDetails?.name : ""}</td>
         <td>${moment(ticket.createdAt).format("MMMM Do YYYY, h:mm:ss a")}</td>
-        <td>${moment(ticket.ticketExpiry).format("MMMM Do YYYY, h:mm:ss a")}</td>
+        <td>${moment(ticket.ticketExpiry).format(
+          "MMMM Do YYYY, h:mm:ss a"
+        )}</td>
       </tr>`;
   });
 
@@ -1096,7 +1103,10 @@ export const getTicketTotalsByPaymentMode = async (req, res) => {
       { $sort: { createdAt: -1 } },
       {
         $group: {
-          _id: "$paymentMode",
+          _id: {
+            paymentMode: "$paymentMode",
+            isPass: "$isPass", // Group by both paymentMode and isPass
+          },
           totalAmount: { $sum: "$amount" }, // Sum the amount field
           count: { $sum: 1 }, // Keep the count if needed
         },
@@ -1105,7 +1115,7 @@ export const getTicketTotalsByPaymentMode = async (req, res) => {
 
     const totals = await ParkingTicket.aggregate(aggregateQuery);
 
-    // Format the response to include totals for "Online" and "Cash"
+    // Format the response to include totals for "Online", "Cash", "Free", and "Pass"
     const result = {
       online: 0,
       cash: 0,
@@ -1114,14 +1124,18 @@ export const getTicketTotalsByPaymentMode = async (req, res) => {
     };
 
     totals.forEach((total) => {
-      if (total._id === "Online") {
-        result.online = total.totalAmount;
-      } else if (total._id === "Cash") {
-        result.cash = total.totalAmount;
-      } else if (total._id === "Free") {
-        result.free = total.totalAmount;
-      } else if (total._id === "Pass") {
-        result.pass = total.totalAmount;
+      if (total._id.isPass === true) {
+        // If it's a pass, add to the pass total only
+        result.pass += total.totalAmount;
+      } else {
+        // Only add to respective totals if it's not a pass
+        if (total._id.paymentMode === "Online") {
+          result.online += total.totalAmount;
+        } else if (total._id.paymentMode === "Cash") {
+          result.cash += total.totalAmount;
+        } else if (total._id.paymentMode === "Free") {
+          result.free += total.totalAmount;
+        }
       }
     });
 

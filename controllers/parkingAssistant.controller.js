@@ -314,6 +314,169 @@ export const getTickets = async (req, res) => {
   }
 };
 
+// export const getParkingTicketsByDateRange = async (req, res) => {
+//   try {
+//     const { startDate, endDate } = req.query;
+//     const onlineUsers = await User.find({ isOnline: true });
+
+//     if (!startDate || !endDate) {
+//       return res
+//         .status(400)
+//         .json({ message: "Please provide both startDate and endDate." });
+//     }
+
+//     const start = new Date(startDate);
+//     const end = new Date(endDate);
+//     console.log({ start: start.toISOString(), end: end.toISOString() });
+
+//     end.setDate(end.getDate() + 1); // Include the end date in the range
+
+//     // Aggregation to group by date and calculate collections within the range
+//     const tickets = await ParkingTicket.aggregate([
+//       {
+//         $match: {
+//           createdAt: {
+//             $gte: start,
+//             $lt: end,
+//           },
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: {
+//             day: { $dayOfMonth: "$createdAt" },
+//             month: { $month: "$createdAt" },
+//             year: { $year: "$createdAt" },
+//           },
+//           totalAmount: { $sum: "$amount" },
+//           cashTotal: {
+//             $sum: {
+//               $cond: [{ $eq: ["$paymentMode", "Cash"] }, "$amount", 0],
+//             },
+//           },
+//           onlineTotal: {
+//             $sum: {
+//               $cond: [{ $eq: ["$paymentMode", "Online"] }, "$amount", 0],
+//             },
+//           },
+//           passTotal: {
+//             $sum: {
+//               $cond: [{ $eq: ["$paymentMode", "Pass"] }, "$amount", 0],
+//             },
+//           },
+//           freeTotal: {
+//             $sum: {
+//               $cond: [{ $eq: ["$paymentMode", "Free"] }, "$amount", 0],
+//             },
+//           },
+//           ticketCount: { $sum: 1 },
+//         },
+//       },
+//       {
+//         $sort: { _id: 1 },
+//       },
+//     ]);
+
+//     // Calculate today's total collection
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0); // Reset the time to the start of the day
+//     const tomorrow = new Date(today);
+//     tomorrow.setDate(today.getDate() + 1);
+//     console.log({tickets});
+
+//     const todaysTickets = await ParkingTicket.aggregate([
+//       {
+//         $match: {
+//           createdAt: {
+//             $gte: today,
+//             $lt: tomorrow,
+//           },
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           totalAmount: { $sum: "$amount" },
+//           cashTotal: {
+//             $sum: {
+//               $cond: [{ $eq: ["$paymentMode", "Cash"] }, "$amount", 0],
+//             },
+//           },
+//           onlineTotal: {
+//             $sum: {
+//               $cond: [{ $eq: ["$paymentMode", "Online"] }, "$amount", 0],
+//             },
+//           },
+//           passTotal: {
+//             $sum: {
+//               $cond: [{ $eq: ["$paymentMode", "Pass"] }, "$amount", 0],
+//             },
+//           },
+//           freeTotal: {
+//             $sum: {
+//               $cond: [{ $eq: ["$paymentMode", "Free"] }, "$amount", 0],
+//             },
+//           },
+//           ticketCount: { $sum: 1 },
+//         },
+//       },
+//     ]);
+
+//     const todayTotal = todaysTickets.length
+//       ? todaysTickets[0]
+//       : {
+//           totalAmount: 0,
+//           cashTotal: 0,
+//           onlineTotal: 0,
+//           passTotal: 0,
+//           freeTotal: 0,
+//         };
+
+//     // Prepare data for the line chart
+//     const chartData = tickets.map((ticket) => ({
+//       date: `${ticket._id.year}-${String(ticket._id.month).padStart(
+//         2,
+//         "0"
+//       )}-${String(ticket._id.day).padStart(2, "0")}`,
+//       cashTotal: ticket.cashTotal || 0,
+//       onlineTotal: ticket.onlineTotal || 0,
+//       passTotal: ticket.passTotal || 0,
+//       freeTotal: ticket.freeTotal || 0,
+//     }));
+
+//     res.status(200).json({
+//       result: {
+//         dateRange: { startDate, endDate },
+//         chartData,
+//         totals: {
+//           totalAmount: tickets.reduce(
+//             (acc, ticket) => acc + ticket.totalAmount,
+//             0
+//           ),
+//           cashTotal: tickets.reduce((acc, ticket) => acc + ticket.cashTotal, 0),
+//           onlineTotal: tickets.reduce(
+//             (acc, ticket) => acc + ticket.onlineTotal,
+//             0
+//           ),
+//           passTotal: tickets.reduce((acc, ticket) => acc + ticket.passTotal, 0),
+//           freeTotal: tickets.reduce((acc, ticket) => acc + ticket.freeTotal, 0),
+//         },
+//         todayTotal: {
+//           totalAmount: todayTotal.totalAmount,
+//           cashTotal: todayTotal.cashTotal,
+//           onlineTotal: todayTotal.onlineTotal,
+//           passTotal: todayTotal.passTotal,
+//           freeTotal: todayTotal.freeTotal,
+//         },
+//         onlineUsers,
+//       },
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Server Error", error });
+//   }
+// };
+
 export const getParkingTicketsByDateRange = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
@@ -348,25 +511,52 @@ export const getParkingTicketsByDateRange = async (req, res) => {
             month: { $month: "$createdAt" },
             year: { $year: "$createdAt" },
           },
-          totalAmount: { $sum: "$amount" },
+          totalAmount: { $sum: "$amount" }, // Always add amount to totalAmount
           cashTotal: {
             $sum: {
-              $cond: [{ $eq: ["$paymentMode", "Cash"] }, "$amount", 0],
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ["$isPass", true] },
+                    { $eq: ["$paymentMode", "Cash"] },
+                  ],
+                }, // Only add to cashTotal if it's not a pass and paymentMode is Cash
+                "$amount",
+                0,
+              ],
             },
           },
           onlineTotal: {
             $sum: {
-              $cond: [{ $eq: ["$paymentMode", "Online"] }, "$amount", 0],
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ["$isPass", true] },
+                    { $eq: ["$paymentMode", "Online"] },
+                  ],
+                }, // Only add to onlineTotal if it's not a pass and paymentMode is Online
+                "$amount",
+                0,
+              ],
             },
           },
           passTotal: {
             $sum: {
-              $cond: [{ $eq: ["$paymentMode", "Pass"] }, "$amount", 0],
+              $cond: [{ $eq: ["$isPass", true] }, "$amount", 0], // Add to passTotal if isPass is true
             },
           },
           freeTotal: {
             $sum: {
-              $cond: [{ $eq: ["$paymentMode", "Free"] }, "$amount", 0],
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ["$isPass", true] },
+                    { $eq: ["$paymentMode", "Free"] },
+                  ],
+                }, // Only add to freeTotal if it's not a pass and paymentMode is Free
+                "$amount",
+                0,
+              ],
             },
           },
           ticketCount: { $sum: 1 },
@@ -395,25 +585,52 @@ export const getParkingTicketsByDateRange = async (req, res) => {
       {
         $group: {
           _id: null,
-          totalAmount: { $sum: "$amount" },
+          totalAmount: { $sum: "$amount" }, // Always add amount to totalAmount
           cashTotal: {
             $sum: {
-              $cond: [{ $eq: ["$paymentMode", "Cash"] }, "$amount", 0],
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ["$isPass", true] },
+                    { $eq: ["$paymentMode", "Cash"] },
+                  ],
+                }, // Only add to cashTotal if it's not a pass and paymentMode is Cash
+                "$amount",
+                0,
+              ],
             },
           },
           onlineTotal: {
             $sum: {
-              $cond: [{ $eq: ["$paymentMode", "Online"] }, "$amount", 0],
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ["$isPass", true] },
+                    { $eq: ["$paymentMode", "Online"] },
+                  ],
+                }, // Only add to onlineTotal if it's not a pass and paymentMode is Online
+                "$amount",
+                0,
+              ],
             },
           },
           passTotal: {
             $sum: {
-              $cond: [{ $eq: ["$paymentMode", "Pass"] }, "$amount", 0],
+              $cond: [{ $eq: ["$isPass", true] }, "$amount", 0], // Add to passTotal if isPass is true
             },
           },
           freeTotal: {
             $sum: {
-              $cond: [{ $eq: ["$paymentMode", "Free"] }, "$amount", 0],
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ["$isPass", true] },
+                    { $eq: ["$paymentMode", "Free"] },
+                  ],
+                }, // Only add to freeTotal if it's not a pass and paymentMode is Free
+                "$amount",
+                0,
+              ],
             },
           },
           ticketCount: { $sum: 1 },
@@ -483,12 +700,10 @@ export const getGlobalTickets = async (req, res) => {
     let { searchQuery } = req.query;
 
     if (isEmpty(searchQuery)) {
-      return res
-        .status(404)
-        .json({
-          message: responses.errors[language].FilterIsRequired,
-          result: {},
-        });
+      return res.status(404).json({
+        message: responses.errors[language].FilterIsRequired,
+        result: {},
+      });
     }
 
     const limit =
@@ -642,12 +857,10 @@ export const getUserDetailsAndSupervisorInfo = async (req, res) => {
       .populate("supervisor", "phone name code")
       .populate("parkingAssistant", "name phone isOnline supervisorCode");
 
-    return res
-      .status(200)
-      .json({
-        message: "Here is the details of the ticket.",
-        result: supervisorRecord,
-      });
+    return res.status(200).json({
+      message: "Here is the details of the ticket.",
+      result: supervisorRecord,
+    });
   } catch (error) {
     console.error("Error retrieving user and supervisor information.", error);
     res.status(500).json({ message: error.message });
