@@ -314,169 +314,6 @@ export const getTickets = async (req, res) => {
   }
 };
 
-// export const getParkingTicketsByDateRange = async (req, res) => {
-//   try {
-//     const { startDate, endDate } = req.query;
-//     const onlineUsers = await User.find({ isOnline: true });
-
-//     if (!startDate || !endDate) {
-//       return res
-//         .status(400)
-//         .json({ message: "Please provide both startDate and endDate." });
-//     }
-
-//     const start = new Date(startDate);
-//     const end = new Date(endDate);
-//     console.log({ start: start.toISOString(), end: end.toISOString() });
-
-//     end.setDate(end.getDate() + 1); // Include the end date in the range
-
-//     // Aggregation to group by date and calculate collections within the range
-//     const tickets = await ParkingTicket.aggregate([
-//       {
-//         $match: {
-//           createdAt: {
-//             $gte: start,
-//             $lt: end,
-//           },
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: {
-//             day: { $dayOfMonth: "$createdAt" },
-//             month: { $month: "$createdAt" },
-//             year: { $year: "$createdAt" },
-//           },
-//           totalAmount: { $sum: "$amount" },
-//           cashTotal: {
-//             $sum: {
-//               $cond: [{ $eq: ["$paymentMode", "Cash"] }, "$amount", 0],
-//             },
-//           },
-//           onlineTotal: {
-//             $sum: {
-//               $cond: [{ $eq: ["$paymentMode", "Online"] }, "$amount", 0],
-//             },
-//           },
-//           passTotal: {
-//             $sum: {
-//               $cond: [{ $eq: ["$paymentMode", "Pass"] }, "$amount", 0],
-//             },
-//           },
-//           freeTotal: {
-//             $sum: {
-//               $cond: [{ $eq: ["$paymentMode", "Free"] }, "$amount", 0],
-//             },
-//           },
-//           ticketCount: { $sum: 1 },
-//         },
-//       },
-//       {
-//         $sort: { _id: 1 },
-//       },
-//     ]);
-
-//     // Calculate today's total collection
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0); // Reset the time to the start of the day
-//     const tomorrow = new Date(today);
-//     tomorrow.setDate(today.getDate() + 1);
-//     console.log({tickets});
-
-//     const todaysTickets = await ParkingTicket.aggregate([
-//       {
-//         $match: {
-//           createdAt: {
-//             $gte: today,
-//             $lt: tomorrow,
-//           },
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: null,
-//           totalAmount: { $sum: "$amount" },
-//           cashTotal: {
-//             $sum: {
-//               $cond: [{ $eq: ["$paymentMode", "Cash"] }, "$amount", 0],
-//             },
-//           },
-//           onlineTotal: {
-//             $sum: {
-//               $cond: [{ $eq: ["$paymentMode", "Online"] }, "$amount", 0],
-//             },
-//           },
-//           passTotal: {
-//             $sum: {
-//               $cond: [{ $eq: ["$paymentMode", "Pass"] }, "$amount", 0],
-//             },
-//           },
-//           freeTotal: {
-//             $sum: {
-//               $cond: [{ $eq: ["$paymentMode", "Free"] }, "$amount", 0],
-//             },
-//           },
-//           ticketCount: { $sum: 1 },
-//         },
-//       },
-//     ]);
-
-//     const todayTotal = todaysTickets.length
-//       ? todaysTickets[0]
-//       : {
-//           totalAmount: 0,
-//           cashTotal: 0,
-//           onlineTotal: 0,
-//           passTotal: 0,
-//           freeTotal: 0,
-//         };
-
-//     // Prepare data for the line chart
-//     const chartData = tickets.map((ticket) => ({
-//       date: `${ticket._id.year}-${String(ticket._id.month).padStart(
-//         2,
-//         "0"
-//       )}-${String(ticket._id.day).padStart(2, "0")}`,
-//       cashTotal: ticket.cashTotal || 0,
-//       onlineTotal: ticket.onlineTotal || 0,
-//       passTotal: ticket.passTotal || 0,
-//       freeTotal: ticket.freeTotal || 0,
-//     }));
-
-//     res.status(200).json({
-//       result: {
-//         dateRange: { startDate, endDate },
-//         chartData,
-//         totals: {
-//           totalAmount: tickets.reduce(
-//             (acc, ticket) => acc + ticket.totalAmount,
-//             0
-//           ),
-//           cashTotal: tickets.reduce((acc, ticket) => acc + ticket.cashTotal, 0),
-//           onlineTotal: tickets.reduce(
-//             (acc, ticket) => acc + ticket.onlineTotal,
-//             0
-//           ),
-//           passTotal: tickets.reduce((acc, ticket) => acc + ticket.passTotal, 0),
-//           freeTotal: tickets.reduce((acc, ticket) => acc + ticket.freeTotal, 0),
-//         },
-//         todayTotal: {
-//           totalAmount: todayTotal.totalAmount,
-//           cashTotal: todayTotal.cashTotal,
-//           onlineTotal: todayTotal.onlineTotal,
-//           passTotal: todayTotal.passTotal,
-//           freeTotal: todayTotal.freeTotal,
-//         },
-//         onlineUsers,
-//       },
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Server Error", error });
-//   }
-// };
-
 export const getParkingTicketsByDateRange = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
@@ -488,21 +325,35 @@ export const getParkingTicketsByDateRange = async (req, res) => {
         .json({ message: "Please provide both startDate and endDate." });
     }
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    console.log({ start: start.toISOString(), end: end.toISOString() });
+    let match = {};
+    if (startDate || endDate) {
+      const dateRange = {};
+      if (startDate) {
+        const LocalStartDate = moment
+          .tz(startDate, "DD/MM/YYYY", "Asia/Kolkata")
+          .startOf("day")
+          .clone()
+          .utc();
+        dateRange.$gte = new Date(LocalStartDate);
+      }
+      if (endDate) {
+        const LocalEndDate = moment
+          .tz(endDate, "DD/MM/YYYY", "Asia/Kolkata")
+          .endOf("day")
+          .clone()
+          .utc();
+        const end = new Date(LocalEndDate);
+        dateRange.$lte = end;
+      }
+      match.createdAt = dateRange;
+    }
 
-    end.setDate(end.getDate() + 1); // Include the end date in the range
+    // end.setDate(end.getDate() + 1); // Include the end date in the range
 
     // Aggregation to group by date and calculate collections within the range
     const tickets = await ParkingTicket.aggregate([
       {
-        $match: {
-          createdAt: {
-            $gte: start,
-            $lt: end,
-          },
-        },
+        $match: match,
       },
       {
         $group: {

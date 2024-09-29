@@ -652,7 +652,7 @@ export const getAllTickets = async (req, res) => {
       const dateRange = {};
       if (startDate) {
         const LocalStartDate = moment
-          .tz(new Date(startDate), "Asia/Kolkata")
+          .tz(startDate, "DD/MM/YYYY", "Asia/Kolkata")
           .startOf("day")
           .clone()
           .utc();
@@ -660,7 +660,7 @@ export const getAllTickets = async (req, res) => {
       }
       if (endDate) {
         const LocalEndDate = moment
-          .tz(new Date(endDate), "Asia/Kolkata")
+          .tz(endDate, "DD/MM/YYYY", "Asia/Kolkata")
           .endOf("day")
           .clone()
           .utc();
@@ -994,8 +994,8 @@ const generateHTMLContent = (tickets, totalAmount) => {
 
 export const getTicketTotalsByPaymentMode = async (req, res) => {
   try {
-    const { search = "" } = req.query;
-    const { supervisors = [], assistants = [], startDate, endDate } = req.body;
+    const { search = "", startDate, endDate } = req.query;
+    const { supervisors = [], assistants = [] } = req.body;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
 
@@ -1036,7 +1036,7 @@ export const getTicketTotalsByPaymentMode = async (req, res) => {
       const dateRange = {};
       if (startDate) {
         const LocalStartDate = moment
-          .tz(new Date(startDate), "Asia/Kolkata")
+          .tz(startDate, "DD/MM/YYYY", "Asia/Kolkata")
           .startOf("day")
           .clone()
           .utc();
@@ -1044,7 +1044,7 @@ export const getTicketTotalsByPaymentMode = async (req, res) => {
       }
       if (endDate) {
         const LocalEndDate = moment
-          .tz(new Date(endDate), "Asia/Kolkata")
+          .tz(endDate, "DD/MM/YYYY", "Asia/Kolkata")
           .endOf("day")
           .clone()
           .utc();
