@@ -114,7 +114,10 @@ export const clockOut = async (req, res) => {
     const attendance = await Attendance.find({
       userId,
       shiftId: user.shiftId,
-      clockOutTime: { $exists: false },
+      $or: [
+        { clockOutTime: { $exists: false } },
+        { clockOutTime: null }
+      ]
     }).sort({ clockInTime: -1 }).limit(1);
 
     console.log({ attendance });
