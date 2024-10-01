@@ -283,7 +283,7 @@ export const getAttendanceByMonth = async (req, res) => {
 
   try {
     const startDate = new Date(year, month, 1);
-    const endDate = new Date(year, Number(month) + 1, 0);
+    const endDate = new Date(new Date(year, Number(month) + 1, 0).setHours(23, 59, 59, 999));
     const attendance = await Attendance.find({
       userId,
       clockInTime: { $gte: startDate, $lte: endDate },
