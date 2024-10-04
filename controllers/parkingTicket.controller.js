@@ -605,8 +605,8 @@ export const getAllTickets = async (req, res) => {
   try {
     const language = getLanguage(req, responses);
 
-    const { search = "", exportFormat, isPass } = req.query;
-    const { supervisors = [], assistants = [], startDate, endDate } = req.body;
+    const { search = "", exportFormat, isPass, startDate, endDate } = req.query;
+    const { supervisors = [], assistants = [] } = req.body;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
 
@@ -1120,13 +1120,19 @@ export const getTicketTotalsByPaymentMode = async (req, res) => {
       online: 0,
       cash: 0,
       free: 0,
-      pass: 0,
+      passCash: 0,
+      passOnline: 0,
     };
 
     totals.forEach((total) => {
       if (total._id.isPass === true) {
         // If it's a pass, add to the pass total only
-        result.pass += total.totalAmount;
+        if (total._id.paymentMode === "Online") {
+          result.passOnline += total.totalAmount;
+        } else if (total._id.paymentMode === "Cash") {
+          result.passCash += total.totalAmount;
+        }
+        // result.pass += total.totalAmount;
       } else {
         // Only add to respective totals if it's not a pass
         if (total._id.paymentMode === "Online") {
