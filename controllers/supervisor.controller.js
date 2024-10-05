@@ -475,6 +475,7 @@ export const getAllSettlementTickets = async (req, res) => {
                          totalCollectedAmount: 1,
                          totalFine: 1,
                          totalReward: 1,
+                         onlineCollection: 1,
                          createdAt: 1,
                          accountantName: { $ifNull: ['$accountantDetails.name', 'Unknown'] },
                          parkingAssistantName: { $ifNull: ['$parkingAssistantDetails.name', 'Unknown'] },
@@ -498,6 +499,7 @@ export const getAllSettlementTickets = async (req, res) => {
                          _id: null,
                          totalCollection: { $sum: '$totalCollection' },
                          totalCollectedAmount: { $sum: '$totalCollectedAmount' },
+                         totalOnlineCollection: { $sum: '$onlineCollection' },
                          totalFine: { $sum: '$totalFine' },
                          totalReward: { $sum: '$totalReward' },
                     }
@@ -537,7 +539,7 @@ export const getAllSettlementTickets = async (req, res) => {
                     nextPage,
                     prevPage,
                },
-               stats: totals.length > 0 ? totals[0] : { totalCollection: 0, totalCollectedAmount: 0, totalFine: 0, totalReward: 0 },
+               stats: totals.length > 0 ? totals[0] : { totalCollection: 0, totalCollectedAmount: 0, totalFine: 0, totalReward: 0, totalOnlineCollection: 0 },
           };
 
           return res.status(200).json({ message: responses.messages[language].settlementTicketsFetchedSuccessfully, result: response });
