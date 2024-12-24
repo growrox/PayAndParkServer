@@ -1174,6 +1174,12 @@ export const getTicketLocation = async (req, res) => {
     const result = await geocoder.reverse(
       { lat, lon },
       function (err, response) {
+        if(err){
+          console.log({err});
+          
+          res.status(500).json({ message: err });
+          return;
+        }
         return response;
       }
     );

@@ -8,7 +8,8 @@ export const ROUTES = {
     UPDATE_USER: "/user/:id",
     GET_SUPERVISOR_WITH_ASSITANT: "/supervisors-with-assistants",
     FOGOT_PASSWORD: "/user/forgot-password/:phone",
-    UPDATE_PASSWORD: "/user/update-password"
+    UPDATE_PASSWORD: "/user/update-password",
+    DISABLE_USER: "/user-disable/:id",
   },
   VEHICLE_TYPE: {
     CREATE: "/create-vehicle-type/:folderName",
@@ -23,36 +24,37 @@ export const ROUTES = {
     GET_TICKETS: "/parking-assistant/tickets",
     GET_GLOBAL_TICKETS: "/parking-assistant/global/tickets",
     GET_SETTLEMENT_SPECIFIC_DATE: "/parking-assistant/settlement/:userId",
-    GET_SETTLEMENT_BETWEEN_DATES: "/parking-assistant/settlement/all/:userId"
+    GET_SETTLEMENT_BETWEEN_DATES: "/parking-assistant/settlement/all/:userId",
   },
   SHIFT: {
-    CREATE_SHIFTS: '/shifts/create',
-    UPDATE_SHIFT: '/shifts/:id',
-    GET_SHIFT: '/shifts/list'
+    CREATE_SHIFTS: "/shifts/create",
+    UPDATE_SHIFT: "/shifts/:id",
+    GET_SHIFT: "/shifts/list",
   },
   ATTENDENCE: {
-    CLOCK_IN: '/attendance/clock-in/:userId',
-    CLOCK_OUT: '/attendance/clock-out/:userId',
-    UPDATE_ATTENDANCE: '/attendance/update/:attendanceId',
-    GET_ATTENDANCE: '/get-monthly-attendance',
+    CLOCK_IN: "/attendance/clock-in/:userId",
+    CLOCK_OUT: "/attendance/clock-out/:userId",
+    UPDATE_ATTENDANCE: "/attendance/update/:attendanceId",
+    GET_ATTENDANCE: "/get-monthly-attendance",
   },
   IMAGE: {
-    GET: "/images/:folderName/:imageName"
+    GET: "/images/:folderName/:imageName",
   },
   VEHICAL_PASS: {
     GET_PASS: "/vehicle-passes",
     CREATE_PASS: "/vehicle-passes",
     UPDATE_PASS: "/vehicle-passes/:passId",
     GET_PASS_BY_FILTER: "/vehicle-passes/:filter",
-    DELETE_PASS: "/vehicle-passes/:passId"
+    DELETE_PASS: "/vehicle-passes/:passId",
   },
   ACCOUNTANT: {
     SETTLE_SUPERVISOR_TICKET: "/accountant/settle-tickets/:supervisorID",
     GET_SUPERVISOR: "/accountant/supervisors",
     GET_ALL_SETTLE_TICKETS: "/accountant/tickets/settled/:accountantID",
-    GET_SUPERVISOR_SETTLE_TICKETS: "/accountant/tickets/supervisor/:supervisorID",
+    GET_SUPERVISOR_SETTLE_TICKETS:
+      "/accountant/tickets/supervisor/:supervisorID",
     GET_STATS: "/accountant/stats/:accountantID",
-    GET_STATS_BY_DATE: "/accountant/stats-by-date/:accountantID"
+    GET_STATS_BY_DATE: "/accountant/stats-by-date/:accountantID",
   },
   SUPERVISOR: {
     SETTLE_TICKETS: "/supervisor/settle-tickets/:parkingAssistantID",
@@ -61,7 +63,8 @@ export const ROUTES = {
     GET_STATS: "/supervisor/stats/:supervisorID",
     GET_LIFETIME_STATS: "/supervisor/lifetime-stats/:supervisorID",
     GET_ALL_SUPERVISOR: "/supervisor/all",
-    GET_ASSISTANT_STATUS: "/supervisor/parkings-assistants/status/:supervisorID",
+    GET_ASSISTANT_STATUS:
+      "/supervisor/parkings-assistants/status/:supervisorID",
   },
   PARKING_TICKETS: {
     UPLOAD_VEHICAL_IMAGE: "/parking-tickets/uploadParkingTicket",
@@ -93,6 +96,6 @@ export const ROUTES = {
     DELETE: "/delete-site/:id",
     GET_SUPERVISOR_SITES: "/site/supervisor/:supervisorID",
     GET_SITE_TICKETSTATS: "/site/tickets-stats/:siteID",
-    GET_SUPERVISOR_ALL_SITES: "/site/all/supervisor/:supervisorID"
-  }
+    GET_SUPERVISOR_ALL_SITES: "/site/all/supervisor/:supervisorID",
+  },
 };

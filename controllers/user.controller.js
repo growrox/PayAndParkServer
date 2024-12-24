@@ -135,12 +135,10 @@ export const createUser = async (req, res) => {
         code: err.code,
       });
     }
-    return res
-      .status(500)
-      .json({
-        error: responses.errors[language].internalServerError,
-        code: err.code,
-      });
+    return res.status(500).json({
+      error: responses.errors[language].internalServerError,
+      code: err.code,
+    });
   }
 };
 
@@ -153,6 +151,11 @@ export const loginUser = async (req, res) => {
     if (source === "app") {
       try {
         const user = await User.findOne({ phone: phone });
+        if (user.isUserDisable) {
+          return res
+            .status(402)
+            .json({ error: responses.errors[language].userDisable });
+        }
         console.log("Found User ", user);
 
         if (isEmpty(user) || user?.role === "superadmin") {
@@ -182,7 +185,11 @@ export const loginUser = async (req, res) => {
       }
     } else if (source === "web") {
       const user = await User.findOne({ phone: phone });
-
+      if (user.isUserDisable) {
+        return res
+          .status(402)
+          .json({ error: responses.errors[language].userDisable });
+      }
       if (!user) {
         return res
           .status(404)
@@ -247,9 +254,7 @@ export const validateOTP = async (req, res) => {
 
   try {
     if (isEmpty(source) || (source != "app" && source != "web")) {
-      return res
-        .status(404)
-        .json({ error: "Invalid source." });
+      return res.status(404).json({ error: "Invalid source." });
     }
 
     const newUser = await User.findOne({ phone: phone });
@@ -283,7 +288,6 @@ export const validateOTP = async (req, res) => {
       await Otp.deleteOne({ phoneNumber: phone });
 
       if (source === "web") {
-
         const token = jwt.sign(
           { role: "superadmin", userId: getOTPDetails.userID, source: "web" },
           process.env.JWT_SECRET,
@@ -301,9 +305,7 @@ export const validateOTP = async (req, res) => {
           result: newUser,
           message: "Login sucessful.",
         });
-
-      }
-      else if (source == "app") {
+      } else if (source == "app") {
         await User.findByIdAndUpdate(newUser._id, {
           $set: { isActivated: true },
         });
@@ -322,8 +324,7 @@ export const validateOTP = async (req, res) => {
           code: newUser?.code,
           supervisorCode: newUser?.supervisorCode,
         });
-      }
-      else {
+      } else {
         return res.status(200).json({
           message: "OTP validated successfully.",
           token,
@@ -344,10 +345,11 @@ export const validateOTP = async (req, res) => {
         );
       }
       return res.status(300).json({
-        message: `${getOTPDetails?.attempts
-          ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
-          : "Maximum attempts reached generate new OTP."
-          }`,
+        message: `${
+          getOTPDetails?.attempts
+            ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
+            : "Maximum attempts reached generate new OTP."
+        }`,
         attempts: getOTPDetails?.attempts,
       });
     }
@@ -413,7 +415,9 @@ export const getUsers = async (req, res) => {
 
     // Find users based on the query, select specific fields, and apply pagination
     const users = await User.find(query)
-      .select("name code phone role supervisorCode shiftId isOnline siteId")
+      .select(
+        "name code phone role supervisorCode shiftId isOnline siteId isUserDisable"
+      )
       .populate("shiftId siteId")
       .sort({ createdAt: -1 })
       .skip((page - 1) * pageSize)
@@ -504,7 +508,9 @@ export const getUserStatus = async (req, res) => {
       isOnline: 1,
       role: 1,
       phone: 1,
-    }).populate('shiftId').populate({ path: 'siteId', select: "name _id" });
+    })
+      .populate("shiftId")
+      .populate({ path: "siteId", select: "name _id" });
 
     if (isEmpty(user)) {
       return res.status(404).json({
@@ -555,7 +561,9 @@ export const updateUser = async (req, res) => {
     }
     console.log({ updateDetails });
 
-    const updatedUser = await User.findByIdAndUpdate(id, updateDetails, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(id, updateDetails, {
+      new: true,
+    });
 
     return res.status(200).json({
       message: responses.messages[language].userUpdatedSuccessfully,
@@ -581,6 +589,25 @@ export const deleteUser = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
     return res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const disableUser = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const disableUser = await User.findByIdAndUpdate(id, {
+      isUserDisable: true,
+    });
+    if (!disableUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    return res.json({
+      message: "User disable successfully",
+      result: { disableUser },
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -623,17 +650,22 @@ export const forgotPassword = async (req, res) => {
     if (!findUser) {
       return res.status(404).json({ error: "User not found" });
     }
-    console.log(findUser.role != "accountant", findUser.role != "superadmin", "  ", findUser.role != "accountant" && findUser.role != "superadmin");
-
+    console.log(
+      findUser.role != "accountant",
+      findUser.role != "superadmin",
+      "  ",
+      findUser.role != "accountant" && findUser.role != "superadmin"
+    );
 
     if (findUser.role != "accountant" && findUser.role != "superadmin") {
-      return res.status(404).json({ message: "Not allowed to reset passowrd." });
+      return res
+        .status(404)
+        .json({ message: "Not allowed to reset passowrd." });
     }
 
     const otpSent = await generateOTP(findUser._id, findUser.phone);
 
     return res.status(200).json({ message: "OTP generated successfully." });
-
   } catch (error) {
     console.error("Error generating otp for reset password.", error);
     return res.status(500).json({ error: err.message });
@@ -649,13 +681,26 @@ export const updateUserPassword = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (isEmpty(password) || isEmpty(confirmPassword) || password != confirmPassword) {
-      return res.status(404).json({ message: "Please check the password and try again." });
+    if (
+      isEmpty(password) ||
+      isEmpty(confirmPassword) ||
+      password != confirmPassword
+    ) {
+      return res
+        .status(404)
+        .json({ message: "Please check the password and try again." });
     }
-    console.log(findUser.role != "accountant", findUser.role != "superadmin", "  ", findUser.role != "accountant" && findUser.role != "superadmin");
+    console.log(
+      findUser.role != "accountant",
+      findUser.role != "superadmin",
+      "  ",
+      findUser.role != "accountant" && findUser.role != "superadmin"
+    );
 
     if (findUser.role != "accountant" && findUser.role != "superadmin") {
-      return res.status(404).json({ message: "Not allowed to reset passowrd." });
+      return res
+        .status(404)
+        .json({ message: "Not allowed to reset passowrd." });
     }
 
     // const otpSent = await generateOTP(findUser._id, findUser.phone);
@@ -680,33 +725,39 @@ export const updateUserPassword = async (req, res) => {
     if (OTP == getOTPDetails.OTP) {
       await Otp.findByIdAndDelete(getOTPDetails._id);
       const hashedPassword = await bcrypt.hash(password, 10);
-      await User.findByIdAndUpdate(findUser._id,
-        {
-          password: hashedPassword
-        });
+      await User.findByIdAndUpdate(findUser._id, {
+        password: hashedPassword,
+      });
 
-      return res.status(200).json({ result: { _id: findUser._id, name: findUser.name, role: findUser.role, phone: findUser.phone }, message: "Password Updated Successfully." });
-    }
-    else {
+      return res.status(200).json({
+        result: {
+          _id: findUser._id,
+          name: findUser.name,
+          role: findUser.role,
+          phone: findUser.phone,
+        },
+        message: "Password Updated Successfully.",
+      });
+    } else {
       if (!getOTPDetails?.attempts) {
         await Otp.findByIdAndDelete(getOTPDetails._id);
       } else {
-        await Otp.findByIdAndUpdate(
-          getOTPDetails._id, { attempts: getOTPDetails?.attempts - 1 }
-        );
+        await Otp.findByIdAndUpdate(getOTPDetails._id, {
+          attempts: getOTPDetails?.attempts - 1,
+        });
       }
       return res.status(300).json({
-        message: `${getOTPDetails?.attempts
-          ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
-          : "Maximum attempts reached generate new OTP."
-          }`,
+        message: `${
+          getOTPDetails?.attempts
+            ? "Wrong OTP try again. Attempts left " + getOTPDetails?.attempts
+            : "Maximum attempts reached generate new OTP."
+        }`,
         attempts: getOTPDetails?.attempts,
       });
     }
-
   } catch (error) {
     console.error("Error updating the password.", error);
 
     return res.status(500).json({ error: err.message });
   }
-}
+};
