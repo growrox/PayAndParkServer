@@ -596,10 +596,10 @@ export const deleteUser = async (req, res) => {
 
 export const disableUser = async (req, res) => {
   const { id } = req.params;
-
+  const { isUserDisable } = req.body;
   try {
     const disableUser = await User.findByIdAndUpdate(id, {
-      isUserDisable: true,
+      isUserDisable: isUserDisable,
     });
     if (!disableUser) {
       return res.status(404).json({ error: "User not found" });
